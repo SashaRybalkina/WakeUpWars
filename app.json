@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "Tastebuds",
-    "slug": "tastebuds",
-    "owner": "teamtastebuds",
-    "scheme": "tastebuds",
+    "name": "WakeUpWars",
+    "slug": "wakeupwars",
+    "owner": "wakeupwars",
+    "scheme": "wakeupwars",
     "version": "0.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

@@ -11,10 +11,7 @@ import {
   View,
 } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
-import { collection, getDocs } from 'firebase/firestore/lite';
 import { Button } from 'tamagui';
-
-import { db } from '../firebase';
 
 type Props = {
   navigation: NavigationProp<any>;
@@ -30,32 +27,27 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleLogin = async () => {
     try {
-      const usersCollectionRef = collection(db, 'allUsers');
-      const querySnapshot = await getDocs(usersCollectionRef);
-      let userExists = false;
-
-      querySnapshot.forEach((doc) => {
-        if (doc.data().username == username) {
-          userExists = true;
-          if (doc.data().password == password) {
-            navigation.navigate('Generator', { userId: doc.id });
-          } else {
-            Alert.alert('Incorrect password. Please try again.');
-          }
-        }
+      const response = await fetch('https://4c56-136-38-171-186.ngrok-free.app/api/login/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
       });
-
-      if (!userExists) {
-        Alert.alert(
-          'Username does not exist. Please check your spelling or create a new account.',
-        );
+  
+      const data = await response.json();
+  
+      if (response.ok && data.success) {
+        navigation.navigate('mainPage', { userId: data.userId });
+      } else {
+        Alert.alert('Login Failed', data.error || 'Login failed');
       }
-
-      console.log('Document successfully checked!');
     } catch (error) {
-      console.error('Error updating document:', error);
+      console.error('Login error:', error);
+      Alert.alert('Error', 'Network error or server is down.');
     }
   };
+  
 
   interface TextWithStrokeProps {
     text: string;

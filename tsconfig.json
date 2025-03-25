@@ -3,6 +3,7 @@
   "compilerOptions": {
     "strict": true,
     "noUncheckedIndexedAccess": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "jsx": "react-native"
   }
 }

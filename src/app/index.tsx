@@ -5,10 +5,11 @@ import 'expo-router/entry';
 
 import { NavigationContainer } from '@react-navigation/native';
 
-import InputOutput from './pages/Input-Output';
 import LoginScreen from './pages/Login';
 import SignUpScreen from './pages/SignUp';
 import StartScreen from './pages/StartScreen';
+import InputOutput from './pages/mainPage';
+
 
 const Stack = createStackNavigator();
 
@@ -16,11 +17,6 @@ function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Start">
-        <Stack.Screen
-          name="InOut"
-          component={InputOutput}
-          options={{ headerShown: false }}
-        />
         <Stack.Screen
           name="Start"
           component={StartScreen}
@@ -34,6 +30,11 @@ function App() {
         <Stack.Screen
           name="SignUp"
           component={SignUpScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="mainPage"
+          component={InputOutput}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

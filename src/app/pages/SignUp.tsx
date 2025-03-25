@@ -8,19 +8,7 @@ import {
   View,
 } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  DocumentReference,
-  getDocs,
-  setDoc,
-  updateDoc,
-} from 'firebase/firestore/lite';
 import { Button } from 'tamagui';
-
-import { db } from '../firebase';
 
 type Props = {
   navigation: NavigationProp<any>;
@@ -37,108 +25,41 @@ const SignUpScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleSignUp = async () => {
-    try {
-      const usersCollectionRef = collection(db, 'allUsers');
-      const querySnapshot = await getDocs(usersCollectionRef);
-      let userExists = false;
-      let emailExists = false;
+    if (!username || !email || !password || !confirmPassword) {
+      Alert.alert('Please fill out all fields.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      Alert.alert('Passwords do not match.');
+      return;
+    }
 
-      querySnapshot.forEach((doc) => {
-        if (doc.data().username === username) {
-          userExists = true;
-        }
-        if (doc.data().email === email) {
-          emailExists = true;
-        }
+    try {
+      const response = await fetch('https://4c56-136-38-171-186.ngrok-free.app/api/register/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username,
+          email,
+          password,
+        }),
       });
 
-      if (userExists) {
-        Alert.alert('Username already exists. Log into your account.');
-      } else if (emailExists) {
-        Alert.alert(
-          'Email already has a username attached. Log into your account.',
-        );
-      } else if (password != confirmPassword) {
-        Alert.alert('Passwords do not match. Please try again.');
+      const data = await response.json();
+
+      if (response.ok) {
+        Alert.alert('Account created!');
+        navigation.navigate('Login');
       } else {
-        const docRef = await addDoc(usersCollectionRef, {
-          username: username,
-          password: password,
-          email: email,
-        });
-
-        // Reference to collections and planner subcollections
-        const collectionsRef = collection(
-          usersCollectionRef,
-          docRef.id,
-          'collections',
-        );
-        const plannerRef = collection(usersCollectionRef, docRef.id, 'planner');
-
-        // Set up 'collections' subcollection
-        const historyRef = doc(collectionsRef, 'History');
-        const favoritesRef = doc(collectionsRef, 'Favorites');
-        await Promise.all([setDoc(historyRef, {}), setDoc(favoritesRef, {})]);
-
-        // Set up 'planner' subcollection
-        const dayRefs = [
-          'Day 1',
-          'Day 2',
-          'Day 3',
-          'Day 4',
-          'Day 5',
-          'Day 6',
-          'Day 7',
-        ];
-        const dayDocRefs = dayRefs.map((day) => doc(plannerRef, day));
-        await Promise.all(dayDocRefs.map((docRef) => setDoc(docRef, {})));
-
-        // Navigate to the next screen after all operations are completed
-        navigation.navigate('Registered', { userId: docRef.id });
+        Alert.alert(data.error || 'Failed to sign up.');
       }
     } catch (error) {
-      console.error('Error signing up:', error);
+      console.error('Signup error:', error);
+      Alert.alert('Signup failed. Try again later.');
     }
   };
-
-  interface TextWithStrokeProps {
-    text: string;
-    strokeColor: string;
-    strokeWidth: number;
-    textColor: string;
-    fontSize: number;
-  }
-
-  const TextWithStroke: React.FC<TextWithStrokeProps> = ({
-    text,
-    strokeColor,
-    strokeWidth,
-    textColor,
-    fontSize,
-  }) => (
-    <View style={styles.textContainer}>
-      {/* Text with Stroke (Outline) - slightly offset */}
-      <Text
-        style={[
-          styles.title,
-          {
-            color: strokeColor,
-            fontSize,
-            position: 'absolute',
-            zIndex: -1, // Behind the actual text
-            textShadowOffset: { width: strokeWidth, height: strokeWidth },
-            textShadowRadius: 0, // No blur
-            textShadowColor: strokeColor,
-          },
-        ]}
-      >
-        {text}
-      </Text>
-
-      {/* Actual Text */}
-      <Text style={[styles.title, { color: textColor, fontSize }]}>{text}</Text>
-    </View>
-  );
 
   return (
     <ImageBackground
@@ -147,13 +68,7 @@ const SignUpScreen: React.FC<Props> = ({ navigation }) => {
       resizeMode="cover"
     >
       <View style={styles.container}>
-        <TextWithStroke
-          text="WakeUpWars"
-          strokeColor="#FF7893"
-          strokeWidth={2}
-          textColor="#FFF"
-          fontSize={55}
-        />
+        <Text style={styles.title}>WakeUpWars</Text>
         <View style={styles.gap}></View>
         <TextInput
           style={styles.input}
@@ -213,15 +128,11 @@ const styles = StyleSheet.create({
     marginBottom: 80,
     marginTop: 80,
   },
-  textContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '80%',
-  },
   title: {
     color: '#FFF',
     fontFamily: 'Arvo-Regular',
     fontWeight: 'bold',
+    fontSize: 55,
     textAlign: 'center',
   },
   gap: {
@@ -236,7 +147,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 10,
     paddingLeft: 15,
-    marginBottom: 10, // Reduced margin bottom to reduce gap
+    marginBottom: 10,
   },
   button: {
     width: '80%',
@@ -246,7 +157,7 @@ const styles = StyleSheet.create({
     borderColor: '#DF3372',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10, // Adjusted to make it closer to the input fields
+    marginTop: 10,
     marginBottom: 15,
   },
   buttonText: {
