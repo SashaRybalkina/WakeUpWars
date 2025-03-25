@@ -4,7 +4,6 @@ import json
 
 HARDCODED_USERS = [
     {"username": "gloria", "password": "wakeUp123"},
-    {"username": "sasha", "password": "goodMorning"},
 ]
 
 @csrf_exempt
