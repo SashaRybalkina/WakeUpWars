@@ -30,7 +30,7 @@ var allColors = [
 ];
 
 const assignColor = () => {
-  var index = Math.floor(Math.random() * 11);
+  var index = Math.floor(Math.random() * allColors.length);
   var color = allColors[index];
   allColors.splice(index, 1);
   return color + '';
@@ -51,7 +51,6 @@ const SudokuScreen = ({ navigation }) => {
 
   useEffect(() => {
     if (timeLeft === 0) {
-      // Trigger popup when time runs out
       Alert.alert(
         "Time's Up!",
         'You failed your team!',
