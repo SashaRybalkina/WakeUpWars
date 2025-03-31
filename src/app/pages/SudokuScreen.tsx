@@ -9,7 +9,12 @@ import {
   View,
 } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
-import { initialSudokuBoard } from './SudokuGameLogic'; // Adjust the import path as necessary
+import { 
+  initialSudokuBoard,
+  isGameComplete,
+  isCorrectSolution,
+} from './SudokuGameLogic'; // Adjust the import path as necessary
+
 
 const CELL_SIZE = 40;
 const BORDER_WIDTH_THIN = 1;
@@ -59,40 +64,47 @@ const SudokuScreen = ({ navigation }) => {
     console.log('Saved Color:', color);
   };
 
-  useEffect(() => {
-    if (timeLeft === 0) {
-      Alert.alert(
-        "Time's Up!",
-        'You failed your team!',
-        [
-          {
-            text: 'Try Again',
-            onPress: () => [
-              setTimeLeft(300),
-              setCellColors(Array(81).fill('white')),
-              // Reset grid and fixed cells
-              setGrid(initialSudokuBoard.map((num) => (num === 0 ? '' : num.toString()))),
-              setInitialCells(initialSudokuBoard.map((num) => num !== 0)),
-            ],
-          },
-        ],
-        { cancelable: false },
-      );
-      return;
-    }
+  const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
 
-    const intervalId = setInterval(() => {
-      setTimeLeft((prevTime) => prevTime - 1);
-    }, 1000);
-
-    return () => clearInterval(intervalId);
-  }, [timeLeft]);
-
-  const formatTime = (timeInSeconds) => {
+  const formatTime = (timeInSeconds: number) => {
     const minutes = Math.floor(timeInSeconds / 60);
     const seconds = timeInSeconds % 60;
     return `${minutes}:${seconds < 10 ? `0${seconds}` : seconds}`;
   };
+
+  // restart the game
+  const restartGame = () => {
+    setTimeLeft(300); // Reset Timer
+    setCellColors(Array(81).fill('white')); // Reset colors
+    setGrid(initialSudokuBoard.map((num) => (num === 0 ? '' : num.toString()))); // Reset puzzle
+    setInitialCells(initialSudokuBoard.map((num) => num !== 0)); // Reset locked cells
+  
+    if (intervalId) clearInterval(intervalId); // Stop previous timer
+  
+    const newId = setInterval(() => {
+      setTimeLeft((prevTime) => prevTime - 1); // Start new timer
+    }, 1000);
+    setIntervalId(newId);
+  };
+
+  // Timer reaches 0
+  useEffect(() => {
+    if (timeLeft === 0) {
+      if (intervalId) clearInterval(intervalId);
+      Alert.alert("Time's Up!", 'You failed your team!', [
+        { text: 'Try Again', onPress: restartGame },
+      ]);
+    }
+  }, [timeLeft]);
+
+  // （Start timer on mount）
+  useEffect(() => {
+    const id = setInterval(() => {
+      setTimeLeft(prev => prev - 1);
+    }, 1000);
+    setIntervalId(id);
+    return () => clearInterval(id);
+  }, []);
 
   const handleInputChange = (index, value) => {
     if (value === '' || /^[1-9]$/.test(value)) {
@@ -109,6 +121,16 @@ const SudokuScreen = ({ navigation }) => {
 
         setGrid(newGrid);
         setCellColors(newColors);
+
+        if (isGameComplete(newGrid)) {
+          if (isCorrectSolution(newGrid)) {
+            if (intervalId) clearInterval(intervalId); // Stop the timer
+            Alert.alert("🎉 Good job!", "You've solved the puzzle correctly!");
+          } else {
+            Alert.alert("😵 Oops", "The puzzle is full, but some answers are wrong.");
+          }
+        }
+
       } else {
         Alert.alert(
           'Cannot Edit',
@@ -140,7 +162,7 @@ const SudokuScreen = ({ navigation }) => {
             <Text style={styles.timerText}>Timer:</Text>
             <Text style={styles.timerValue}>{formatTime(timeLeft)}</Text>
           </View>
-        </View>
+      </View>
 
         {/* color and hint */}
         <View style={styles.infoContainer}>
@@ -209,6 +231,13 @@ const SudokuScreen = ({ navigation }) => {
           >
             <View style={styles.avatar} />
           </TouchableOpacity>
+            {/* Restart button */}
+            <TouchableOpacity
+              style={styles.restartButton}
+              onPress={restartGame}
+            >
+              <Text style={styles.restartButtonText}>Restart</Text>
+            </TouchableOpacity>
         </View>
 
           
@@ -339,6 +368,19 @@ const styles = StyleSheet.create({
     height: 40,
     backgroundColor: 'gray',
     borderRadius: 20,
+  },
+  restartButton: {
+    backgroundColor: 'lightgreen',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+    marginLeft: 10,
+    alignSelf: 'center', 
+  },
+  restartButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'black',
   },
   messageInput: {
     flexDirection: 'row',
