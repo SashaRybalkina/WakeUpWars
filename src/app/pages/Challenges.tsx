@@ -1,16 +1,13 @@
 import React from 'react';
 import {
-  Alert,
   ImageBackground,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NavigationProp } from '@react-navigation/native';
-import * as Font from 'expo-font';
 import { Button } from 'tamagui';
 
 type Props = {
@@ -18,12 +15,8 @@ type Props = {
 };
 
 const Challenges: React.FC<Props> = ({ navigation }) => {
-  const goToPersonalChall = () => {
-    //navigation.navigate('ChallPers');
-  };
-
-  const goToGroupChall = () => {
-    //navigation.navigate('ChallGroup');
+  const goToChall1 = (whichChall: String) => {
+    navigation.navigate('Chall1', { whichChall });
   };
 
   const goToGroups = () => {
@@ -46,10 +39,20 @@ const Challenges: React.FC<Props> = ({ navigation }) => {
     >
       <View style={styles.container}>
         <Text style={styles.title}>My Challenges</Text>
-        <TouchableOpacity style={styles.navToChall}>
+        <TouchableOpacity
+          style={styles.navToChall}
+          onPress={() => {
+            goToChall1('Personal');
+          }}
+        >
           <Text style={styles.navToChallText}>Personal</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navToChall}>
+        <TouchableOpacity
+          style={styles.navToChall}
+          onPress={() => {
+            goToChall1('Group');
+          }}
+        >
           <Text style={styles.navToChallText}>Group</Text>
         </TouchableOpacity>
       </View>

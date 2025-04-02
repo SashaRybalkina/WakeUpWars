@@ -1,16 +1,13 @@
 import React, { useState } from 'react';
 import {
-  Alert,
   ImageBackground,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NavigationProp } from '@react-navigation/native';
-import * as Font from 'expo-font';
 import { Int32 } from 'react-native/Libraries/Types/CodegenTypes';
 import { Button, ScrollView } from 'tamagui';
 

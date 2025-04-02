@@ -6,6 +6,10 @@ import 'expo-router/entry';
 import { NavigationContainer } from '@react-navigation/native';
 
 import Challenges from './pages/Challenges';
+import Chall1 from './pages/Challenges/Chall1';
+import Chall2 from './pages/Challenges/Chall2';
+import Chall3 from './pages/Challenges/Chall3';
+import Chall4 from './pages/Challenges/Chall4';
 import GroupScreen from './pages/Groups';
 import LoginScreen from './pages/Login';
 import InputOutput from './pages/mainPage';
@@ -25,13 +29,33 @@ function App() {
         screenOptions={{ animationEnabled: false }}
       >
         <Stack.Screen
-          name="Sudoku"
-          component={SudokuScreen}
+          name="Challenges"
+          component={Challenges}
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="Challenges"
-          component={Challenges}
+          name="Chall1"
+          component={Chall1}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Chall2"
+          component={Chall2}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Chall3"
+          component={Chall3}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Chall4"
+          component={Chall4}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Sudoku"
+          component={SudokuScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen
