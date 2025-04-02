@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -72,13 +73,14 @@ TEMPLATES = [
 WSGI_APPLICATION = 'myserver.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',  # Use MySQL engine
+        'NAME': 'wake_up_wars_db',  # Name of the database (e.g., 'myappdb')
+        'USER': 'wuw',  # RDS username (e.g., 'admin')
+        'PASSWORD': 'AlarmsYay!',  # RDS password
+        'HOST': 'wake-up-wars-db.c9g0sskiwu2u.us-east-1.rds.amazonaws.com',  # RDS endpoint (e.g., 'mydatabase-instance.cxj4jf84x6y.us-west-2.rds.amazonaws.com')
+        'PORT': '3306',  # Default MySQL port
     }
 }
 
