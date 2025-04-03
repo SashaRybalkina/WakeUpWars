@@ -5,8 +5,16 @@ import 'expo-router/entry';
 
 import { NavigationContainer } from '@react-navigation/native';
 
+import Challenges from './pages/Challenges';
+import Chall1 from './pages/Challenges/Chall1';
+import Chall2 from './pages/Challenges/Chall2';
+import Chall3 from './pages/Challenges/Chall3';
+import Chall4 from './pages/Challenges/Chall4';
+import GroupScreen from './pages/Groups';
 import LoginScreen from './pages/Login';
 import InputOutput from './pages/mainPage';
+import Messages from './pages/Messages';
+import Profile from './pages/Profile';
 import SignUpScreen from './pages/SignUp';
 import StartScreen from './pages/StartScreen';
 import SudokuScreen from './pages/SudokuScreen';
@@ -16,10 +24,53 @@ const Stack = createStackNavigator();
 function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Sudoku">
+      <Stack.Navigator
+        initialRouteName="Challenges"
+        screenOptions={{ animationEnabled: false }}
+      >
+        <Stack.Screen
+          name="Challenges"
+          component={Challenges}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Chall1"
+          component={Chall1}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Chall2"
+          component={Chall2}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Chall3"
+          component={Chall3}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Chall4"
+          component={Chall4}
+          options={{ headerShown: false }}
+        />
         <Stack.Screen
           name="Sudoku"
           component={SudokuScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Messages"
+          component={Messages}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Groups"
+          component={GroupScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Profile"
+          component={Profile}
           options={{ headerShown: false }}
         />
         <Stack.Screen
