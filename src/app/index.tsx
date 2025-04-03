@@ -25,7 +25,7 @@ function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Challenges"
+        initialRouteName="Login"
         screenOptions={{ animationEnabled: false }}
       >
         <Stack.Screen
@@ -56,7 +56,7 @@ function App() {
         <Stack.Screen
           name="Sudoku"
           component={SudokuScreen}
-          options={{ headerShown: false }}
+          options={{ animationEnabled: false }}
         />
         <Stack.Screen
           name="Messages"

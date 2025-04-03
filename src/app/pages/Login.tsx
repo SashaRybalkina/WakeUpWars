@@ -38,7 +38,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       const data = await response.json();
   
       if (response.ok && data.success) {
-        navigation.navigate('mainPage', { userId: data.userId });
+        navigation.navigate('Challenges', { userId: data.userId });
       } else {
         Alert.alert('Login Failed', data.error || 'Login failed');
       }
