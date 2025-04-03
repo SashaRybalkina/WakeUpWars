@@ -5,7 +5,7 @@ from django.contrib.auth.models import AbstractUser
 
 # Extend the default Django User model
 class User(AbstractUser):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, default='Anonymous')
     bio = models.TextField(blank=True, null=True) # can be null
 
     class Meta:
@@ -41,7 +41,7 @@ class Friendship(models.Model):
 
 
 class Group(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, default='Group')
     bio = models.TextField(blank=True, null=True)
 
     class Meta:
@@ -121,7 +121,7 @@ class Challenge(models.Model):
     uID = models.ForeignKey(User, null=True, blank=True, on_delete=models.CASCADE) # null if group challenge
     startDate = models.DateField()
     endDate = models.DateField()
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, default='Challenge')
 
     class Meta:
         db_table = 'Challenges'

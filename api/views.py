@@ -1,6 +1,10 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth.hashers import make_password
 import json
+
+User = get_user_model()
 
 HARDCODED_USERS = [
     {"username": "gloria", "password": "wakeUp123"},
@@ -27,7 +31,21 @@ def login_view(request):
 @csrf_exempt
 def register_view(request):
     if request.method == 'POST':
-        return JsonResponse({'error': 'Registration is disabled for hardcoded users'}, status=403)
+        data = json.loads(request.body)
+        username = data.get('username')
+        password = data.get('password')
+        name = data.get('name', 'Anonymous')
+
+        if User.objects.filter(username=username).exists():
+            return JsonResponse({'success': False, 'error': 'Username already exists'}, status=400)
+
+        user = User.objects.create(
+            username=username,
+            name=name,
+            password=make_password(password)
+        )
+
+        return JsonResponse({'success': True, 'username': user.username})
 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
