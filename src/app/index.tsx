@@ -7,10 +7,12 @@ import { NavigationContainer } from '@react-navigation/native';
 
 import Challenges from './pages/Challenges';
 import Chall1 from './pages/Challenges/Chall1';
-import Chall2 from './pages/Challenges/Chall2';
-import Chall3 from './pages/Challenges/Chall3';
-import Chall4 from './pages/Challenges/Chall4';
 import GroupScreen from './pages/Groups';
+import GroupChall1 from './pages/Groups/GroupChall1';
+import GroupChall2 from './pages/Groups/GroupChall2';
+import GroupChall3 from './pages/Groups/GroupChall3';
+import GroupChall4 from './pages/Groups/GroupChall4';
+import GroupDetails from './pages/Groups/GroupDetails';
 import LoginScreen from './pages/Login';
 import InputOutput from './pages/mainPage';
 import Messages from './pages/Messages';
@@ -25,7 +27,7 @@ function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Challenges"
+        initialRouteName="Groups"
         screenOptions={{ animationEnabled: false }}
       >
         <Stack.Screen
@@ -39,18 +41,18 @@ function App() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="Chall2"
-          component={Chall2}
+          name="GroupChall2"
+          component={GroupChall2}
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="Chall3"
-          component={Chall3}
+          name="GroupChall3"
+          component={GroupChall3}
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="Chall4"
-          component={Chall4}
+          name="GroupChall4"
+          component={GroupChall4}
           options={{ headerShown: false }}
         />
         <Stack.Screen
@@ -66,6 +68,16 @@ function App() {
         <Stack.Screen
           name="Groups"
           component={GroupScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="GroupDetails"
+          component={GroupDetails}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="GroupChall1"
+          component={GroupChall1}
           options={{ headerShown: false }}
         />
         <Stack.Screen

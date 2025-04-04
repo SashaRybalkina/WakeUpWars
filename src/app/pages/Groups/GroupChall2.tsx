@@ -122,7 +122,7 @@ const Chall2 = ({ navigation }) => {
           <TouchableOpacity
             style={styles.addButton}
             onPress={() => {
-              navigation.navigate('Chall3', {
+              navigation.navigate('GroupChall3', {
                 onGameSelected: (game: string, attr: string[]) => {
                   setCurGames((prevGames) => [
                     ...prevGames,

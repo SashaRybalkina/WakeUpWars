@@ -9,12 +9,14 @@ import {
   View,
 } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
-import { 
-  initialSudokuBoard,
-  isGameComplete,
-  isCorrectSolution,
-} from './SudokuGameLogic'; // Adjust the import path as necessary
 
+import {
+  initialSudokuBoard,
+  isCorrectSolution,
+  isGameComplete,
+} from './SudokuGameLogic';
+
+// Adjust the import path as necessary
 
 const CELL_SIZE = 40;
 const BORDER_WIDTH_THIN = 1;
@@ -53,8 +55,8 @@ const SudokuScreen = ({ navigation }) => {
   // Track fixed cells that should not be changed
   const [initialCells, setInitialCells] = useState(
     initialSudokuBoard.map((num) => num !== 0),
-  );  
-  
+  );
+
   const [savedColor, setSavedColor] = useState('');
   const [cellColors, setCellColors] = useState(Array(81).fill('white'));
   const [timeLeft, setTimeLeft] = useState(300);
@@ -78,9 +80,9 @@ const SudokuScreen = ({ navigation }) => {
     setCellColors(Array(81).fill('white')); // Reset colors
     setGrid(initialSudokuBoard.map((num) => (num === 0 ? '' : num.toString()))); // Reset puzzle
     setInitialCells(initialSudokuBoard.map((num) => num !== 0)); // Reset locked cells
-  
+
     if (intervalId) clearInterval(intervalId); // Stop previous timer
-  
+
     const newId = setInterval(() => {
       setTimeLeft((prevTime) => prevTime - 1); // Start new timer
     }, 1000);
@@ -100,7 +102,7 @@ const SudokuScreen = ({ navigation }) => {
   // （Start timer on mount）
   useEffect(() => {
     const id = setInterval(() => {
-      setTimeLeft(prev => prev - 1);
+      setTimeLeft((prev) => prev - 1);
     }, 1000);
     setIntervalId(id);
     return () => clearInterval(id);
@@ -125,12 +127,14 @@ const SudokuScreen = ({ navigation }) => {
         if (isGameComplete(newGrid)) {
           if (isCorrectSolution(newGrid)) {
             if (intervalId) clearInterval(intervalId); // Stop the timer
-            Alert.alert("🎉 Good job!", "You've solved the puzzle correctly!");
+            Alert.alert('🎉 Good job!', "You've solved the puzzle correctly!");
           } else {
-            Alert.alert("😵 Oops", "The puzzle is full, but some answers are wrong.");
+            Alert.alert(
+              '😵 Oops',
+              'The puzzle is full, but some answers are wrong.',
+            );
           }
         }
-
       } else {
         Alert.alert(
           'Cannot Edit',
@@ -162,7 +166,7 @@ const SudokuScreen = ({ navigation }) => {
             <Text style={styles.timerText}>Timer:</Text>
             <Text style={styles.timerValue}>{formatTime(timeLeft)}</Text>
           </View>
-      </View>
+        </View>
 
         {/* color and hint */}
         <View style={styles.infoContainer}>
@@ -231,16 +235,12 @@ const SudokuScreen = ({ navigation }) => {
           >
             <View style={styles.avatar} />
           </TouchableOpacity>
-            {/* Restart button */}
-            <TouchableOpacity
-              style={styles.restartButton}
-              onPress={restartGame}
-            >
-              <Text style={styles.restartButtonText}>Restart</Text>
-            </TouchableOpacity>
+          {/* Restart button */}
+          <TouchableOpacity style={styles.restartButton} onPress={restartGame}>
+            <Text style={styles.restartButtonText}>Restart</Text>
+          </TouchableOpacity>
         </View>
 
-          
         {/* Message input */}
         <View style={styles.messageInput}>
           <TextInput placeholder="Type a message..." style={styles.input} />
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 5,
     marginLeft: 10,
-    alignSelf: 'center', 
+    alignSelf: 'center',
   },
   restartButtonText: {
     fontSize: 16,
