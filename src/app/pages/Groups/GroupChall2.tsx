@@ -115,8 +115,18 @@ const Chall2 = ({ navigation }) => {
               }
             >
               <Text style={styles.gameTitle}>{game[0]}</Text>
-              <Text style={styles.gameText}>{'Repeats: ' + game[1]}</Text>
-              <Text style={styles.gameText}>{'Minutes: ' + game[2]}</Text>
+              {game[0] != 'Sudoku' && (
+                <Text style={styles.gameText}>{'Repeats: ' + game[1]}</Text>
+              )}
+              {game[0] != 'Sudoku' && (
+                <Text style={styles.gameText}>{'Minutes: ' + game[2]}</Text>
+              )}
+              {game[0] == 'Sudoku' && (
+                <ImageBackground
+                  source={require('../../images/sudoku.png')}
+                  style={styles.sudoku}
+                ></ImageBackground>
+              )}
             </TouchableOpacity>
           ))}
           <TouchableOpacity
@@ -169,14 +179,14 @@ const Chall2 = ({ navigation }) => {
       </ScrollView>
 
       <View style={styles.buttons}>
-        <Button style={styles.button}>
-          <Ionicons name="star" size={40} color={'#FFF5CD'} />
-        </Button>
         <Button
           style={styles.button}
-          onPress={() => navigation.navigate('Groups')}
+          onPress={() => navigation.navigate('Challenges')}
         >
-          <Ionicons name="people-outline" size={40} color={'#FFF5CD'} />
+          <Ionicons name="star-outline" size={40} color={'#FFF5CD'} />
+        </Button>
+        <Button style={styles.button}>
+          <Ionicons name="people" size={40} color={'#FFF5CD'} />
         </Button>
         <Button
           style={styles.button}
@@ -200,6 +210,11 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  sudoku: {
+    width: 50,
+    height: 50,
+    marginLeft: 8,
   },
   scrollContainer: {
     alignItems: 'center',

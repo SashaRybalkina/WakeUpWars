@@ -115,8 +115,18 @@ const PersChall2 = ({ navigation }) => {
               }
             >
               <Text style={styles.gameTitle}>{game[0]}</Text>
-              <Text style={styles.gameText}>{'Repeats: ' + game[1]}</Text>
-              <Text style={styles.gameText}>{'Minutes: ' + game[2]}</Text>
+              {game[0] != 'Sudoku' && (
+                <Text style={styles.gameText}>{'Repeats: ' + game[1]}</Text>
+              )}
+              {game[0] != 'Sudoku' && (
+                <Text style={styles.gameText}>{'Minutes: ' + game[2]}</Text>
+              )}
+              {game[0] == 'Sudoku' && (
+                <ImageBackground
+                  source={require('../../images/sudoku.png')}
+                  style={styles.sudoku}
+                ></ImageBackground>
+              )}
             </TouchableOpacity>
           ))}
           <TouchableOpacity
@@ -200,6 +210,11 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  sudoku: {
+    width: 50,
+    height: 50,
+    marginLeft: 8,
   },
   scrollContainer: {
     alignItems: 'center',
