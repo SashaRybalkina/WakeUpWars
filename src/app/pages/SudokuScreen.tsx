@@ -42,7 +42,13 @@ const assignColor = () => {
   return color + '';
 };
 
+
 const playerColors = [assignColor(), assignColor(), assignColor()];
+
+const getInitialColor = () => {
+  const index = Math.floor(Math.random() * playerColors.length);
+  return playerColors[index];
+};
 
 const SudokuScreen = ({ navigation }) => {
   
@@ -50,7 +56,7 @@ const SudokuScreen = ({ navigation }) => {
   
   const [grid, setGrid] = useState<string[]>(Array(81).fill(''));
   const [initialCells, setInitialCells] = useState<boolean[]>(Array(81).fill(false));
-  const [savedColor, setSavedColor] = useState('');
+  const [savedColor, setSavedColor] = useState(getInitialColor());
   const [cellColors, setCellColors] = useState(Array(81).fill('white'));
   const [timeLeft, setTimeLeft] = useState(300);
   const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
@@ -168,7 +174,8 @@ const SudokuScreen = ({ navigation }) => {
           <Text style={[styles.infoText, { marginRight: 10 }]}>
             You are color:
           </Text>
-          <View style={styles.colorIndicator} />
+          <View style={[styles.colorIndicator, { backgroundColor: savedColor }]} />
+
         </View>
 
         <Text
