@@ -9,11 +9,10 @@ import {
   View,
 } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
-
-import {
+import { 
   generateSudokuGame,
-  isCorrectSolution,
   isGameComplete,
+  isCorrectSolution,
 } from './SudokuGameLogic';
 
 // Adjust the import path as necessary
@@ -44,19 +43,26 @@ const assignColor = () => {
   return color + '';
 };
 
+
 const playerColors = [assignColor(), assignColor(), assignColor()];
 
-const SudokuScreen = ({ navigation }) => {
-  const [solution, setSolution] = useState<number[]>([]);
+const getInitialColor = () => {
+  const index = Math.floor(Math.random() * playerColors.length);
+  return playerColors[index];
+};
 
+const SudokuScreen = ({ navigation }) => {
+  
+  const [solution, setSolution] = useState<number[]>([]);
+  
   const [grid, setGrid] = useState<string[]>(Array(81).fill(''));
-  const [initialCells, setInitialCells] = useState<boolean[]>(
-    Array(81).fill(false),
-  );
-  const [savedColor, setSavedColor] = useState('');
+  const [initialCells, setInitialCells] = useState<boolean[]>(Array(81).fill(false));
+  const [savedColor, setSavedColor] = useState(getInitialColor());
   const [cellColors, setCellColors] = useState(Array(81).fill('white'));
   const [timeLeft, setTimeLeft] = useState(300);
   const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
+  const [gameCompleted, setGameCompleted] = useState(false);
+
 
   const handleTouch = (color: string) => {
     setSavedColor(color);
@@ -76,8 +82,9 @@ const SudokuScreen = ({ navigation }) => {
     setSolution(solution);
     setCellColors(Array(81).fill('white'));
     setTimeLeft(300);
+    setGameCompleted(false); 
   };
-
+  
   // restart the game
   const restartGame = () => {
     if (intervalId) clearInterval(intervalId); // Stop previous timer
@@ -127,7 +134,8 @@ const SudokuScreen = ({ navigation }) => {
         if (isGameComplete(newGrid)) {
           if (isCorrectSolution(newGrid, solution)) {
             if (intervalId) clearInterval(intervalId); // Stop the timer
-            Alert.alert('🎉 Good job!', "You've solved the puzzle correctly!");
+            Alert.alert("🎉 Good job!", "You've solved the puzzle correctly!");
+            setGameCompleted(true);
           } else {
             Alert.alert(
               '😵 Oops',
@@ -157,7 +165,22 @@ const SudokuScreen = ({ navigation }) => {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.exitButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              if (gameCompleted) {
+                navigation.navigate('Start'); // exit to the page we need
+              }
+              else {
+                Alert.alert(
+                  'Game in Progress',
+                  'You cannot exit while a game is in progress.',
+                  [
+                    {
+                      text: 'OK', style: 'cancel',
+                    },
+                  ],
+                );
+              }
+            }}
           >
             <Text style={styles.exitText}>Exit</Text>
           </TouchableOpacity>
@@ -173,7 +196,8 @@ const SudokuScreen = ({ navigation }) => {
           <Text style={[styles.infoText, { marginRight: 10 }]}>
             You are color:
           </Text>
-          <View style={styles.colorIndicator} />
+          <View style={[styles.colorIndicator, { backgroundColor: savedColor }]} />
+
         </View>
 
         <Text
