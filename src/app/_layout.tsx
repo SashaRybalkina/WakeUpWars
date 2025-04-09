@@ -9,7 +9,7 @@ void SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   return (
     <AppProvider onInitialized={() => SplashScreen.hideAsync()}>
-      <UserProvider> {}
+      <UserProvider>
         <Slot />
       </UserProvider>
     </AppProvider>

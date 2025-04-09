@@ -2,8 +2,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import authenticate, get_user_model
-from .serializers import UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer
+from .serializers import UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer, MessageSerializer
 from .models import Group, User
+from .models import Message
 
 User = get_user_model()
 
@@ -57,3 +58,10 @@ class UserProfileView(APIView):
 
         serializer = UserProfileSerializer(user)
         return Response(serializer.data)
+    
+class UserMessagesView(APIView):
+    def get(self, request, user_id):
+        messages = Message.objects.filter(recipient_id=user_id) | Message.objects.filter(sender_id=user_id)
+        messages = messages.order_by('-id')
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

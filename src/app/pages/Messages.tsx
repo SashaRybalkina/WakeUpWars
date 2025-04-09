@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useUser } from '../context/UserContext';
 import {
-  Alert,
   ImageBackground,
   ScrollView,
   StyleSheet,
@@ -11,8 +11,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NavigationProp } from '@react-navigation/native';
-import * as Font from 'expo-font';
-import { Int32 } from 'react-native/Libraries/Types/CodegenTypes';
 import { Button } from 'tamagui';
 
 type Props = {
@@ -21,18 +19,30 @@ type Props = {
 
 const Messages: React.FC<Props> = ({ navigation }) => {
   const [selected, setSelected] = useState('Friends');
-  const [fMessages, setFMessages] = useState<string[][]>([
-    ['NameA', 'fnucwncjkwnl'],
-    ['NameB', 'nfenvoencklk'],
-    ['NameC', 'cneoenclknck'],
-    ['NameD', 'qowfpwhnljnv'],
-  ]);
-  const [gMessages, setGMessages] = useState<string[][]>([
-    ['GroupA', 'fnucwncjkwnl'],
-    ['GroupB', 'nfenvoencklk'],
-    ['GroupC', 'cneoenclknck'],
-    ['GroupD', 'qowfpwhnljnv'],
-  ]);
+  const { user } = useUser();
+  const [friendMessages, setFriendMessages] = useState<any[]>([]);
+  const [groupMessages, setGroupMessages] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (!user?.id) return;
+
+      try {
+        const response = await fetch(`https://6ff8-136-38-171-186.ngrok-free.app/api/messages/${user.id}/`);
+        const data = await response.json();
+
+        const friends = data.filter((msg: any) => msg.recipient !== null);
+        const groups = data.filter((msg: any) => msg.groupID !== null);
+
+        setFriendMessages(friends);
+        setGroupMessages(groups);
+      } catch (error) {
+        console.error('Failed to fetch messages:', error);
+      }
+    };
+
+    fetchMessages();
+  }, [user]);
 
   const goToPersonalChall = () => {
     //navigation.navigate('ChallPers');
@@ -42,110 +52,47 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     //navigation.navigate('ChallGroup');
   };
 
-  const goToGroups = () => {
-    navigation.navigate('Groups');
-  };
+  const goToGroups = () => navigation.navigate('Groups');
+  const goToChallenges = () => navigation.navigate('Challenges');
+  const goToProfile = () => navigation.navigate('Profile');
 
-  const goToChallenges = () => {
-    navigation.navigate('Challenges');
-  };
-
-  const goToProfile = () => {
-    navigation.navigate('Profile');
-  };
-
-  const Message: React.FC<{ name: string; text: string; index: number }> = ({
-    name,
-    text,
-    index,
-  }) => (
-    <TouchableOpacity
-      style={styles.navToMess}
-      onPress={() => {
-        if (selected === 'Friends') {
-          setFMessages((prevMess) => prevMess.filter((_, i) => i !== index));
-        } else {
-          setGMessages((prevMess) => prevMess.filter((_, i) => i !== index));
-        }
-      }}
-    >
+  const Message: React.FC<{ name: string; text: string; index: number }> = ({ name, text }) => (
+    <TouchableOpacity style={styles.navToMess}>
       <Text style={styles.navToMessName}>{name}</Text>
       <Text style={styles.navToMessText}>{text}</Text>
     </TouchableOpacity>
   );
 
   return (
-    <ImageBackground
-      source={require('../images/cgpt.png')}
-      style={styles.background}
-      resizeMode="cover"
-    >
+    <ImageBackground source={require('../images/cgpt.png')} style={styles.background} resizeMode="cover">
       <View style={styles.container}>
         <Text style={styles.title}>Messages</Text>
         <TextInput
           style={styles.input}
-          placeholder="Seacrh messages"
+          placeholder="Search messages"
           placeholderTextColor="#AAA"
-        ></TextInput>
-        <View style={[{ flexDirection: 'row' }]}>
+        />
+        <View style={{ flexDirection: 'row' }}>
           <TouchableOpacity onPress={() => setSelected('Friends')}>
-            <Text
-              style={[
-                styles.selection,
-                selected === 'Friends' && styles.underline,
-              ]}
-            >
-              Friends
-            </Text>
+            <Text style={[styles.selection, selected === 'Friends' && styles.underline]}>Friends</Text>
           </TouchableOpacity>
-
           <TouchableOpacity onPress={() => setSelected('Groups')}>
-            <Text
-              style={[
-                styles.selection,
-                selected === 'Groups' && styles.underline,
-              ]}
-            >
-              Groups
-            </Text>
+            <Text style={[styles.selection, selected === 'Groups' && styles.underline]}>Groups</Text>
           </TouchableOpacity>
         </View>
+
         <ScrollView style={styles.scrollViewContainer}>
-          {selected === 'Friends'
-            ? fMessages.map((message, index) => (
-                <Message
-                  key={index}
-                  name={message[0] + ''}
-                  text={message[1] + ''}
-                  index={index}
-                />
-              ))
-            : gMessages.map((message, index) => (
-                <Message
-                  key={index}
-                  name={message[0] + ''}
-                  text={message[1] + ''}
-                  index={index}
-                />
-              ))}
+          {(selected === 'Friends' ? friendMessages : groupMessages).map((message, index) => (
+            <Message
+              key={index}
+              name={message.sender.name || message.sender.username}
+              text={message.message}
+              index={index}
+            />
+          ))}
         </ScrollView>
 
-        <Button
-          style={styles.addButton}
-          onPress={() => {
-            if (selected == 'Friends') {
-              setFMessages((prevMess) => [
-                ...prevMess,
-                ['test', 'befpvblwebvwbjvda'],
-              ]);
-            } else {
-              setGMessages((prevMess) => [
-                ...prevMess,
-                ['test', 'befpvblwebvwbjvda'],
-              ]);
-            }
-          }}
-        >
+        <Button style={styles.addButton}>
           <Text style={styles.addText}>Start New Conversation</Text>
         </Button>
       </View>
