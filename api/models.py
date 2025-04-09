@@ -94,6 +94,7 @@ class Notification(models.Model):
 # Game Categories: Different categories of games
 class GameCategory(models.Model):
     categoryName = models.CharField(max_length=255, unique=True)
+    isMultiplayer = models.BooleanField()
 
     class Meta:
         db_table = 'GameCategories'
@@ -125,9 +126,23 @@ class Challenge(models.Model):
 
     class Meta:
         db_table = 'Challenges'
+        unique_together = ('groupID', 'name')
 
     def __str__(self):
         return self.name
+
+
+# representing Many-to-many relationship between users and challenges
+class ChallengeMembership(models.Model):
+    challengeID = models.ForeignKey(Challenge, on_delete=models.CASCADE)
+    uID = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    class Meta:
+        db_table = 'ChallengeMemberships'
+        unique_together = ('challengeID', 'uID')  # Composite primary key
+
+    def __str__(self):
+        return f"{self.uID.username} in {self.challengeID.name}"
 
 
 # Alarm Schedules: Alarm days/times set by users
@@ -212,3 +227,26 @@ class SkillLevel(models.Model):
 
     def __str__(self):
         return f"Skill level of {self.user.username} in {self.category.categoryName}"
+
+
+# stores the states of currently running sudoku games (what the puzzle currently looks like, the solution, who's playing)
+class SudokuGameState(models.Model):
+      game = models.ForeignKey(Game, on_delete=models.CASCADE)
+      challenge = models.ForeignKey(Challenge, on_delete=models.CASCADE, related_name='games')
+      puzzle = models.JSONField()
+      solution = models.JSONField()
+      players = models.ManyToManyField(User, through='SudokuGamePlayer', related_name='sudoku_games')
+
+      class Meta:
+        db_table = 'SudokuGameStates'
+
+# representing m-m relationship between SudokuGameStates and Users. Can use to keep track of player inaccuracies/accuracies
+class SudokuGamePlayer(models.Model):
+      gameState = models.ForeignKey(SudokuGameState, on_delete=models.CASCADE)
+      player = models.ForeignKey(User, on_delete=models.CASCADE)
+      accuracyCount = models.IntegerField()
+      inaccuracyCount = models.IntegerField()
+
+      class Meta:
+          db_table = 'SudokuGamePlayers'
+          unique_together = ('gameState', 'player')
