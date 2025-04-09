@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useUser } from '../context/UserContext';
 import {
   Alert,
   ImageBackground,
@@ -20,7 +21,7 @@ type Props = {
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-
+  const { setUser } = useUser();
   const goToSignUp = () => {
     navigation.navigate('SignUp');
   };
@@ -38,7 +39,13 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       const data = await response.json();
   
       if (response.ok && data.success) {
-        navigation.navigate('Profile', { id: data.id, name:data.name, email:data.email });
+        setUser({
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          username: data.username,
+        });
+        navigation.navigate('Profile');
       } else {
         Alert.alert('Login Failed', data.error || 'Login failed');
       }

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useUser } from '../context/UserContext';
 import {
   Image,
   ImageBackground,
@@ -13,30 +14,25 @@ import { Button } from 'tamagui';
 
 type Props = {
   navigation: NavigationProp<any>;
-  route: {
-    params?: {
-      id: number;
-      name?: string;
-    };
-  };
 };
 
 
-const Profile: React.FC<Props> = ({ navigation, route }) => {
+
+const Profile: React.FC<Props> = ({ navigation }) => {
   const goToChallenges = () => navigation.navigate('Challenges');
   const goToGroups = () => navigation.navigate('Groups');
   const goToMessages = () => navigation.navigate('Messages');
-  const { id, name } = route.params || {};
   const [profileData, setProfileData] = useState<any>(null);
+  const { user } = useUser();
 
   useEffect(() => {
-    if (!id) {
+    if (!user?.id) {
       console.error('userId is missing!');
       return;
     }
     const fetchProfile = async () => {
       try {
-        const response = await fetch(`https://6ff8-136-38-171-186.ngrok-free.app/api/profile/${id}/`);
+        const response = await fetch(`https://6ff8-136-38-171-186.ngrok-free.app/api/profile/${user.id}/`);
         const data = await response.json();
         setProfileData(data);
       } catch (error) {
@@ -45,7 +41,7 @@ const Profile: React.FC<Props> = ({ navigation, route }) => {
     };
   
     fetchProfile();
-  }, [id]);
+  }, [user]);
   
   return (
     <ImageBackground
