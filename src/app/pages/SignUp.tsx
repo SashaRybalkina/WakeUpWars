@@ -19,6 +19,7 @@ const SignUpScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState('');
 
   const goToLogin = () => {
     navigation.navigate('Login');
@@ -35,7 +36,7 @@ const SignUpScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     try {
-      const response = await fetch('https://6735-136-38-171-186.ngrok-free.app/api/register/', {
+      const response = await fetch('https://6ff8-136-38-171-186.ngrok-free.app/api/register/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -44,7 +45,8 @@ const SignUpScreen: React.FC<Props> = ({ navigation }) => {
           username,
           email,
           password,
-        }),
+          name,
+        }),        
       });
 
       const data = await response.json();
@@ -70,6 +72,12 @@ const SignUpScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.container}>
         <Text style={styles.title}>WakeUpWars</Text>
         <View style={styles.gap}></View>
+        <TextInput
+          style={styles.input}
+          placeholder="Full Name"
+          placeholderTextColor="#CBCBCB"
+          onChangeText={(text) => setName(text)}
+        />
         <TextInput
           style={styles.input}
           placeholder="Username"

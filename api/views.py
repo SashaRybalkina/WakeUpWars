@@ -1,78 +1,59 @@
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
 from django.contrib.auth import authenticate, get_user_model
-from django.contrib.auth.hashers import make_password
-import json
-from .models import Group
+from .serializers import UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer
+from .models import Group, User
 
 User = get_user_model()
 
-@csrf_exempt
-def login_view(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        username = data.get('username')
-        password = data.get('password')
+class LoginView(APIView):
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
 
         try:
             user = User.objects.get(username=username)
         except User.DoesNotExist:
-            return JsonResponse({'success': False, 'error': 'Username does not exist'}, status=404)
+            return Response({'success': False, 'error': 'Username does not exist'}, status=status.HTTP_404_NOT_FOUND)
 
         if not user.check_password(password):
-            return JsonResponse({'success': False, 'error': 'Incorrect password'}, status=401)
+            return Response({'success': False, 'error': 'Incorrect password'}, status=status.HTTP_401_UNAUTHORIZED)
 
         if not user.is_active:
-            return JsonResponse({'success': False, 'error': 'Account is inactive'}, status=403)
+            return Response({'success': False, 'error': 'Account is inactive'}, status=status.HTTP_403_FORBIDDEN)
 
-        return JsonResponse({
-            'success': True,
-            'username': user.username,
-            'name': user.name,
-            'email': user.email,
-            'userId': user.id,
-        })
+        serializer = UserSerializer(user)
+        return Response({'success': True, **serializer.data})
 
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
 
-@csrf_exempt
-def register_view(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
+class RegisterView(APIView):
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save(is_active=True)
+            return Response({'success': True, **UserSerializer(user).data}, status=status.HTTP_201_CREATED)
+        return Response({'success': False, 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-        username = data.get('username')
-        password = data.get('password')
-        name = data.get('name', 'Anonymous')
-        email = data.get('email', '')
 
-        if not username or not password:
-            return JsonResponse({'success': False, 'error': 'Username and password are required'}, status=400)
+class GroupListView(APIView):
+    def get(self, request):
+        groups = Group.objects.all()
+        serializer = GroupSerializer(groups, many=True)
+        return Response(serializer.data)
 
-        if User.objects.filter(username=username).exists():
-            return JsonResponse({'success': False, 'error': 'Username already exists'}, status=400)
 
-        user = User.objects.create(
-            username=username,
-            name=name,
-            email=email,
-            password=make_password(password),
-            is_active=True
-        )
-
-        return JsonResponse({
-            'success': True,
-            'username': user.username,
-            'userId': user.id,
-            'name': user.name,
-            'email': user.email
-        })
-
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
-
-def group_list_view(request):
-    if request.method == 'GET':
-        groups = Group.objects.all().values('id', 'name')
-        return JsonResponse(list(groups), safe=False)
+class HelloWorldView(APIView):
+    def get(self, request):
+        return Response({'message': 'Hello from Django REST Framework!'})
     
-def hello_world(request):
-    return JsonResponse({'message': 'Hello from Django!'})
+
+class UserProfileView(APIView):
+    def get(self, request, user_id):
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = UserProfileSerializer(user)
+        return Response(serializer.data)

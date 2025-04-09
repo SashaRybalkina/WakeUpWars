@@ -1,0 +1,70 @@
+from rest_framework import serializers
+from django.contrib.auth import get_user_model
+from .models import Group, User, SkillLevel, GameCategory, Challenge, GamePerformance, GameSchedule
+from django.contrib.auth.hashers import make_password
+
+User = get_user_model()
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'name', 'email']
+
+class RegisterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['username', 'password', 'name', 'email']
+        extra_kwargs = {'password': {'write_only': True}}
+
+    def create(self, validated_data):
+        validated_data['password'] = User.objects.make_random_password() if not validated_data['password'] else validated_data['password']
+        validated_data['password'] = make_password(validated_data['password'])
+        return super().create(validated_data)
+
+class GroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Group
+        fields = ['id', 'name']
+
+class GameCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GameCategory
+        fields = ['id', 'categoryName', 'isMultiplayer']
+
+class SkillLevelSerializer(serializers.ModelSerializer):
+    category = GameCategorySerializer()
+
+    class Meta:
+        model = SkillLevel
+        fields = ['category', 'totalEarned', 'totalPossible']
+
+class ChallengeSummarySerializer(serializers.ModelSerializer):
+    isGroupChallenge = serializers.SerializerMethodField()
+    daysOfWeek = serializers.SerializerMethodField()
+    daysCompleted = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Challenge
+        fields = ['id', 'name', 'startDate', 'endDate', 'isGroupChallenge', 'daysOfWeek', 'daysCompleted']
+
+    def get_isGroupChallenge(self, obj):
+        return obj.groupID is not None
+
+    def get_daysOfWeek(self, obj):
+        return list(obj.gameschedule_set.values_list('dayOfWeek', flat=True))
+
+    def get_daysCompleted(self, obj):
+        user = self.context.get('user')
+        return list(GamePerformance.objects.filter(challenge=obj, user=user).values_list('date', flat=True))
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    skill_levels = SkillLevelSerializer(source='skilllevel_set', many=True)
+    personal_challenges = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'name', 'skill_levels', 'personal_challenges']
+
+    def get_personal_challenges(self, user):
+        challenges = Challenge.objects.filter(uID=user)
+        return ChallengeSummarySerializer(challenges, many=True, context={'user': user}).data

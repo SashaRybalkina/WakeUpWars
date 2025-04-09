@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Image,
   ImageBackground,
@@ -13,13 +13,35 @@ import { Button } from 'tamagui';
 
 type Props = {
   navigation: NavigationProp<any>;
+  route: { params: { id: number; name?: string } };
+  
 };
 
-const Profile: React.FC<Props> = ({ navigation }) => {
+const Profile: React.FC<Props> = ({ navigation, route }) => {
   const goToChallenges = () => navigation.navigate('Challenges');
   const goToGroups = () => navigation.navigate('Groups');
   const goToMessages = () => navigation.navigate('Messages');
+  const { id, name } = route.params;
+  const [profileData, setProfileData] = useState<any>(null);
 
+  useEffect(() => {
+    if (!id) {
+      console.error('userId is missing!');
+      return;
+    }
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch(`https://6ff8-136-38-171-186.ngrok-free.app/api/profile/${id}/`);
+        const data = await response.json();
+        setProfileData(data);
+      } catch (error) {
+        console.error('Failed to load profile:', error);
+      }
+    };
+  
+    fetchProfile();
+  }, [id]);
+  
   return (
     <ImageBackground
       source={require('../images/cgpt.png')}
@@ -29,7 +51,7 @@ const Profile: React.FC<Props> = ({ navigation }) => {
       {/* Profile Section */}
       <View style={styles.profileContainer}>
         <Image source={require('../images/game.jpeg')} style={styles.avatar} />
-        <Text style={styles.profileName}>User's Name</Text>
+        <Text style={styles.profileName}>{profileData?.name || 'Loading...'}</Text>
         <Text style={styles.profileLink}>View My Profile {'>'}</Text>
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>

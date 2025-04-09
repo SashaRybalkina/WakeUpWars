@@ -94,7 +94,7 @@ class Notification(models.Model):
 # Game Categories: Different categories of games
 class GameCategory(models.Model):
     categoryName = models.CharField(max_length=255, unique=True)
-    isMultiplayer = models.BooleanField()
+    isMultiplayer = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'GameCategories'
