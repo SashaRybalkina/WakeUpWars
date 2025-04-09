@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Group, User, SkillLevel, GameCategory, Challenge, GamePerformance, GameSchedule, Message
+from .models import Group, User, SkillLevel, GameCategory, Challenge, GamePerformance, GameSchedule, Message, ChallengeMembership
 from django.contrib.auth.hashers import make_password
 
 User = get_user_model()
@@ -65,9 +65,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'name', 'skill_levels', 'personal_challenges']
 
-    def get_personal_challenges(self, user):
-        challenges = Challenge.objects.filter(uID=user)
-        return ChallengeSummarySerializer(challenges, many=True, context={'user': user}).data
+    def get_personal_challenges(self, obj):
+        challenges = Challenge.objects.filter(
+            id__in=ChallengeMembership.objects.filter(uID=obj).values_list('challengeID', flat=True),
+            groupID=None
+        )
+        return ChallengeSummarySerializer(challenges, many=True, context={'user': obj}).data
     
 class MessageSerializer(serializers.ModelSerializer):
     sender = UserSerializer(read_only=True)
@@ -76,3 +79,4 @@ class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = ['id', 'message', 'sender', 'recipient', 'groupID']
+        
