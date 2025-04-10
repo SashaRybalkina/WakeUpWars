@@ -34,14 +34,6 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     ['GroupD', 'qowfpwhnljnv'],
   ]);
 
-  const goToPersonalChall = () => {
-    //navigation.navigate('ChallPers');
-  };
-
-  const goToGroupChall = () => {
-    //navigation.navigate('ChallGroup');
-  };
-
   const goToGroups = () => {
     navigation.navigate('Groups');
   };
@@ -84,7 +76,7 @@ const Messages: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.title}>Messages</Text>
         <TextInput
           style={styles.input}
-          placeholder="Seacrh messages"
+          placeholder="Search messages"
           placeholderTextColor="#AAA"
         ></TextInput>
         <View style={[{ flexDirection: 'row' }]}>

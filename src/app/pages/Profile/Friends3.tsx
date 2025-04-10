@@ -8,29 +8,41 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { NavigationProp } from '@react-navigation/native';
+import { NavigationProp, useRoute } from '@react-navigation/native';
 import { Button } from 'tamagui';
 
 type Props = {
   navigation: NavigationProp<any>;
 };
 
-const Profile: React.FC<Props> = ({ navigation }) => {
+const Friends3: React.FC<Props> = ({ navigation }) => {
+  const route = useRoute();
+  const { friendName } = route.params as {
+    friendName: string;
+  };
+
   const goToChallenges = () => navigation.navigate('Challenges');
   const goToGroups = () => navigation.navigate('Groups');
   const goToMessages = () => navigation.navigate('Messages');
 
   return (
     <ImageBackground
-      source={require('../images/cgpt.png')}
+      source={require('../../images/tertiary.png')}
       style={styles.background}
       resizeMode="cover"
     >
+      <View style={styles.backButtonContainer}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={30} color="#FFF" />
+        </TouchableOpacity>
+      </View>
       {/* Profile Section */}
       <View style={styles.profileContainer}>
-        <Image source={require('../images/game.jpeg')} style={styles.avatar} />
+        <Image
+          source={require('../../images/game.jpeg')}
+          style={styles.avatar}
+        />
         <Text style={styles.profileName}>User's Name</Text>
-        <Text style={styles.profileLink}>View My Profile {'>'}</Text>
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
             <Text style={styles.stat}>
@@ -53,38 +65,11 @@ const Profile: React.FC<Props> = ({ navigation }) => {
             </Text>
           </View>
         </View>
-        <View style={styles.profileButtons}>
-          <TouchableOpacity
-            style={styles.profileButton}
-            onPress={() => navigation.navigate('Friends1')}
-          >
-            <Ionicons name="people" size={40} color={'#fff'} />
-            <Text style={styles.profileButtonText}>Friends</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.profileButton}
-            onPress={() => navigation.navigate('PersChall1')}
-          >
-            <Ionicons name="trophy" size={40} color={'#FFD700'} />
-            <Text style={[styles.profileButtonText, { color: '#FF0' }]}>
-              Challenges
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.menu}>
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuText}>My Skills {'>'}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuText}>Leaderboard {'>'}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuText}>Alarms {'>'}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuText}>Support {'>'}</Text>
+        <TouchableOpacity
+          style={styles.add}
+          onPress={() => navigation.navigate('Friends4', { friendName })}
+        >
+          <Text style={styles.addText}>Add to Group</Text>
         </TouchableOpacity>
       </View>
 
@@ -112,6 +97,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
+  backButtonContainer: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 10,
+  },
   profileContainer: {
     alignItems: 'center',
     marginTop: 50,
@@ -129,12 +120,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFF',
     marginTop: 10,
-  },
-  profileLink: {
-    color: '#EEE',
-    fontSize: 16,
-    marginBottom: 10,
-    fontWeight: '600',
+    marginBottom: 20,
   },
   statsContainer: {
     marginTop: 7.5,
@@ -155,36 +141,20 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFD700',
   },
-  profileButtons: {
-    flexDirection: 'row',
-    marginTop: 20,
-  },
-  profileButton: {
+  add: {
+    backgroundColor: '#AA55FF',
+    borderRadius: 15,
     alignItems: 'center',
-    marginHorizontal: 20,
+    justifyContent: 'center',
+    width: 250,
+    height: 65,
+    marginTop: 225,
   },
-  profileButtonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  menu: {
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 2.5,
-    width: '85%',
-    marginTop: 20,
-  },
-  menuItem: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#DDD',
-  },
-  menuText: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: '700',
+  addText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 25,
+    textAlign: 'center',
   },
   buttons: {
     backgroundColor: '#211F26',
@@ -207,4 +177,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Profile;
+export default Friends3;

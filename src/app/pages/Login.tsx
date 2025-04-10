@@ -24,19 +24,21 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const goToSignUp = () => {
     navigation.navigate('SignUp');
   };
-
   const handleLogin = async () => {
     try {
-      const response = await fetch('https://6735-136-38-171-186.ngrok-free.app/api/login/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        'https://b1b6-174-52-96-132.ngrok-free.app/api/login/',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ username, password }),
         },
-        body: JSON.stringify({ username, password }),
-      });
-  
+      );
+
       const data = await response.json();
-  
+
       if (response.ok && data.success) {
         navigation.navigate('Challenges', { userId: data.userId });
       } else {
@@ -47,7 +49,6 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       Alert.alert('Error', 'Network error or server is down.');
     }
   };
-  
 
   interface TextWithStrokeProps {
     text: string;
