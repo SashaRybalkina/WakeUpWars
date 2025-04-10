@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useUser } from '../context/UserContext';
+import { endpoints } from '../api';
 import {
   Image,
   ImageBackground,
@@ -30,7 +31,7 @@ const Profile: React.FC<Props> = ({ navigation }) => {
     }
     const fetchProfile = async () => {
       try {
-        const response = await fetch(`https://29f7-136-38-171-186.ngrok-free.app/api/profile/${user.id}/`);
+        const response = await fetch(endpoints.profile(user.id));
         const data = await response.json();
         setProfileData(data);
       } catch (error) {
