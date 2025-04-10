@@ -31,6 +31,10 @@ const Challenges: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('Profile');
   };
 
+  const goToSudoku = () => {
+    navigation.navigate('Sudoku');
+  };
+
   return (
     <ImageBackground
       source={require('../images/cgpt.png')}
@@ -54,6 +58,14 @@ const Challenges: React.FC<Props> = ({ navigation }) => {
           }}
         >
           <Text style={styles.navToChallText}>Group</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.navToChall}
+          onPress={() => {
+            goToSudoku();
+          }}
+        >
+          <Text style={styles.navToChallText}>Sudoku</Text>
         </TouchableOpacity>
       </View>
 

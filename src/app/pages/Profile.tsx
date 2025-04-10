@@ -16,8 +16,6 @@ type Props = {
   navigation: NavigationProp<any>;
 };
 
-
-
 const Profile: React.FC<Props> = ({ navigation }) => {
   const goToChallenges = () => navigation.navigate('Challenges');
   const goToGroups = () => navigation.navigate('Groups');
@@ -32,7 +30,7 @@ const Profile: React.FC<Props> = ({ navigation }) => {
     }
     const fetchProfile = async () => {
       try {
-        const response = await fetch(`https://6ff8-136-38-171-186.ngrok-free.app/api/profile/${user.id}/`);
+        const response = await fetch(`https://3068-136-38-171-186.ngrok-free.app/api/profile/${user.id}/`);
         const data = await response.json();
         setProfileData(data);
       } catch (error) {
