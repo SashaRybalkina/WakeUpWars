@@ -81,7 +81,7 @@ class GroupDetailsView(APIView):
         serializer = ChallengeSummarySerializer(challenges, many=True, context={'user': request.user})
 
         memberships = GroupMembership.objects.filter(groupID=group)
-        members = [{'id': m.uID.id, 'name': m.uID.name} for m in memberships]
+        members = [{'id': m.uID.id, 'name': m.uID.name} for m in memberships] # add icons eventually
 
         return Response({
             'id': group.id,

@@ -23,7 +23,7 @@ type Challenge = {
   startDate: string;
   endDate: string;
   isGroupChallenge: boolean;
-  daysOfWeek: number[];
+  daysOfWeek: string[];
   daysCompleted: number;
 };
 
@@ -124,6 +124,9 @@ const GroupDetails: React.FC<Props> = ({ navigation }) => {
               <View key={index} style={styles.challenge}>
                 <Text style={styles.challengeText}>{challenge.name}</Text>
                 <View style={styles.completionBadge}>
+                  <Text style={styles.dayList}>
+                    {challenge.daysOfWeek.join(' ')}
+                  </Text>
                     <Text style={styles.completionText}>{challenge.daysCompleted}</Text>
                     <Text style={styles.completionLabel}>Days Complete</Text>
                   </View>
@@ -250,6 +253,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#FFF',
+  },
+  dayList: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFF',
+    marginBottom: 2,
   },
   completionBadge: {
     marginLeft: 'auto',

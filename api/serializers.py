@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import Group, User, SkillLevel, GameCategory, Challenge, GamePerformance, GameSchedule, Message, ChallengeMembership
 from django.contrib.auth.hashers import make_password
+import calendar
 
 User = get_user_model()
 
@@ -59,7 +60,9 @@ class ChallengeSummarySerializer(serializers.ModelSerializer):
         return obj.groupID is not None
 
     def get_daysOfWeek(self, obj):
-        return list(obj.gameschedule_set.values_list('dayOfWeek', flat=True))
+        # Converts integers 0-6 to "Monday", etc.
+        day_numbers = obj.gameschedule_set.values_list('dayOfWeek', flat=True)
+        return [calendar.day_name[day][0] for day in day_numbers]
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
