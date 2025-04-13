@@ -28,10 +28,6 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
     ['NameD', 'qowfpwhnljnv'],
   ]);
 
-  const goToNext = () => {
-    navigation.navigate('Chall2', { whichChall });
-  };
-
   const goToMessages = () => {
     navigation.navigate('Messages');
   };
@@ -52,7 +48,8 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
     <TouchableOpacity
       style={styles.navToChall}
       onPress={() => {
-        setChalls((prevChall) => prevChall.filter((_, i) => i !== index));
+        // setChalls((prevChall) => prevChall.filter((_, i) => i !== index));
+        navigation.navigate('ChallDetails', { challName: name, whichChall });
       }}
     >
       <Text style={styles.navToChallName}>{name}</Text>

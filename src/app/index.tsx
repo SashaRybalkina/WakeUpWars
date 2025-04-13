@@ -7,6 +7,8 @@ import { NavigationContainer } from '@react-navigation/native';
 
 import Challenges from './pages/Challenges';
 import Chall1 from './pages/Challenges/Chall1';
+import ChallDetails from './pages/Challenges/ChallDetails';
+import ChallSchedule from './pages/Challenges/ChallSchedule';
 import Categories from './pages/Games/Categories';
 import GameExpanded from './pages/Games/GameExpanded';
 import Games from './pages/Games/Games';
@@ -39,7 +41,7 @@ function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="AcceptGInvite"
+        initialRouteName="Challenges"
         screenOptions={{ animationEnabled: false }}
       >
         <Stack.Screen
@@ -65,6 +67,16 @@ function App() {
         <Stack.Screen
           name="Chall1"
           component={Chall1}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ChallDetails"
+          component={ChallDetails}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ChallSchedule"
+          component={ChallSchedule}
           options={{ headerShown: false }}
         />
         <Stack.Screen
