@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+
 import {
   Alert,
   ImageBackground,
@@ -10,10 +11,12 @@ import {
 } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
 import { 
-  generateSudokuGame,
   isGameComplete,
   isCorrectSolution,
 } from './SudokuGameLogic';
+
+import { fetchSudokuFromAPI } from '../api';
+import uuid from 'react-native-uuid';
 
 // Adjust the import path as necessary
 
@@ -55,6 +58,7 @@ const SudokuScreen = ({ navigation }) => {
   
   const [solution, setSolution] = useState<number[]>([]);
   
+  // we are using 1d array to represent the grid, so the 2d array from backend need to transform to 1d array
   const [grid, setGrid] = useState<string[]>(Array(81).fill(''));
   const [initialCells, setInitialCells] = useState<boolean[]>(Array(81).fill(false));
   const [savedColor, setSavedColor] = useState(getInitialColor());
@@ -62,6 +66,7 @@ const SudokuScreen = ({ navigation }) => {
   const [timeLeft, setTimeLeft] = useState(300);
   const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
   const [gameCompleted, setGameCompleted] = useState(false);
+  const [gameId, setGameId] = useState<string>(uuid.v4().toString());
 
 
   const handleTouch = (color: string) => {
@@ -75,24 +80,43 @@ const SudokuScreen = ({ navigation }) => {
     return `${minutes}:${seconds < 10 ? `0${seconds}` : seconds}`;
   };
 
-  const initGame = () => {
-    const { puzzle, solution } = generateSudokuGame('easy');
-    setGrid(puzzle.map((n) => (n === 0 ? '' : n.toString())));
-    setInitialCells(puzzle.map((n) => n !== 0));
-    setSolution(solution);
-    setCellColors(Array(81).fill('white'));
-    setTimeLeft(300);
-    setGameCompleted(false); 
+  // Initialize the game
+  const initGame = async () => {
+    try {
+      const { puzzle, solution } = await fetchSudokuFromAPI('easy');
+  
+      const flatten = (board: number[][]): number[] => board.flat();
+  
+      const puzzleArray = flatten(puzzle);
+      const solutionArray = flatten(solution);
+  
+      console.log("🧩 Puzzle stringified:", JSON.stringify(puzzleArray)); 
+  
+      setGrid([...puzzleArray.map(n => (n === null || n === 0 ? '' : n.toString()))]);
+      setInitialCells([...puzzleArray.map(n => n !== null && n !== 0)]);
+      setCellColors(Array(81).fill('white'));
+      setTimeLeft(300);
+      setGameCompleted(false);
+      setSolution([...solutionArray]);
+      setGameId(uuid.v4().toString());
+    } catch (error) {
+      console.error('Failed to initialize game:', error);
+    }
   };
   
+  
+  
   // restart the game
-  const restartGame = () => {
-    if (intervalId) clearInterval(intervalId); // Stop previous timer
-    initGame();
-    const newId = setInterval(() => {
-      setTimeLeft((prevTime) => prevTime - 1); // Start new timer
-    }, 1000);
-    setIntervalId(newId);
+  const restartGame = async () => {
+    if (intervalId) clearInterval(intervalId);
+  setIntervalId(null);
+
+  await initGame(); 
+
+  const newId = setInterval(() => {
+    setTimeLeft((prev) => prev - 1);
+  }, 1000); // 1 sec
+  setIntervalId(newId);
   };
 
   // Timer reaches 0
@@ -208,7 +232,7 @@ const SudokuScreen = ({ navigation }) => {
 
         {/* Sudoku grid */}
         <View style={styles.outerContainer}>
-          <View style={styles.gridContainer}>
+          <View style={styles.gridContainer} key={gameId}>
             {Array.from({ length: 9 }).map((_, rowIndex) => (
               <View style={styles.row} key={rowIndex}>
                 {Array.from({ length: 9 }).map((_, colIndex) => {

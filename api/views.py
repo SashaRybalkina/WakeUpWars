@@ -5,6 +5,7 @@ from django.contrib.auth import authenticate, get_user_model
 from .serializers import UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer, MessageSerializer
 from .models import Group, User
 from .models import Message
+from sudoku import Sudoku
 
 User = get_user_model()
 
@@ -65,3 +66,37 @@ class UserMessagesView(APIView):
         messages = messages.order_by('-id')
         serializer = MessageSerializer(messages, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+################### Sudoku Game ###################
+
+import random
+import time
+import datetime
+
+class SudokuGenerateView(APIView):
+    def get(self, request):
+        now = datetime.datetime.now()
+        print(f"🕒 Request at: {now.strftime('%Y-%m-%d %H:%M:%S.%f')}")
+
+        difficulty_level = request.GET.get('difficulty', 'easy')
+        difficulty_map = {
+            'easy': 0.5,
+            'medium': 0.6,
+            'hard': 0.7,
+        }
+        difficulty = difficulty_map.get(difficulty_level, 0.5)
+      
+        seed = int(time.time() * 1000)  
+        sudoku = Sudoku(3, 3, seed=seed).difficulty(difficulty)
+
+        # the puzzle and solution will be 2D array
+        puzzle = sudoku.board
+        solution = sudoku.solve().board
+        
+        print(f"✅ Generated Puzzle: {puzzle}")
+
+        return Response({
+            'difficulty': difficulty_level,
+            'puzzle': puzzle,
+            'solution': solution,
+        }, status=status.HTTP_200_OK)

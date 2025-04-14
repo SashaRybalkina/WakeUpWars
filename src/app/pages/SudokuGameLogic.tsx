@@ -1,30 +1,31 @@
-import { getSudoku } from 'sudoku-gen';
+import { fetchSudokuFromAPI } from '../api';
 
-type Difficulty = 'easy' | 'medium' | 'hard' | 'expert';
+type Difficulty = 'easy' | 'medium' | 'hard';
 
-export const generateSudokuGame = (difficulty: Difficulty = 'easy') => {
-  const { puzzle, solution } = getSudoku(difficulty);
+export const generateSudokuGame = async (difficulty: Difficulty = 'easy') => {
+  
+  const { puzzle, solution } = await fetchSudokuFromAPI(difficulty);
 
-  const puzzleArray = puzzle.split('').map((char) => (char === '-' ? 0 : parseInt(char)));
-  const solutionArray = solution.split('').map((char) => parseInt(char));
+  // Flatten/transform the 2D arrays to 1D arrays
+  const flatten = (board: number[][]): number[] =>
+    board.flat(); 
 
-  solutionArray.forEach((_, i) => {
-    if (i % 9 === 0) {
-      console.log(solutionArray.slice(i, i + 9).join(' '));
-    }
-  });
+  const puzzleArray = flatten(puzzle);
+  const solutionArray = flatten(solution);
 
   return {
-    puzzle: puzzleArray,
-    solution: solutionArray,
+    puzzle: puzzleArray,     
+    solution: solutionArray, 
   };
 };
+
 
 export const isGameComplete = (board: string[]): boolean => {
   return board.every((val) => /^[1-9]$/.test(val));
 };
-  
+
 
 export const isCorrectSolution = (board: string[], solution: number[]): boolean => {
   return board.every((val, idx) => parseInt(val) === solution[idx]);
 };
+
