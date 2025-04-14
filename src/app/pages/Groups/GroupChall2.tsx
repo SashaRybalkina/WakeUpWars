@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { NavigationProp, RouteProp, useRoute } from '@react-navigation/native';
 import { Button } from 'tamagui';
+import { endpoints } from '../../api';
 
 type Props = {
   navigation: NavigationProp<any>;
@@ -233,7 +234,7 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
             </>
           )}
   
-          {/* <Button
+          <Button
             style={styles.finishButton}
             onPress={() => {
               const payload = {
@@ -254,7 +255,7 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
                   })),
                 })),
               };
-              fetch(`${API_BASE_URL}/api/group-challenges/`, {
+              fetch(`$https://f36f-155-98-131-4.ngrok-free.app/api/group-challenges/`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -277,7 +278,7 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
             }}
           >
             Finish
-          </Button> */}
+          </Button>
         </ScrollView>
       </View>
     </ImageBackground>

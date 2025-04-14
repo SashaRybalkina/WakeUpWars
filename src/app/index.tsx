@@ -41,7 +41,7 @@ function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Challenges"
+        initialRouteName="Login"
         screenOptions={{ animationEnabled: false }}
       >
         <Stack.Screen

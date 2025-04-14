@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Image,
   ImageBackground,
@@ -11,6 +11,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { NavigationProp, useRoute } from '@react-navigation/native';
 import { Button } from 'tamagui';
+import axios from 'axios';
+import { endpoints } from '../../api';
 
 type Props = {
   navigation: NavigationProp<any>;
@@ -18,13 +20,33 @@ type Props = {
 
 const ChallDetails: React.FC<Props> = ({ navigation }) => {
   const route = useRoute();
-  const { challName, whichChall } = route.params as {
+  const { challId, challName, whichChall } = route.params as {
+    challId: number;
     challName: string;
     whichChall: string;
   };
+  
+  const [daysComplete, setDaysComplete] = useState(0);
+  const [totalDays, setTotalDays] = useState(0);
+  const [members, setMembers] = useState<{ name: string }[]>([]);
+  const [daysOfWeek, setDaysOfWeek] = useState<string[]>([]); // optional
 
-  const [daysComplete] = useState(18);
-  const totalDays = 30;
+  useEffect(() => {
+    const fetchChallengeDetails = async () => {
+      try {
+        const res = await axios.get(endpoints.challengeDetail(challId));
+        const data = res.data;
+        setDaysComplete(data.daysCompleted);
+        setTotalDays(data.totalDays);
+        setMembers(data.members);
+        setDaysOfWeek(data.daysOfWeek); // optional
+      } catch (err) {
+        console.error(err);
+      }
+    };
+  
+    fetchChallengeDetails();
+  }, []);
 
   const leaderboard = [
     { name: 'Pers1', points: 928, emoji: '👑' },
@@ -60,8 +82,10 @@ const ChallDetails: React.FC<Props> = ({ navigation }) => {
 
         <Text style={styles.enrolledLabel}>Enrolled Members:</Text>
         <View style={styles.avatarsRow}>
-          {enrolledMembers.map((src, index) => (
-            <Image key={index} source={src} style={styles.avatarImage} />
+          {members.map((m, index) => (
+            <View key={index} style={styles.memberNameBox}>
+              <Text style={styles.memberNameText}>{m.name}</Text>
+            </View>
           ))}
         </View>
 
@@ -240,6 +264,19 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     marginBottom: 15,
   },
+  memberNameBox: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginHorizontal: 5,
+  },
+  memberNameText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  
 });
 
 export default ChallDetails;

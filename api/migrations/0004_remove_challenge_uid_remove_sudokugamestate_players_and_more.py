@@ -10,14 +10,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='challenge',
-            name='uID',
-        ),
-        migrations.RemoveField(
-            model_name='sudokugamestate',
-            name='players',
-        ),
         migrations.AddField(
             model_name='challenge',
             name='daysCompleted',

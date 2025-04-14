@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ImageBackground,
   ScrollView,
@@ -10,6 +10,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { NavigationProp, useRoute } from '@react-navigation/native';
 import { Button } from 'tamagui';
+import axios from 'axios';
+import { endpoints } from '../../api';
+import { useUser } from '../../context/UserContext';
 
 type Props = {
   navigation: NavigationProp<any>;
@@ -20,14 +23,29 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
   const { whichChall } = route.params as {
     whichChall: string;
   };
-
-  const [challs, setChalls] = useState<string[][]>([
-    ['NameA', 'fnucwncjkwnl'],
-    ['NameB', 'nfenvoencklk'],
-    ['NameC', 'cneoenclknck'],
-    ['NameD', 'qowfpwhnljnv'],
-  ]);
-
+  const { user } = useUser();
+  const [challs, setChalls] = useState<{ id: number; name: string; text: string }[]>([]);
+  
+  useEffect(() => {
+    if (!user) return; 
+  
+    const fetchChallenges = async () => {
+      try {
+        const response = await axios.get(endpoints.challengeList(user.id, whichChall));
+        const data = response.data.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          text: `${c.daysCompleted} days done from ${c.startDate}`,
+        }));
+        setChalls(data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+  
+    fetchChallenges();
+  }, [user]);
+  
   const goToMessages = () => {
     navigation.navigate('Messages');
   };
@@ -40,22 +58,25 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('Profile');
   };
 
-  const Challenge: React.FC<{ name: string; text: string; index: number }> = ({
+  const Challenge: React.FC<{ id: number; name: string; text: string }> = ({
+    id,
     name,
     text,
-    index,
   }) => (
     <TouchableOpacity
       style={styles.navToChall}
       onPress={() => {
-        // setChalls((prevChall) => prevChall.filter((_, i) => i !== index));
-        navigation.navigate('ChallDetails', { challName: name, whichChall });
+        navigation.navigate('ChallDetails', {
+          challId: id,
+          challName: name,
+          whichChall,
+        });
       }}
     >
       <Text style={styles.navToChallName}>{name}</Text>
       <Text style={styles.navToChallText}>{text}</Text>
     </TouchableOpacity>
-  );
+  );  
 
   return (
     <ImageBackground
@@ -71,12 +92,12 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
       <View style={styles.container}>
         <Text style={styles.title}>My {whichChall} Challenges</Text>
         <ScrollView style={styles.scrollViewContainer}>
-          {challs.map((challenge, index) => (
+          {challs.map((challenge) => (
             <Challenge
-              key={index}
-              name={challenge[0] + ''}
-              text={challenge[1] + ''}
-              index={index}
+              key={challenge.id}
+              id={challenge.id}
+              name={challenge.name}
+              text={challenge.text}
             />
           ))}
         </ScrollView>

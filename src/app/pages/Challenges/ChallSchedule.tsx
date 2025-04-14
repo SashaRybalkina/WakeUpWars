@@ -15,14 +15,14 @@ import { Button } from 'tamagui';
 
 const DAYS = ['M', 'T', 'W', 'TH', 'F', 'S', 'SU'];
 
-const ChallSchedule = ({ navigation }) => {
+const ChallSchedule = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const route = useRoute();
   const { challName, whichChall } = route.params as {
     challName: string;
     whichChall: string;
   };
 
-  const [selectedDays, setSelectedDays] = useState({});
+  const [selectedDays, setSelectedDays] = useState<Record<string, boolean>>({});
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [selectedStartDate, setSelectedStartDate] = useState(new Date());
@@ -30,20 +30,20 @@ const ChallSchedule = ({ navigation }) => {
   const [curGames, setCurGames] = useState<string[][]>([]);
   const [name, setName] = useState('');
 
-  const toggleDay = (day) => {
+  const toggleDay = (day: string) => {
     setSelectedDays((prev) => ({
       ...prev,
       [day]: !prev[day],
     }));
   };
 
-  const onStartDateChange = (event, date) => {
+  const onStartDateChange = (event: any, date: Date | undefined) => {
     if (date) {
       setSelectedStartDate(date);
     }
   };
 
-  const onEndDateChange = (event, date) => {
+  const onEndDateChange = (event: any, date: Date | undefined) => {
     if (date) {
       setSelectedEndDate(date);
     }

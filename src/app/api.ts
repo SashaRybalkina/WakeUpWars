@@ -1,4 +1,4 @@
-export const BASE_URL = 'https://824a-216-162-223-194.ngrok-free.app';
+export const BASE_URL = 'https://f36f-155-98-131-4.ngrok-free.app';
 
 export const endpoints = {
   login: `${BASE_URL}/api/login/`,
@@ -9,4 +9,6 @@ export const endpoints = {
   messages: (userId: number) => `${BASE_URL}/api/messages/${userId}/`,
   profile: (userId: number) => `${BASE_URL}/api/profile/${userId}/`,
   groupProfile: (groupId: number) => `${BASE_URL}/api/groups/${groupId}/`,
+  challengeDetail: (challId: number) => `${BASE_URL}/api/challenge-detail/${challId}/`,
+  challengeList: (userId: number, whichChall: string) => `${BASE_URL}/api/challenges/${userId}/${whichChall}/`,
 };

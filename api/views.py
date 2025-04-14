@@ -119,3 +119,36 @@ class GroupDetailsView(APIView):
             'challenges': serializer.data,
             'members': members
         }, status=status.HTTP_200_OK)
+      
+        
+class ChallengeListView(APIView):
+    def get(self, request, user_id, which_chall):
+        is_group = which_chall == 'Group'
+        if is_group:
+            group_ids = GroupMembership.objects.filter(uID=user_id).values_list('groupID', flat=True)
+            challenges = Challenge.objects.filter(groupID__in=group_ids)
+        else:
+            challenges = Challenge.objects.filter(
+                id__in=ChallengeMembership.objects.filter(uID=user_id).values_list('challengeID', flat=True),
+                groupID=None
+            )
+        serializer = ChallengeSummarySerializer(challenges, many=True, context={'user': request.user})
+        return Response(serializer.data)
+
+
+class ChallengeDetailView(APIView):
+    def get(self, request, chall_id):
+        try:
+            challenge = Challenge.objects.get(id=chall_id)
+        except Challenge.DoesNotExist:
+            return Response({'error': 'Challenge not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        memberships = ChallengeMembership.objects.filter(challengeID=challenge)
+        members = [{'id': m.uID.id, 'name': m.uID.name} for m in memberships]
+
+        serializer = ChallengeSummarySerializer(challenge, context={'user': request.user})
+        return Response({
+            **serializer.data,
+            'members': members,
+            'totalDays': (challenge.endDate - challenge.startDate).days + 1,
+        })
