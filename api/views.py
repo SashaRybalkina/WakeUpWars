@@ -159,11 +159,18 @@ class ChallengeGameScheduleView(APIView):
     def get(self, request, chall_id):
         schedules = GameSchedule.objects.filter(challenge_id=chall_id).order_by('dayOfWeek')
 
+        challenge_alarm_schedules = ChallengeAlarmSchedule.objects.filter(challenge_id=chall_id)
+        alarm_times = {
+            sched.alarm_schedule.dayOfWeek: sched.alarm_schedule.alarmTime.strftime("%H:%M")
+            for sched in challenge_alarm_schedules
+        }
+
         result = []
         for schedule in schedules:
             games = GameScheduleGameAssociation.objects.filter(game_schedule=schedule).order_by('game_order')
             result.append({
                 'dayOfWeek': schedule.dayOfWeek,
+                'alarmTime': alarm_times.get(schedule.dayOfWeek),
                 'games': [{
                     'name': g.game.name,
                     'order': g.game_order
@@ -171,6 +178,7 @@ class ChallengeGameScheduleView(APIView):
             })
 
         return Response(result, status=status.HTTP_200_OK)
+
     
     
     

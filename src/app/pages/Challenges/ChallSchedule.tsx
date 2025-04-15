@@ -35,25 +35,59 @@ const ChallSchedule = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const [alarmSchedule, setAlarmSchedule] = useState<
     { dayOfWeek: number; alarmTime: string; userName: string }[]
   >([]);
-
+  const getDayLabel = (dayOfWeek: number): string => {
+    const labels = ['M', 'T', 'W', 'TH', 'F', 'S', 'SU'];
+    return labels[dayOfWeek] || '';
+  };
+  
 
   useEffect(() => {
     const fetchSchedule = async () => {
       try {
-        const res = await axios.get(endpoints.challengeSchedule(challId));
-        const data = res.data;
+        const [detailRes, scheduleRes] = await Promise.all([
+          axios.get(endpoints.challengeDetail(challId)),
+          axios.get(endpoints.challengeSchedule(challId)),
+        ]);
   
-        // Mark selected days
+        const detail = detailRes.data;
+        const data = scheduleRes.data;
+  
+        console.log('Challenge detail:', detail);
+        console.log('Schedule data:', data);
+  
+        const parseLocalDate = (dateStr: string): Date => {
+          const parts = dateStr.split('-');
+          const year = Number(parts[0]);
+          const month = Number(parts[1]);
+          const day = Number(parts[2]);
+        
+          if (isNaN(year) || isNaN(month) || isNaN(day)) {
+            console.warn('Invalid date string:', dateStr);
+            return new Date();
+          }
+        
+          return new Date(year, month - 1, day);
+        };
+
+        setSelectedStartDate(parseLocalDate(detail.startDate));
+        setSelectedEndDate(parseLocalDate(detail.endDate));
+  
         const parsedDays: Record<string, boolean> = {};
         data.forEach((day: any) => {
-          const label = DAYS[day.dayOfWeek % 7];
+          const label = DAYS[day.dayOfWeek];
           if (label) parsedDays[label] = true;
         });
         setSelectedDays(parsedDays);
   
-        // Show flat list of games
+        const alarmParsed = data.map((day: any) => ({
+          dayOfWeek: day.dayOfWeek,
+          alarmTime: day.alarmTime,
+          userName: '',
+        }));
+        setAlarmSchedule(alarmParsed);
+  
         const allGames: string[][] = data.flatMap((day: any) =>
-          day.games.map((g: any) => [g.name, '-', '-']) // dummy values for now
+          day.games.map((g: any) => [g.name, '-', '-'])
         );
         setCurGames(allGames);
       } catch (err) {
@@ -152,17 +186,23 @@ const ChallSchedule = ({ navigation }: { navigation: NavigationProp<any> }) => {
             </>
           )}
 
-          <View style={styles.daysContainer}>
-            {DAYS.map((day, index) => (
+          {alarmSchedule.map((item, index) => {
+            const label = getDayLabel(item.dayOfWeek);
+            const isSelected = selectedDays[label];
+
+            return (
               <TouchableOpacity
                 key={index}
-                style={[styles.day, selectedDays[day] && styles.daySelected]}
-                onPress={() => toggleDay(day)}
+                style={[styles.day, isSelected && styles.daySelected]}
+                onPress={() => toggleDay(label)}
               >
-                <Text style={styles.dayText}>{day}</Text>
+                <Text style={styles.dayText}>{label}</Text>
+                {item.alarmTime && (
+                  <Text style={styles.alarmText}>Alarm at: {item.alarmTime}</Text>
+                )}
               </TouchableOpacity>
-            ))}
-          </View>
+            );
+          })}
 
           <Text style={styles.sectionTitle}>Games:</Text>
           <View style={styles.gameWrapper}>
@@ -399,6 +439,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#211F26',
   },
   button: { backgroundColor: 'transparent' },
+  alarmText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 5,
+    textAlign: 'center',
+  },
 });
 
 export default ChallSchedule;

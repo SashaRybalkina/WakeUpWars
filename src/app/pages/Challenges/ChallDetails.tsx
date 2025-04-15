@@ -31,6 +31,11 @@ const ChallDetails: React.FC<Props> = ({ navigation }) => {
   const [members, setMembers] = useState<{ name: string }[]>([]);
   const [daysOfWeek, setDaysOfWeek] = useState<string[]>([]); // optional
 
+  const getDayLabel = (dayOfWeek: number): string => {
+    const labels = ['M', 'T', 'W', 'TH', 'F', 'S', 'SU'];
+    return labels[dayOfWeek] || ''; // 1 = Monday, 7 = Sunday
+  };
+  
   useEffect(() => {
     const fetchChallengeDetails = async () => {
       try {
@@ -90,7 +95,13 @@ const ChallDetails: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <View style={styles.progressBox}>
-          <Text style={styles.weekdays}>M T W T F S S</Text>
+        <View style={styles.selectedDaysRow}>
+          {daysOfWeek.map((day, idx) => (
+            <View key={idx} style={styles.selectedDay}>
+              <Text style={styles.selectedDayText}>{day}</Text>
+            </View>
+          ))}
+        </View>
           <Text style={styles.daysComplete}>
             {daysComplete}/{totalDays} Days Complete
           </Text>
@@ -276,7 +287,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  
+  selectedDaysRow: {
+    flexDirection: 'row',
+    marginBottom: 15,
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+  },
+  selectedDay: {
+    backgroundColor: '#FFF455',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginHorizontal: 5,
+    marginVertical: 5,
+  },
+  selectedDayText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000',
+  },  
 });
 
 export default ChallDetails;
