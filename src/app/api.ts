@@ -1,4 +1,4 @@
-export const BASE_URL = 'https://065d-216-162-223-194.ngrok-free.app';
+export const BASE_URL = 'https://5681-216-162-223-194.ngrok-free.app';
 
 export const endpoints = {
   login: `${BASE_URL}/api/login/`,
