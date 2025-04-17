@@ -115,7 +115,7 @@ const ChallSchedule = ({ navigation }: { navigation: NavigationProp<any> }) => {
   }
 
   return (
-    <ImageBackground source={require("../../images/cgpt.png")} style={styles.background} resizeMode="cover">
+    <ImageBackground source={require("../../images/tertiary.png")} style={styles.background} resizeMode="cover">
       <View style={styles.container}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={28} color="#FFF" />

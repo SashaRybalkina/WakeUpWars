@@ -57,7 +57,7 @@ const GameExpanded: React.FC<Props> = ({ navigation }) => {
           source={require('../../images/sudoku.png')}
           style={styles.gameImg}
         ></ImageBackground>
-        <Text style={styles.desc}>Insert description here</Text>
+        <Text style={styles.desc}>A logic-based, combinatorial number-placement puzzle.</Text>
         <Text style={styles.selectButton} onPress={selectPressed}>
           Select Game
         </Text>

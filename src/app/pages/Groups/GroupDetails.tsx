@@ -1,181 +1,256 @@
-import React, { useEffect, useState } from 'react';
-import { endpoints } from '../../api';
+"use client"
+
+import React, { useEffect, useState } from "react"
+import { endpoints } from "../../api"
 import {
-  Image,
   ImageBackground,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { NavigationProp, RouteProp, useRoute } from '@react-navigation/native';
-import { Button } from 'tamagui';
+} from "react-native"
+import { Ionicons } from "@expo/vector-icons"
+import { NavigationProp, useRoute } from "@react-navigation/native"
+import { LinearGradient } from "expo-linear-gradient"
+import ChallengeCard from "../Challenges/ChallengeCard"
 
 type Props = {
-  navigation: NavigationProp<any>;
-};
+  navigation: NavigationProp<any>
+}
 
 type Challenge = {
-  id: number;
-  name: string;
-  startDate: string;
-  endDate: string;
-  isGroupChallenge: boolean;
-  daysOfWeek: string[];
-  daysCompleted: number;
-};
+  id: number
+  name: string
+  startDate: string
+  endDate: string
+  isGroupChallenge: boolean
+  daysOfWeek: string[]
+  daysCompleted: number
+  totalDays?: number
+  isCompleted?: boolean
+}
 
 type GroupData = {
-  id: number;
-  name: string;
-  challenges: Challenge[];
-  members: { id: number; name: string }[];
-};
-
+  id: number
+  name: string
+  challenges: Challenge[]
+  members: { id: number; name: string }[]
+}
 
 const GroupDetails: React.FC<Props> = ({ navigation }) => {
-  const route = useRoute();
-  const { groupId } = route.params as { groupId: number };
+  const route = useRoute()
+  const { groupId } = route.params as { groupId: number }
 
-  const [groupData, setGroupData] = useState<GroupData | null>(null);
+  const [groupData, setGroupData] = useState<GroupData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const fetchGroupData = async () => {
+      setIsLoading(true)
       try {
-        console.log("Fetching from:", endpoints.groupProfile(groupId));
-        const response = await fetch(endpoints.groupProfile(groupId));
-        const data = await response.json();
-        setGroupData(data);
+        console.log("Fetching from:", endpoints.groupProfile(groupId))
+        const response = await fetch(endpoints.groupProfile(groupId))
+        const data = await response.json()
+        
+        // Add totalDays if not present and determine if challenge is completed
+        if (data.challenges) {
+          const now = new Date()
+          data.challenges = data.challenges.map((challenge: Challenge) => ({
+            ...challenge,
+            totalDays: challenge.totalDays || 30,
+            isCompleted: challenge.endDate ? new Date(challenge.endDate) < now : false
+          }))
+        }
+        
+        setGroupData(data)
       } catch (error) {
-        console.error('Failed to fetch group details:', error);
+        console.error("Failed to fetch group details:", error)
+      } finally {
+        setIsLoading(false)
       }
-    };
+    }
 
-    fetchGroupData();
-  }, [groupId]);
+    fetchGroupData()
+  }, [groupId])
 
+  const goToMessages = () => navigation.navigate("Messages")
+  const goToGroups = () => navigation.navigate("Groups")
+  const goToChallenges = () => navigation.navigate("Challenges")
+  const goToProfile = () => navigation.navigate("Profile")
 
-  const goToMessages = () => {
-    navigation.navigate('Messages');
-  };
+  const currentChallenges = groupData?.challenges?.filter((c) => !c.isCompleted) ?? []
+  const pastChallenges = groupData?.challenges?.filter((c) => c.isCompleted) ?? []
 
-  const goToGroups = () => navigation.navigate('Groups');
-  const goToChallenges = () => navigation.navigate('Challenges');
-  const goToProfile = () => navigation.navigate('Profile');
+  // Get member initials for avatar
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+  }
 
-  const currentChallenges = groupData?.challenges?.filter((c: any) => !c.isCompleted) ?? [];
-  const pastChallenges = groupData?.challenges?.filter((c: any) => c.isCompleted) ?? [];
-
-
-  // Placeholder for group profile picture
-  const groupImage = require('../../images/game.jpeg');
-
-  // List of member profile pictures
-  // const memberImages = [
-  //   require('../../images/game.jpeg'),
-  //   require('../../images/game.jpeg'),
-  //   require('../../images/game.jpeg'),
-  //   require('../../images/game.jpeg'),
-  // ];
+  // Get random pastel color for member avatars
+  const getRandomPastelColor = (seed: number) => {
+    const hue = (seed * 137.5) % 360
+    return `hsl(${hue}, 70%, 80%)`
+  }
 
   return (
-    <ImageBackground
-      source={require('../../images/secondary.png')}
-      style={styles.background}
-      resizeMode="cover"
-    >
-      <View style={styles.backButtonContainer}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={30} color="#FFF" />
+    <ImageBackground source={require("../../images/cgpt.png")} style={styles.background} resizeMode="cover">
+      <View style={styles.container}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={28} color="#FFF" />
         </TouchableOpacity>
-      </View>
-      <View style={styles.overlay}>
-        <View style={styles.container}>
-          {!groupData ? (
-            <Text style={{ color: '#fff', marginTop: 50 }}>Loading...</Text>
-          ) : (
+
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading group details...</Text>
+          </View>
+        ) : !groupData ? (
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle" size={60} color="#FFF" />
+            <Text style={styles.errorText}>Could not load group details</Text>
+          </View>
+        ) : (
           <ScrollView
-            style={[
-              {
-                marginBottom: 120,
-                paddingHorizontal: 30,
-              },
-            ]}
-            contentContainerStyle={[{ alignItems: 'center' }]}
+            style={styles.scrollContainer}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
           >
-            <Text style={styles.groupTitle}>{groupData.name}</Text>
+            <View style={styles.headerSection}>
+              <Text style={styles.groupTitle}>{groupData.name}</Text>
+              <View style={styles.decorativeLine} />
+            </View>
 
-            <Image source={groupImage} style={styles.groupImage} />
+            <View style={styles.groupImageContainer}>
+              <LinearGradient
+                colors={["#FF6B6B", "#6B66FF"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.groupImage}
+              />
+            </View>
 
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.membersContainer}
-            >
-              {groupData?.members.map((member: any, index: number) => (
-                <View key={index} style={styles.memberImage}>
-                  <Text style={{ color: 'white', fontWeight: 'bold' }}>
-                    {member.name}
-                  </Text>
-                </View>
-              ))}
-            </ScrollView>
-
-            <Text style={styles.sectionTitle}>Current Challenges</Text>
-            <TouchableOpacity
-              style={styles.addChallenge}
-              onPress={() => {
-                console.log(groupData.members);
-                navigation.navigate('GroupChall1', {
-                  groupId: groupData.id,
-                  groupMembers: groupData.members,
-                })
-              }}
-            >
-              <Ionicons name="add-circle-outline" size={35} color={'#fff'} />
-            </TouchableOpacity>
-
-            <ScrollView style={styles.challs}>
-              {currentChallenges.map((challenge: Challenge, index: number) => (
-              <View key={index} style={styles.challenge}>
-                <Text style={styles.challengeText}>{challenge.name}</Text>
-                <View style={styles.completionBadge}>
-                  <Text style={styles.dayList}>
-                    {challenge.daysOfWeek.join(' ')}
-                  </Text>
-                    <Text style={styles.completionText}>{challenge.daysCompleted}</Text>
-                    <Text style={styles.completionLabel}>Days Complete</Text>
+            <View style={styles.membersSection}>
+              <Text style={styles.sectionTitle}>Members</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.membersScrollContent}
+              >
+                {groupData.members.map((member, index) => (
+                  <View key={index} style={styles.memberContainer}>
+                    <View
+                      style={[
+                        styles.memberAvatar,
+                        { backgroundColor: getRandomPastelColor(index) }
+                      ]}
+                    >
+                      <Text style={styles.memberInitials}>{getInitials(member.name)}</Text>
+                    </View>
+                    <Text style={styles.memberName}>{member.name}</Text>
                   </View>
-              </View>
-              ))}
-            </ScrollView>
-
-            <Text style={styles.sectionTitle}>Past Challenges</Text>
-            <ScrollView style={styles.challs}>
-              {pastChallenges.map((challenge: Challenge, index: number) => (
-                <View key={index} style={styles.challenge}>
-                  <Text style={styles.challengeText}>{challenge.name}</Text>
-                  <View style={styles.completionBadge}>
-                    <Text style={styles.completionText}>{challenge.daysCompleted}</Text>
-                    <Text style={styles.completionLabel}>Days Complete</Text>
-                  </View>
-                </View>
                 ))}
-            </ScrollView>
-          </ScrollView>
-          )}
-        </View>
+              </ScrollView>
+            </View>
 
-        <View style={styles.navBar}>
+            <View style={styles.challengesSection}>
+              <Text style={styles.sectionTitle}>Current Challenges</Text>
+
+              {currentChallenges.length === 0 ? (
+                <View style={styles.emptyStateContainer}>
+                  <Ionicons name="flag-outline" size={40} color="rgba(255,255,255,0.7)" />
+                  <Text style={styles.emptyStateText}>No active challenges</Text>
+                  <Text style={styles.emptyStateSubText}>Create a challenge to get started</Text>
+                </View>
+              ) : (
+                <View style={styles.challengeCardsContainer}>
+                  {currentChallenges.map((challenge) => (
+                    <TouchableOpacity
+                      key={challenge.id}
+                      style={styles.challengeCardWrapper}
+                      onPress={() => 
+                        navigation.navigate("ChallDetails", {
+                          challId: challenge.id,
+                          challName: challenge.name,
+                          whichChall: "Group"
+                        })
+                      }
+                    >
+                      <ChallengeCard
+                        title={challenge.name}
+                        icon={require("../../images/school.png")}
+                        daysComplete={challenge.daysCompleted}
+                        totalDays={challenge.totalDays || 30}
+                        daysOfWeek={challenge.daysOfWeek}
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+              
+              <TouchableOpacity
+                style={styles.addNewButton}
+                onPress={() => {
+                  navigation.navigate("GroupChall1", {
+                    groupId: groupData.id,
+                    groupMembers: groupData.members,
+                  })
+                }}
+              >
+                <Text style={styles.addNewButtonText}>Add new +</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.challengesSection}>
+              <Text style={styles.sectionTitle}>Past Challenges</Text>
+              
+              {pastChallenges.length === 0 ? (
+                <View style={styles.emptyStateContainer}>
+                  <Ionicons name="time-outline" size={40} color="rgba(255,255,255,0.7)" />
+                  <Text style={styles.emptyStateText}>No past challenges</Text>
+                  <Text style={styles.emptyStateSubText}>Completed challenges will appear here</Text>
+                </View>
+              ) : (
+                <View style={styles.challengeCardsContainer}>
+                  {pastChallenges.map((challenge) => (
+                    <TouchableOpacity
+                      key={challenge.id}
+                      style={styles.challengeCardWrapper}
+                      onPress={() => 
+                        navigation.navigate("ChallDetails", {
+                          challId: challenge.id,
+                          challName: challenge.name,
+                          whichChall: "Group"
+                        })
+                      }
+                    >
+                      <ChallengeCard
+                        title={challenge.name}
+                        icon={require("../../images/school.png")}
+                        daysComplete={challenge.daysCompleted}
+                        totalDays={challenge.totalDays || 30}
+                        daysOfWeek={challenge.daysOfWeek}
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          </ScrollView>
+        )}
+      </View>
+
+      <View style={styles.navBar}>
         <TouchableOpacity style={styles.navButton} onPress={goToChallenges}>
-          <Ionicons name="star" size={28} color="#FFF" />
+          <Ionicons name="star-outline" size={28} color="#FFF" />
           <Text style={styles.navText}>Challenges</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navButton} onPress={goToGroups}>
-          <Ionicons name="people-outline" size={28} color="#FFD700" />
+          <Ionicons name="people" size={28} color="#FFD700" />
           <Text style={styles.activeNavText}>Groups</Text>
         </TouchableOpacity>
 
@@ -189,130 +264,180 @@ const GroupDetails: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.navText}>Profile</Text>
         </TouchableOpacity>
       </View>
-      </View>
     </ImageBackground>
-  );
-};
+  )
+}
 
 const styles = StyleSheet.create({
   background: {
     flex: 1,
-    alignItems: 'center',
-  },
-  backButtonContainer: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    zIndex: 10,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   container: {
-    width: '90%',
-    marginTop: 50,
-    alignItems: 'center',
+    flex: 1,
+    paddingTop: 50,
   },
-  groupImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 20,
+    marginBottom: 10,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    color: "#FFF",
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorText: {
+    color: "#FFF",
+    fontSize: 18,
+    fontWeight: "600",
+    marginTop: 10,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100,
+  },
+  headerSection: {
+    alignItems: "center",
+    marginBottom: 20,
+    paddingHorizontal: 20,
   },
   groupTitle: {
-    fontSize: 25,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginTop: 30,
+    fontSize: 36,
+    fontWeight: "800",
+    color: "#FFF",
+    textAlign: "center",
+    textShadowColor: "rgba(0, 0, 0, 0.2)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+  },
+  decorativeLine: {
+    width: 60,
+    height: 4,
+    backgroundColor: "#FFD700",
+    borderRadius: 2,
+    marginTop: 10,
+  },
+  groupImageContainer: {
+    alignItems: "center",
     marginBottom: 20,
-    color: '#FFF',
   },
-  membersContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginVertical: 25,
+  groupImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 3,
+    borderColor: "rgba(255, 255, 255, 0.5)",
   },
-  memberImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginHorizontal: 5,
-  },
-  section: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 15,
-    width: '100%',
+  membersSection: {
+    marginBottom: 25,
+    paddingHorizontal: 20,
   },
   sectionTitle: {
-    fontSize: 25,
-    fontWeight: 'bold',
-    color: '#FFF',
-    marginVertical: 10,
-  },
-  addChallenge: {
-    backgroundColor: 'transparent',
-  },
-  challs: {
-    marginVertical: 15,
-    marginBottom: 35,
-  },
-  challenge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    padding: 10,
-    borderRadius: 15,
-    marginTop: 10,
-    width: 250,
-    height: 65,
-  },
-  challengeText: {
-    marginLeft: 10,
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFF',
-  },
-  dayList: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFF',
-    marginBottom: 2,
-  },
-  completionBadge: {
-    marginLeft: 'auto',
-    alignItems: 'center',
-  },
-  completionText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFF',
-  },
-  completionLabel: {
-    fontSize: 12,
-    color: '#FFF',
-  },
-  buttons: {
-    backgroundColor: '#211F26',
-    flexDirection: 'row',
-    height: 100,
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
-  button: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-    borderRadius: 0,
-    borderWidth: 0,
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#FFF",
+    marginTop: 20,
     marginBottom: 15,
+    textShadowColor: "rgba(0, 0, 0, 0.2)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  membersScrollContent: {
+    paddingRight: 20,
+  },
+  memberContainer: {
+    alignItems: "center",
+    marginRight: 15,
+    width: 70,
+  },
+  memberAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 5,
+    borderWidth: 2,
+    borderColor: "rgba(255, 255, 255, 0.5)",
+  },
+  memberInitials: {
+    color: "#333",
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  memberName: {
+    color: "#FFF",
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  challengesSection: {
+    marginBottom: 25,
+    paddingHorizontal: 20,
+  },
+  addNewButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignSelf: "center",
+    marginTop: 10,
+    marginBottom: 5,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+  },
+  addNewButtonText: {
+    color: "#000",
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  emptyStateContainer: {
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.2)",
+    borderRadius: 15,
+    padding: 30,
+  },
+  emptyStateText: {
+    color: "#FFF",
+    fontSize: 18,
+    fontWeight: "600",
+    marginTop: 10,
+  },
+  emptyStateSubText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 14,
+    marginTop: 5,
+  },
+  challengeCardsContainer: {
+    width: "100%",
+  },
+  challengeCardWrapper: {
+    marginBottom: 15,
+    borderRadius: 16,
+    overflow: "hidden",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   navBar: {
     backgroundColor: "#211F26",
@@ -342,6 +467,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontWeight: "600",
   },
-});
+})
 
-export default GroupDetails;
+export default GroupDetails

@@ -1,99 +1,102 @@
-import React, { useEffect, useState } from 'react';
-import { useUser } from '../context/UserContext';
-import { endpoints } from '../api';
-import {
-  Image,
-  ImageBackground,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { NavigationProp } from '@react-navigation/native';
-import { Button } from 'tamagui';
-import UserProfileCard from './Components/UserProfileCard';
+import type React from "react"
+import { useEffect, useState } from "react"
+import { useUser } from "../context/UserContext"
+import { endpoints } from "../api"
+import { ImageBackground, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { Ionicons } from "@expo/vector-icons"
+import type { NavigationProp } from "@react-navigation/native"
+import UserProfileCard from "./Components/UserProfileCard"
 
 type Props = {
-  navigation: NavigationProp<any>;
-};
+  navigation: NavigationProp<any>
+}
 
 const Profile: React.FC<Props> = ({ navigation }) => {
-  const goToChallenges = () => navigation.navigate('Challenges');
-  const goToGroups = () => navigation.navigate('Groups');
-  const goToMessages = () => navigation.navigate('Messages');
-  const goToProfile = () => { navigation.navigate('Profile');};
-  const [profileData, setProfileData] = useState<any>(null);
-  const { user } = useUser();
+  const goToChallenges = () => navigation.navigate("Challenges")
+  const goToGroups = () => navigation.navigate("Groups")
+  const goToMessages = () => navigation.navigate("Messages")
+  const goToProfile = () => {
+    navigation.navigate("Profile")
+  }
+  const [profileData, setProfileData] = useState<any>(null)
+  const { user } = useUser()
 
   useEffect(() => {
     if (!user?.id) {
-      console.error('userId is missing!');
-      return;
+      console.error("userId is missing!")
+      return
     }
     const fetchProfile = async () => {
       try {
-        const response = await fetch(endpoints.profile(user.id));
-        const data = await response.json();
-        setProfileData(data);
+        const response = await fetch(endpoints.profile(user.id))
+        const data = await response.json()
+        setProfileData(data)
       } catch (error) {
-        console.error('Failed to load profile:', error);
+        console.error("Failed to load profile:", error)
       }
-    };
-  
-    fetchProfile();
-  }, [user]);
-  
-  
+    }
+
+    fetchProfile()
+  }, [user])
+
   return (
-    <ImageBackground
-      source={require('../images/cgpt.png')}
-      style={styles.background}
-      resizeMode="cover"
-    >
+    <ImageBackground source={require("../images/cgpt.png")} style={styles.background} resizeMode="cover">
       {/* Profile Section */}
-      <UserProfileCard
-        name={profileData?.name || 'Loading...'}
-        skillLevels={profileData?.skill_levels || []}
-      />
+      <UserProfileCard name={profileData?.name || "Loading..."} skillLevels={profileData?.skill_levels || []} />
 
       <View style={styles.profileButtons}>
-        <TouchableOpacity
-          style={styles.profileButton}
-          onPress={() => navigation.navigate('Friends1')}
-        >
-          <Ionicons name="people" size={40} color={'#fff'} />
+        <TouchableOpacity style={styles.profileButton} onPress={() => navigation.navigate("Friends1")}>
+          <Ionicons name="people" size={40} color={"#fff"} />
           <Text style={styles.profileButtonText}>Friends</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.profileButton}
-          onPress={() => navigation.navigate('PersChall1')}
-        >
-          <Ionicons name="trophy" size={40} color={'#FFD700'} />
-          <Text style={[styles.profileButtonText, { color: '#FF0' }]}>
-            Challenges
-          </Text>
+        <TouchableOpacity style={styles.profileButton} onPress={() => navigation.navigate("PersChall1")}>
+          <Ionicons name="trophy" size={40} color={"#FFD700"} />
+          <Text style={[styles.profileButtonText, { color: "#FF0" }]}>Challenges</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.menu}>
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuText}>My Skills {'>'}</Text>
+        <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
+          <View style={styles.menuItemContent}>
+            <Ionicons name="star" size={22} color="#FFD700" style={styles.menuIcon} />
+            <Text style={styles.menuText}>My Skills</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={22} color="#FFF" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuText}>Leaderboard {'>'}</Text>
+
+        <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
+          <View style={styles.menuItemContent}>
+            <Ionicons name="podium" size={22} color="#FFD700" style={styles.menuIcon} />
+            <Text style={styles.menuText}>Leaderboard</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={22} color="#FFF" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuText}>Alarms {'>'}</Text>
+
+        <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
+          <View style={styles.menuItemContent}>
+            <Ionicons name="alarm" size={22} color="#FFD700" style={styles.menuIcon} />
+            <Text style={styles.menuText}>Alarms</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={22} color="#FFF" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuText}>Support {'>'}</Text>
+
+        <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
+          <View style={styles.menuItemContent}>
+            <Ionicons name="help-circle" size={22} color="#FFD700" style={styles.menuIcon} />
+            <Text style={styles.menuText}>Support</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={22} color="#FFF" />
         </TouchableOpacity>
       </View>
 
+      <TouchableOpacity style={styles.logoutButton} activeOpacity={0.8}>
+        <Ionicons name="log-out-outline" size={22} color="#FFF" style={styles.logoutIcon} />
+        <Text style={styles.logoutText}>Log Out</Text>
+      </TouchableOpacity>
+
       {/* Navigation Bar */}
       <View style={styles.navBar}>
-        <TouchableOpacity style={styles.navButton}onPress={goToChallenges}>
+        <TouchableOpacity style={styles.navButton} onPress={goToChallenges}>
           <Ionicons name="star" size={28} color="#FFF" />
           <Text style={styles.navText}>Challenges</Text>
         </TouchableOpacity>
@@ -114,16 +117,16 @@ const Profile: React.FC<Props> = ({ navigation }) => {
         </TouchableOpacity>
       </View>
     </ImageBackground>
-  );
-};
+  )
+}
 
 const styles = StyleSheet.create({
   background: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   profileContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 50,
   },
   avatar: {
@@ -132,85 +135,115 @@ const styles = StyleSheet.create({
     marginTop: 30,
     borderRadius: 60,
     borderWidth: 3,
-    borderColor: '#FFD700',
+    borderColor: "#FFD700",
   },
   profileName: {
     fontSize: 26,
-    fontWeight: 'bold',
-    color: '#FFF',
+    fontWeight: "bold",
+    color: "#FFF",
     marginTop: 10,
   },
   profileLink: {
-    color: '#EEE',
+    color: "#EEE",
     fontSize: 16,
     marginBottom: 10,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   statsContainer: {
     marginTop: 7.5,
-    width: '100%',
+    width: "100%",
   },
   statCard: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
     paddingHorizontal: 25,
     paddingVertical: 7.5,
     marginVertical: 2.5,
     borderRadius: 10,
   },
   stat: {
-    color: '#FFF',
-    fontWeight: 600,
+    color: "#FFF",
+    fontWeight: "600",
   },
   statValue: {
-    fontWeight: 'bold',
-    color: '#FFD700',
+    fontWeight: "bold",
+    color: "#FFD700",
   },
   profileButtons: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginTop: 20,
   },
   profileButton: {
-    alignItems: 'center',
+    alignItems: "center",
     marginHorizontal: 20,
   },
   profileButtonText: {
-    color: '#FFF',
+    color: "#FFF",
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   menu: {
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 2.5,
-    width: '85%',
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    borderRadius: 16,
+    width: "85%",
     marginTop: 20,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
   },
   menuItem: {
-    padding: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#DDD',
+    borderBottomColor: "rgba(255, 255, 255, 0.1)",
+  },
+  menuItemContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  menuIcon: {
+    marginRight: 12,
   },
   menuText: {
-    color: '#FFF',
+    color: "#FFF",
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
+  },
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(50, 50, 60, 0.5)",
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 12,
+    marginTop: 20,
+    borderWidth: 0,
+    borderColor: "rgba(50, 50, 60, 0.3)",
+  },
+  logoutIcon: {
+    marginRight: 8,
+  },
+  logoutText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "600",
   },
   buttons: {
-    backgroundColor: '#211F26',
-    flexDirection: 'row',
+    backgroundColor: "#211F26",
+    flexDirection: "row",
     height: 100,
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    position: 'absolute',
+    justifyContent: "space-around",
+    alignItems: "center",
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
   },
   button: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "transparent",
     borderRadius: 0,
     borderWidth: 0,
     marginBottom: 15,
@@ -243,6 +276,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontWeight: "600",
   },
-});
+})
 
-export default Profile;
+export default Profile
