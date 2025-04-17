@@ -53,6 +53,10 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     //navigation.navigate('ChallGroup');
   };
 
+  const goToMessages = () => {
+    navigation.navigate('Messages');
+  };
+
   const goToGroups = () => navigation.navigate('Groups');
   const goToChallenges = () => navigation.navigate('Challenges');
   const goToProfile = () => navigation.navigate('Profile');
@@ -70,7 +74,6 @@ const Messages: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.title}>Messages</Text>
         <TextInput
           style={styles.input}
-          placeholder="Search messages"
           placeholder="Search messages"
           placeholderTextColor="#AAA"
         />
@@ -99,19 +102,26 @@ const Messages: React.FC<Props> = ({ navigation }) => {
         </Button>
       </View>
 
-      <View style={styles.buttons}>
-        <Button style={styles.button} onPress={goToChallenges}>
-          <Ionicons name="star-outline" size={40} color={'#FFF5CD'} />
-        </Button>
-        <Button style={styles.button} onPress={goToGroups}>
-          <Ionicons name="people-outline" size={40} color={'#FFF5CD'} />
-        </Button>
-        <Button style={styles.button}>
-          <Ionicons name="mail" size={40} color={'#FFF5CD'} />
-        </Button>
-        <Button style={styles.button} onPress={goToProfile}>
-          <Ionicons name="person-outline" size={40} color={'#FFF5CD'} />
-        </Button>
+      <View style={styles.navBar}>
+        <TouchableOpacity style={styles.navButton} onPress={goToChallenges}>
+          <Ionicons name="star" size={28} color="#FFF" />
+          <Text style={styles.navText}>Challenges</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navButton} onPress={goToGroups}>
+          <Ionicons name="people-outline" size={28} color="#FFF" />
+          <Text style={styles.navText}>Groups</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navButton} onPress={goToMessages}>
+          <Ionicons name="mail-outline" size={28} color="#FFD700" />
+          <Text style={styles.activeNavText}>Messages</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navButton} onPress={goToProfile}>
+          <Ionicons name="person-outline" size={28} color="#FFF" />
+          <Text style={styles.navText}>Profile</Text>
+        </TouchableOpacity>
       </View>
     </ImageBackground>
   );
@@ -215,6 +225,34 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     borderWidth: 0,
     marginBottom: 15,
+  },
+  navBar: {
+    backgroundColor: "#211F26",
+    flexDirection: "row",
+    height: 80,
+    justifyContent: "space-around",
+    alignItems: "center",
+    paddingBottom: 15,
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  navButton: {
+    justifyContent: "center",
+    alignItems: "center",
+    flex: 1,
+  },
+  navText: {
+    color: "#999",
+    fontSize: 12,
+    marginTop: 4,
+  },
+  activeNavText: {
+    color: "#FFD700",
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: "600",
   },
 });
 

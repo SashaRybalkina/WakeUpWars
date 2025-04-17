@@ -35,6 +35,8 @@ const Challenges: React.FC<Props> = ({ navigation }) => {
     navigation.navigate("Chall1", { whichChall })
   }
 
+  const goToChallenges = () => navigation.navigate('Challenges');
+
   const goToGroups = () => {
     navigation.navigate("Groups")
   }
@@ -71,7 +73,7 @@ const Challenges: React.FC<Props> = ({ navigation }) => {
       </View>
 
       <View style={styles.navBar}>
-        <TouchableOpacity style={styles.navButton}>
+        <TouchableOpacity style={styles.navButton} onPress={goToChallenges}>
           <Ionicons name="star" size={28} color="#FFD700" />
           <Text style={styles.activeNavText}>Challenges</Text>
         </TouchableOpacity>

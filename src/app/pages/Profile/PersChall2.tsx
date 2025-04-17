@@ -15,8 +15,8 @@ import { Button } from 'tamagui';
 
 const DAYS = ['M', 'T', 'W', 'TH', 'F', 'S', 'SU'];
 
-const PersChall2 = ({ navigation }) => {
-  const [selectedDays, setSelectedDays] = useState({});
+const PersChall2 = ({ navigation }: { navigation: NavigationProp<any> }) => {
+  const [selectedDays, setSelectedDays] = useState<Record<string, boolean>>({});
   const [selectedTime, setSelectedTime] = useState(new Date());
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -24,23 +24,39 @@ const PersChall2 = ({ navigation }) => {
   const [curGames, setCurGames] = useState<string[][]>([]);
   const [name, setName] = useState('');
 
-  const toggleDay = (day) => {
+  const toggleDay = (day: string) => {
     setSelectedDays((prev) => ({
       ...prev,
       [day]: !prev[day],
     }));
   };
 
-  const onDateChange = (event, date) => {
+  const onDateChange = (event: any, date: Date | undefined) => {
     if (date) {
       setSelectedDate(date);
     }
   };
 
-  const onTimeChange = (event, time) => {
+  const onTimeChange = (event: any, time: Date | undefined) => {
     if (time) {
       setSelectedTime(time);
     }
+  };
+
+  const goToChallenges = () => {
+    navigation.navigate('Challenges');
+  };
+
+  const goToMessages = () => {
+    navigation.navigate('Messages');
+  };
+
+  const goToGroups = () => {
+    navigation.navigate('Groups');
+  };
+
+  const goToProfile = () => {
+    navigation.navigate('Profile');
   };
 
   return (
@@ -184,29 +200,27 @@ const PersChall2 = ({ navigation }) => {
           <Button style={styles.finishButton}>Finish</Button>
         </ScrollView>
 
-        <View style={styles.buttons}>
-          <Button
-            style={styles.button}
-            onPress={() => navigation.navigate('Challenges')}
-          >
-            <Ionicons name="star-outline" size={40} color={'#FFF5CD'} />
-          </Button>
-          <Button
-            style={styles.button}
-            onPress={() => navigation.navigate('Groups')}
-          >
-            <Ionicons name="people-outline" size={40} color={'#FFF5CD'} />
-          </Button>
-          <Button
-            style={styles.button}
-            onPress={() => navigation.navigate('Messages')}
-          >
-            <Ionicons name="mail-outline" size={40} color={'#FFF5CD'} />
-          </Button>
-          <Button style={styles.button}>
-            <Ionicons name="person" size={40} color={'#FFF5CD'} />
-          </Button>
-        </View>
+        <View style={styles.navBar}>
+        <TouchableOpacity style={styles.navButton} onPress={goToChallenges}>
+          <Ionicons name="star" size={28} color="#FFF" />
+          <Text style={styles.navText}>Challenges</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navButton} onPress={goToGroups}>
+          <Ionicons name="people-outline" size={28} color="#FFF" />
+          <Text style={styles.navText}>Groups</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navButton} onPress={goToMessages}>
+          <Ionicons name="mail-outline" size={28} color="#FFF" />
+          <Text style={styles.navText}>Messages</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navButton} onPress={goToProfile}>
+          <Ionicons name="person-outline" size={28} color="#FFD700" />
+          <Text style={styles.activeNavText}>Profile</Text>
+        </TouchableOpacity>
+      </View>
       </View>
     </ImageBackground>
   );
@@ -371,6 +385,34 @@ const styles = StyleSheet.create({
     backgroundColor: '#211F26',
   },
   button: { backgroundColor: 'transparent' },
+  navBar: {
+    backgroundColor: "#211F26",
+    flexDirection: "row",
+    height: 80,
+    justifyContent: "space-around",
+    alignItems: "center",
+    paddingBottom: 15,
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  navButton: {
+    justifyContent: "center",
+    alignItems: "center",
+    flex: 1,
+  },
+  navText: {
+    color: "#999",
+    fontSize: 12,
+    marginTop: 4,
+  },
+  activeNavText: {
+    color: "#FFD700",
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: "600",
+  },
 });
 
 export default PersChall2;
