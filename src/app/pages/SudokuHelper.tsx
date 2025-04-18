@@ -10,7 +10,7 @@ export const createSudokuGame = async (challengeId: number): Promise<CreateGameR
     const url = endpoints.createSudokuGame;
     const payload = {
       challenge_id: challengeId,
-    };
+    }; // not doing things for model or difficulty yet so it's always easy level
 
     console.log('[Create Game] Calling:', url);
     console.log('[Create Game] Payload:', payload);
@@ -39,6 +39,7 @@ type ValidateResponse = {
   success: boolean;
   result: 'correct' | 'incorrect';
   puzzle: number[][];
+  completed: boolean;
 };
 
 export const validateSudokuMove = async (

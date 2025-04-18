@@ -9,15 +9,26 @@ import {
   TextInput,
   Image,
 } from 'react-native';
-import { createSudokuGame, validateSudokuMove, markGameAsCompleted } from './SudokuHelper';
-import uuid from 'react-native-uuid';
+import { createSudokuGame, validateSudokuMove } from './SudokuHelper';
 
 const CELL_SIZE = 35;
 const BORDER_WIDTH_THIN = 1;
 const BORDER_WIDTH_THICK = 2;
 const GRID_SIZE = CELL_SIZE * 9 + BORDER_WIDTH_THIN * 6 + BORDER_WIDTH_THICK * 2;
 
-const allColors = ['hotpink', 'coral', 'orange', 'lawngreen', 'aqua', 'deepskyblue', 'mediumorchid', 'mediumvioletred', 'magenta', 'purple', 'blue', ];
+const allColors = [
+  'hotpink',
+  'coral',
+  'orange',
+  'lawngreen',
+  'aqua',
+  'deepskyblue',
+  'mediumorchid',
+  'mediumvioletred',
+  'magenta',
+  'thistle',
+  'powderblue',
+];
 const assignColor = () => {
   const index = Math.floor(Math.random() * allColors.length);
   const color = allColors[index];
@@ -37,7 +48,7 @@ const SudokuScreen = ({ route, navigation }) => {
   const [savedColor, setSavedColor] = useState(getInitialColor());
   const [cellColors, setCellColors] = useState(Array(81).fill('white'));
   const [timeLeft, setTimeLeft] = useState(300);
-  const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
+  const [intervalId, setIntervalId] = useState<ReturnType<typeof setInterval> | null>(null);
   const [gameCompleted, setGameCompleted] = useState(false);  
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [pendingInput, setPendingInput] = useState<string>('');
@@ -125,7 +136,13 @@ const SudokuScreen = ({ route, navigation }) => {
           }
           setCellColors(updatedColors);
 
-          await checkGameCompletion(updatedGrid);
+          if (res.completed) {
+            setGameCompleted(true);
+            if (intervalId) {
+              clearInterval(intervalId);
+            }
+            Alert.alert("🎉 You Win!", `Finished Time：${formatTime(300 - timeLeft)}`);
+          }
         } else {
           const errorColors = [...cellColors];
           if (selectedIndex !== null) {

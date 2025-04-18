@@ -106,8 +106,15 @@ class CreateSudokuGameView(APIView):
 
         # Difficulty setting based on mode
         if mode == 'multi':
-            difficulty = 0.6  # fixed difficulty for multiplayer
             difficulty_level = 'medium'
+            difficulty = 0.6  # fixed difficulty for multiplayer
+            existing_game = SudokuGameState.objects.filter(challenge=challenge, game=game).first()
+            if existing_game:
+                return Response({
+                    'game_id': existing_game.id,
+                    'puzzle': existing_game.puzzle,
+                    'difficulty': difficulty_level,
+                    'mode': mode,}, status=status.HTTP_200_OK)                
         else:
             difficulty_map = {
                 'easy': 0.05,
@@ -139,6 +146,8 @@ class CreateSudokuGameView(APIView):
 
 class ValidateSudokuMoveView(APIView):
     """
+    ONly for single player mode.
+
         Frontend sends:
       - game_id: the id of the Sudoku game
       - index: a number from 0 to 80 representing the cell position
@@ -194,7 +203,15 @@ class ValidateSudokuMoveView(APIView):
         if is_correct:
             game_state.puzzle[row][col] = value
             game_state.save()
-            return Response({'success': True, 'result': 'correct', 'puzzle': game_state.puzzle}, status=status.HTTP_200_OK)
+
+            is_complete = game_state.puzzle == game_state.solution
+
+            return Response({
+                'success': True,
+                'result': 'correct',
+                'puzzle': game_state.puzzle,
+                'completed': is_complete  
+            }, status=status.HTTP_200_OK)
         else:
             return Response({'success': False, 'result': 'incorrect', 'puzzle': game_state.puzzle}, status=status.HTTP_200_OK)
 
