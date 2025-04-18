@@ -20,6 +20,7 @@ const Friends1: React.FC<Props> = ({ navigation }) => {
   const [friends, setFriends] = useState<{ id: number; name: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  const [requestCount, setRequestCount] = useState(0)
 
   useEffect(() => {
     if (!user?.id) {
@@ -32,6 +33,11 @@ const Friends1: React.FC<Props> = ({ navigation }) => {
         const response = await fetch(endpoints.friends(Number(user.id)))
         const data = await response.json()
         setFriends(data)
+
+        // Fetch friend request count
+        const requestsResponse = await fetch(endpoints.friendRequests(Number(user.id)))
+        const requestsData = await requestsResponse.json()
+        setRequestCount(requestsData.length)
       } catch (error) {
         console.error("Failed to fetch friends:", error)
       } finally {
@@ -79,10 +85,37 @@ const Friends1: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="arrow-back" size={24} color="#FFF" />
           </TouchableOpacity>
           <Text style={styles.title}>My Friends</Text>
-          <TouchableOpacity style={styles.addFriendButton}>
+          <TouchableOpacity
+            style={styles.addFriendButton}
+            onPress={() => {
+              console.log("Navigating to FriendsSearch")
+              navigation.navigate("FriendsSearch")
+            }}
+          >
             <Ionicons name="person-add" size={24} color="#FFD700" />
           </TouchableOpacity>
         </View>
+
+        {requestCount > 0 && (
+          <TouchableOpacity
+            style={styles.requestsButton}
+            onPress={() => {
+              console.log("Navigating to FriendsRequests")
+              navigation.navigate("FriendsRequests")
+            }}
+          >
+            <View style={styles.requestsIconContainer}>
+              <Ionicons name="notifications" size={24} color="#FFD700" />
+              <View style={styles.requestsBadge}>
+                <Text style={styles.requestsBadgeText}>{requestCount}</Text>
+              </View>
+            </View>
+            <Text style={styles.requestsText}>
+              {requestCount === 1 ? "1 friend request" : `${requestCount} friend requests`}
+            </Text>
+            <Ionicons name="chevron-forward" size={20} color="#FFD700" />
+          </TouchableOpacity>
+        )}
 
         <View style={styles.searchContainer}>
           <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
@@ -199,6 +232,43 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
+  },
+  requestsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(50, 50, 60, 0.4)",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "rgba(255, 215, 0, 0.3)",
+  },
+  requestsIconContainer: {
+    position: "relative",
+    marginRight: 10,
+  },
+  requestsBadge: {
+    position: "absolute",
+    top: -5,
+    right: -5,
+    backgroundColor: "#FF3B30",
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  requestsBadgeText: {
+    color: "#FFF",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  requestsText: {
+    flex: 1,
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "600",
   },
   searchContainer: {
     flexDirection: "row",

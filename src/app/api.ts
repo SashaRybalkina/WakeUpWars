@@ -1,4 +1,4 @@
-export const BASE_URL = 'https://29f4-136-38-171-186.ngrok-free.app';
+export const BASE_URL = 'https://8267-136-38-171-186.ngrok-free.app';
 
 export const endpoints = {
   login: `${BASE_URL}/api/login/`,
@@ -15,4 +15,10 @@ export const endpoints = {
   challengeList: (userId: number, whichChall: string) => `${BASE_URL}/api/challenges/${userId}/${whichChall}/`,
   challengeSchedule: (challId: number) => `${BASE_URL}/api/challenge-schedule/${challId}/`,
   createGroupChallenge: `${BASE_URL}/api/create-group-challenge/`,
+  allUsers: () => `${BASE_URL}/api/profile/all/`,
+  sendFriendRequest: () => `${BASE_URL}/api/friend-request/send/`,
+  friendRequests: (userId: number) => `${BASE_URL}/api/friend-requests/${userId}/`,
+  sentFriendRequests: (userId: number) => `${BASE_URL}/api/friend-requests-sent/${userId}/`,
+  respondToFriendRequest: (requestId: number) => `${BASE_URL}/api/friend-request/respond/${requestId}/`,
+  cancelFriendRequest: (requestId: number) => `${BASE_URL}/api/friend-request/delete/${requestId}/`,
 };

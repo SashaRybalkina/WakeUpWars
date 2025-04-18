@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Group, User, SkillLevel, GameCategory, Challenge, GamePerformance, GameSchedule, Message, ChallengeMembership, Game
+from .models import Group, User, SkillLevel, GameCategory, Challenge, GamePerformance, GameSchedule, Message, ChallengeMembership, Game, FriendRequest
 from django.contrib.auth.hashers import make_password
 import calendar
 
@@ -98,3 +98,10 @@ class MessageSerializer(serializers.ModelSerializer):
         model = Message
         fields = ['id', 'message', 'sender', 'recipient', 'groupID']
         
+class FriendRequestSerializer(serializers.ModelSerializer):
+    sender = UserSerializer(read_only=True)
+    recipient = UserSerializer(read_only=True) 
+
+    class Meta:
+        model = FriendRequest
+        fields = ['id', 'sender', 'recipient', 'created_at']

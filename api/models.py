@@ -252,3 +252,17 @@ class SudokuGamePlayer(models.Model):
       class Meta:
           db_table = 'SudokuGamePlayers'
           unique_together = ('gameState', 'player')
+          
+# Friend Requests: representing the friend request system
+class FriendRequest(models.Model):
+    sender = models.ForeignKey(User, related_name='sent_requests', on_delete=models.CASCADE)
+    recipient = models.ForeignKey(User, related_name='received_requests', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'FriendRequests'
+        unique_together = ('sender', 'recipient')
+
+    def __str__(self):
+        return f"{self.sender.username} → {self.recipient.username}"
+

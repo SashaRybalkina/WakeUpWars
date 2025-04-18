@@ -26,9 +26,9 @@ import Profile from './pages/Profile';
 import AcceptFInvite from './pages/Profile/AcceptFInvite';
 import AcceptGInvite from './pages/Profile/AcceptGInvite';
 import Friends1 from './pages/Profile/Friends1';
-import Friends2 from './pages/Profile/Friends2';
 import Friends3 from './pages/Profile/Friends3';
-import Friends4 from './pages/Profile/Friends4';
+import FriendsRequests from './pages/Profile/FriendRequest';
+import FriendsSearch from './pages/Profile/FriendSearch';
 import PersChall1 from './pages/Profile/PersChall1';
 import PersChall2 from './pages/Profile/PersChall2';
 import SignUpScreen from './pages/SignUp';
@@ -155,18 +155,18 @@ function App() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="Friends2"
-          component={Friends2}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
           name="Friends3"
           component={Friends3}
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="Friends4"
-          component={Friends4}
+          name="FriendsRequests"
+          component={FriendsRequests}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="FriendsSearch"
+          component={FriendsSearch}
           options={{ headerShown: false }}
         />
         <Stack.Screen

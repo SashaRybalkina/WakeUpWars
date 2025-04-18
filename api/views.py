@@ -10,8 +10,8 @@ from datetime import time
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import authenticate, get_user_model
-from .serializers import UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer, MessageSerializer, ChallengeSummarySerializer, CatSerializer, GameSerializer, FriendSerializer
-from .models import Group, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule, AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership
+from .serializers import UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer, MessageSerializer, ChallengeSummarySerializer, CatSerializer, GameSerializer, FriendSerializer, FriendRequestSerializer
+from .models import Group, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule, AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest
 
 User = get_user_model()
 
@@ -292,4 +292,63 @@ class CreateGroupChallengeView(APIView):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
     
-    
+class SendFriendRequestView(APIView):
+    def post(self, request):
+        sender_id = request.data.get("sender_id")
+        recipient_id = request.data.get("recipient_id")
+
+        if sender_id == recipient_id:
+            return Response({'error': 'You cannot send a friend request to yourself'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if FriendRequest.objects.filter(sender_id=sender_id, recipient_id=recipient_id).exists():
+            return Response({'error': 'Friend request already sent'}, status=status.HTTP_400_BAD_REQUEST)
+
+        FriendRequest.objects.create(sender_id=sender_id, recipient_id=recipient_id)
+        return Response({'message': 'Friend request sent successfully'}, status=status.HTTP_201_CREATED)
+
+
+class FriendRequestListView(APIView):
+    def get(self, request, user_id):
+        requests = FriendRequest.objects.filter(recipient_id=user_id).select_related('sender')
+        serializer = FriendRequestSerializer(requests, many=True)
+        return Response(serializer.data)
+
+
+class SentFriendRequestListView(APIView):
+    def get(self, request, user_id):
+        requests = FriendRequest.objects.filter(sender_id=user_id)
+        serializer = FriendRequestSerializer(requests, many=True)
+        return Response(serializer.data)
+
+
+class RespondToFriendRequestView(APIView):
+    def post(self, request, request_id):
+        accept = request.data.get("accept")
+        try:
+            fr = FriendRequest.objects.get(id=request_id)
+        except FriendRequest.DoesNotExist:
+            return Response({'error': 'Friend request not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        if accept:
+            # Add friendship both ways
+            Friendship.objects.create(uID1=fr.sender, uID2=fr.recipient)
+        fr.delete()
+        return Response({'message': 'Friend request processed'}, status=status.HTTP_200_OK)
+
+
+class AllUsersView(APIView):
+    def get(self, request):
+        users = User.objects.all()
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data)
+
+
+class CancelFriendRequestView(APIView):
+    def delete(self, request, request_id):
+        try:
+            fr = FriendRequest.objects.get(id=request_id)
+        except FriendRequest.DoesNotExist:
+            return Response({'error': 'Friend request not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        fr.delete()
+        return Response({'message': 'Friend request cancelled'}, status=status.HTTP_200_OK)

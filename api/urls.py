@@ -1,5 +1,9 @@
 from django.urls import path
-from .views import LoginView, RegisterView, GroupListView, HelloWorldView, UserProfileView, UserMessagesView, GroupDetailsView, CatListView, GameListView, ChallengeListView, ChallengeDetailView, ChallengeGameScheduleView, CreateGroupChallengeView, FriendListView, AddGroupMemberView
+from .views import (LoginView, RegisterView, GroupListView, HelloWorldView, UserProfileView, 
+                    UserMessagesView, GroupDetailsView, CatListView, GameListView, ChallengeListView, 
+                    ChallengeDetailView, ChallengeGameScheduleView, CreateGroupChallengeView, FriendListView, 
+                    AddGroupMemberView, SendFriendRequestView, FriendRequestListView, RespondToFriendRequestView, 
+                    SentFriendRequestListView, AllUsersView, CancelFriendRequestView)
 
 urlpatterns = [
     path('login/', LoginView.as_view(), name='login'),
@@ -17,4 +21,10 @@ urlpatterns = [
     path('challenge-detail/<int:chall_id>/', ChallengeDetailView.as_view(), name='challenge-detail'),
     path('challenge-schedule/<int:chall_id>/', ChallengeGameScheduleView.as_view(), name='challenge-schedule'),
     path('create-group-challenge/', CreateGroupChallengeView.as_view(), name='create-group-challenge'),
+    path('friend-requests/<int:user_id>/', FriendRequestListView.as_view(), name='friend-requests'),
+    path('friend-requests-sent/<int:user_id>/', SentFriendRequestListView.as_view(), name='sent-friend-requests'),
+    path('friend-request/respond/<int:request_id>/', RespondToFriendRequestView.as_view(), name='respond-friend-request'),
+    path('friend-request/send/', SendFriendRequestView.as_view(), name='send-friend-request'),
+    path('profile/all/', AllUsersView.as_view(), name='all-users'),
+    path('friend-request/delete/<int:request_id>/', CancelFriendRequestView.as_view(), name='cancel-friend-request'),
 ]
