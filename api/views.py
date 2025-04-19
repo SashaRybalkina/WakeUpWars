@@ -12,14 +12,11 @@ from .models import SudokuGameState, Challenge, SudokuGamePlayer, User, Game
 from api.sudokuStuff.utils import validate_sudoku_move, get_or_create_game
 from sudoku import Sudoku
 import time
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
 from django.contrib.auth import login
 
 User = get_user_model()
 
 
-@method_decorator(csrf_exempt, name='dispatch')
 class LoginView(APIView):
     def post(self, request):
         print("Request data:", request.data)
