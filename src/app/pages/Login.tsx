@@ -34,10 +34,13 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ username, password }),
       });
   
       const data = await response.json();
+
+
   
       if (response.ok && data.success) {
         setUser({
@@ -49,6 +52,8 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         navigation.navigate('Profile');
       } else {
         Alert.alert('Login Failed', data.error || 'Login failed');
+        console.log('response status:', response.status);
+        console.log('response body:', data);
       }
     } catch (error) {
       console.error('Login error:', error);

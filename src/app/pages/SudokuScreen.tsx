@@ -9,62 +9,114 @@ import {
   TextInput,
   Image,
 } from 'react-native';
-import { createSudokuGame, validateSudokuMove } from './SudokuHelper';
+// import { createSudokuGame, validateSudokuMove } from './SudokuHelper';
+import { NavigationProp, useRoute } from '@react-navigation/native';
+import { endpoints, BASE_URL } from '../api';
+import { useUser } from '../context/UserContext';
 
 const CELL_SIZE = 35;
 const BORDER_WIDTH_THIN = 1;
 const BORDER_WIDTH_THICK = 2;
 const GRID_SIZE = CELL_SIZE * 9 + BORDER_WIDTH_THIN * 6 + BORDER_WIDTH_THICK * 2;
 
-const allColors = [
-  'hotpink',
-  'coral',
-  'orange',
-  'lawngreen',
-  'aqua',
-  'deepskyblue',
-  'mediumorchid',
-  'mediumvioletred',
-  'magenta',
-  'thistle',
-  'powderblue',
-];
-const assignColor = () => {
-  const index = Math.floor(Math.random() * allColors.length);
-  const color = allColors[index];
-  allColors.splice(index, 1);
-  return color ?? 'black';
+interface BroadcastMoveMessage {
+  type: 'broadcast_move';
+  cell: number;
+  value: number;
+  color: string;
+  valid: boolean;
+}
+
+export interface PlayerJoinedMessage {
+  type: 'player_joined';
+  player: string; // username or user ID
+  color: string;
+}
+
+export interface GameCompleteMessage {
+  type: 'game_complete';
+  completedBy: string; // username
+  time: number; // seconds taken or timestamp
+}
+
+// Client → Server
+
+export interface MakeMoveMessage {
+  type: 'make_move';
+  selectedIndex: number;
+  value: number;
+}
+
+// Server to client
+export type ServerToClientMessage =
+  | BroadcastMoveMessage
+  | PlayerJoinedMessage
+  | GameCompleteMessage;
+
+// Client to server
+export type ClientToServerMessage = MakeMoveMessage;
+
+
+const [socket, setSocket] = useState<WebSocket | null>(null);
+// will only have a color if in a multiplayer game
+const [playerColor, setPlayerColor] = useState<string>('');
+
+type Props = {
+  navigation: NavigationProp<any>;
 };
 
-const playerColors = [assignColor(), assignColor(), assignColor()];
-const getInitialColor = () => playerColors[Math.floor(Math.random() * playerColors.length)];
 
-const SudokuScreen = ({ route, navigation }) => {
-  // TODO: Replace with actual challenge ID from props or context
-  const challengeId = route?.params?.challengeId ?? 4; // fallback if not passed 
-  const [gameId, setGameId] = useState<number | null>(null);
+const SudokuScreen: React.FC<Props> = ({ navigation }) => {
+  const route = useRoute();
+  const { challengeId } = route.params as {
+    // is currently hard coded to 4 (the only current group challenge)
+    challengeId: number;
+  };
+
+  const { user } = useUser();
+
+  const [playerColors, setPlayerColors] = useState<Record<string, string>>({});
+  // {
+  //   "alice": "aqua",
+  //   "bob": "orange"
+  // }
+  
+  const [gameStateId, setGameStateId] = useState<number>(1);
   const [grid, setGrid] = useState<string[]>(Array(81).fill(''));
   const [initialCells, setInitialCells] = useState<boolean[]>(Array(81).fill(false));
-  const [savedColor, setSavedColor] = useState(getInitialColor());
+  // const [savedColor, setSavedColor] = useState(getInitialColor());
   const [cellColors, setCellColors] = useState(Array(81).fill('white'));
   const [timeLeft, setTimeLeft] = useState(300);
   const [intervalId, setIntervalId] = useState<ReturnType<typeof setInterval> | null>(null);
   const [gameCompleted, setGameCompleted] = useState(false);  
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [pendingInput, setPendingInput] = useState<string>('');
-   //const [solution, setSolution] = useState<number[]>([]);
 
-  const handleTouch = (color: string) => setSavedColor(color);
   const formatTime = (sec: number) => `${Math.floor(sec / 60)}:${sec % 60 < 10 ? '0' + sec % 60 : sec % 60}`;
 
   // INITIALIZE GAME
   const initGame = async () => {
     try {
-      const response = await createSudokuGame(challengeId); // 不再傳 uuid 給後端
-      const { game_id, puzzle } = response;
+      const res = await fetch(endpoints.createSudokuGame, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ challenge_id: challengeId }),
+        credentials: 'include',
+      });
   
-      setGameId(game_id);
+      const data = await res.json();
+      console.log("Response data:", data); // Check the response from the server
   
+      const { game_state_id, puzzle, is_multiplayer } = data;
+
+      const board = puzzle as number[][];
+      if (!Array.isArray(board)) {
+        console.error("Puzzle data is invalid:", board);
+        return; // Or handle the case where puzzle is not an array
+      }
+      setGameStateId(game_state_id);
+  
+      // Set up board
       const flatten = (board: number[][]): string[] =>
         board.flat().map((n) => (n === null || n === 0 ? '' : n.toString()));
   
@@ -75,6 +127,63 @@ const SudokuScreen = ({ route, navigation }) => {
       setGameCompleted(false);
       setSelectedIndex(null);
       setPendingInput('');
+  
+      // WebSocket connection for multiplayer
+      if (is_multiplayer) {
+        const ws = new WebSocket(`${BASE_URL.replace(/^http/, 'ws')}/ws/sudoku/${game_state_id}/`);
+        
+        ws.onopen = () => console.log("[WebSocket] connected");
+  
+        ws.onmessage = (event) => {
+          const data = JSON.parse(event.data) as ServerToClientMessage;
+          console.log("[WebSocket] Message received:", data);
+  
+          switch (data.type) {
+            case 'broadcast_move': {
+              const { cell, value, color } = data;
+              const updatedGrid = [...grid];
+              updatedGrid[cell] = value.toString();
+        
+              const updatedColors = [...cellColors];
+              updatedColors[cell] = color;
+        
+              setGrid(updatedGrid);
+              setCellColors(updatedColors);
+              break;
+            }
+        
+            case 'player_joined': {
+              console.log(`${data.player} joined the game as color ${data.color}`);
+            
+              // Assume you have access to the current user's username somehow:
+              if (data.player === user?.username) {
+                console.log('setting my own color');
+                setPlayerColor(data.color);
+              }
+            
+              setPlayerColors(prev => ({
+                ...prev,
+                [data.player]: data.color,
+              }));
+
+              break;
+            }                    
+        
+            case 'game_complete': {
+              Alert.alert('🎉 Puzzle Complete!', `Finished by ${data.completedBy} in ${data.time} seconds.`);
+              break;
+            }
+        
+            default:
+              console.warn('Unknown message type', data);
+          }
+        };
+  
+        ws.onerror = (error) => console.error("[WebSocket] Error:", error);
+        ws.onclose = () => console.log("[WebSocket] closed");
+  
+        setSocket(ws);
+      }
     } catch (error) {
       console.error('Init failed', error);
     }
@@ -103,65 +212,131 @@ const SudokuScreen = ({ route, navigation }) => {
     initGame();
     const id = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
     setIntervalId(id);
-    return () => clearInterval(id);
-  }, []);
+    return () => {
+      clearInterval(id);
+      if (socket) {
+        socket.close();
+      }
+    };
+  }, [socket]);
+
 
   // when player press the number button and confirm button
+  // const confirmMove = async () => {
+  //   try {
+  //     console.log('[CONFIRM] Starting confirmMove');
+  
+  //     if (selectedIndex !== null && pendingInput !== '') {
+  //       const row = Math.floor(selectedIndex / 9);
+  //       const col = selectedIndex % 9;
+  //       const value = parseInt(pendingInput);
+  
+  //       console.log('[CONFIRM] Sending:', { gameId, selectedIndex, value });
+  
+  //       const res = await validateSudokuMove(gameId, selectedIndex, value);
+  
+  //       console.log('[CONFIRM] Validate response:', res);
+  
+  //       if (res.success) {
+  //         const updatedGrid = res.puzzle.flat().map((n, i) => {
+  //           if (n === null || typeof n !== 'number') {
+  //             return '';
+  //           }
+  //           return n === 0 ? '' : n.toString();
+  //         });
+  //         setGrid(updatedGrid);
+  //         const updatedColors = [...cellColors];
+  //         if (selectedIndex !== null) {
+  //           updatedColors[selectedIndex] = savedColor; 
+  //         }
+  //         setCellColors(updatedColors);
+
+  //         if (res.completed) {
+  //           setGameCompleted(true);
+  //           if (intervalId) {
+  //             clearInterval(intervalId);
+  //           }
+  //           Alert.alert("🎉 You Win!", `Finished Time：${formatTime(300 - timeLeft)}`);
+  //         }
+  //       } else {
+  //         const errorColors = [...cellColors];
+  //         if (selectedIndex !== null) {
+  //           errorColors[selectedIndex] = 'red';
+  //           setCellColors(errorColors);
+  //         }
+  //         Alert.alert('Error', 'wrong answer');
+  //       }
+  //     } else {
+  //       console.log('[CONFIRM] No input or cell selected');
+  //     }
+  //   } catch (err) {
+  //     console.error('[CONFIRM ERROR]', err);
+  //     Alert.alert('Error', 'Server error');
+  //   } finally {
+  //     setPendingInput('');
+  //     setSelectedIndex(null);
+  //   }
+  // };
+
+
   const confirmMove = async () => {
     try {
-      console.log('[CONFIRM] Starting confirmMove');
-  
       if (selectedIndex !== null && pendingInput !== '') {
-        const row = Math.floor(selectedIndex / 9);
-        const col = selectedIndex % 9;
         const value = parseInt(pendingInput);
   
-        console.log('[CONFIRM] Sending:', { gameId, selectedIndex, value });
-  
-        const res = await validateSudokuMove(gameId, selectedIndex, value);
-  
-        console.log('[CONFIRM] Validate response:', res);
-  
-        if (res.success) {
-          const updatedGrid = res.puzzle.flat().map((n, i) => {
-            if (n === null || typeof n !== 'number') {
-              return '';
-            }
-            return n === 0 ? '' : n.toString();
-          });
-          setGrid(updatedGrid);
-          const updatedColors = [...cellColors];
-          if (selectedIndex !== null) {
-            updatedColors[selectedIndex] = savedColor; 
-          }
-          setCellColors(updatedColors);
-
-          if (res.completed) {
-            setGameCompleted(true);
-            if (intervalId) {
-              clearInterval(intervalId);
-            }
-            Alert.alert("🎉 You Win!", `Finished Time：${formatTime(300 - timeLeft)}`);
-          }
+        if (socket) {
+          // Multiplayer — send over socket
+          const message = {
+            type: 'make_move',
+            selectedIndex,
+            value,
+          };
+          socket.send(JSON.stringify(message));
         } else {
-          const errorColors = [...cellColors];
-          if (selectedIndex !== null) {
-            errorColors[selectedIndex] = 'red';
-            setCellColors(errorColors);
+          // Single-player — validate via API
+          const res = await fetch(endpoints.validateSudokuMove, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              game_state_id: gameStateId,
+              cell_index: selectedIndex,
+              value,
+            }),
+            credentials: 'include',
+          });
+  
+          const data = await res.json();
+  
+          if (data.success) {
+            const updatedGrid = data.puzzle.flat().map((n: number) => n ? n.toString() : '');
+            setGrid(updatedGrid);
+            const updatedColors = [...cellColors];
+            updatedColors[selectedIndex] = playerColor;
+            setCellColors(updatedColors);
+  
+            if (data.completed) {
+              setGameCompleted(true);
+              if (intervalId) clearInterval(intervalId);
+              Alert.alert("🎉 You Win!", `Time: ${formatTime(300 - timeLeft)}`);
+            }
+          } else {
+            const updatedColors = [...cellColors];
+            updatedColors[selectedIndex] = 'red';
+            setCellColors(updatedColors);
+            Alert.alert('Oops!', 'Wrong answer!');
           }
-          Alert.alert('Error', 'wrong answer');
         }
-      } else {
-        console.log('[CONFIRM] No input or cell selected');
       }
     } catch (err) {
-      console.error('[CONFIRM ERROR]', err);
-      Alert.alert('Error', 'Server error');
+      console.error('Error validating move', err);
     } finally {
       setPendingInput('');
       setSelectedIndex(null);
     }
   };
+  
+  
+
 
   // Handle cell deletion
   const handleDeleteMove = () => {
@@ -181,30 +356,6 @@ const SudokuScreen = ({ route, navigation }) => {
       setPendingInput('');
     }
   };
-
-  const checkGameCompletion = async (currentGrid: string[]) => {
-    const isComplete = currentGrid.every((cell) => cell !== '');
-  
-    if (isComplete && !gameCompleted) {
-      setGameCompleted(true);
-  
-      if (intervalId) {
-        clearInterval(intervalId); // stop timer
-      }
-  
-      const timeUsed = 300 - timeLeft;
-  
-      Alert.alert("🎉 You Win!", `Finished Time：${formatTime(timeUsed)}`);
-  
-      // try {
-      //   await markGameAsCompleted(gameId);
-      // } catch (error) {
-      //   console.error('❗️ Failed to report completion:', error);
-      // }
-    }
-  };
-  
-
   
 
   return (
@@ -221,11 +372,13 @@ const SudokuScreen = ({ route, navigation }) => {
           <Text style={styles.timer}>Timer: {formatTime(timeLeft)}</Text>
         </View>
 
-        {/* Color info and instructions */}
-        <View style={styles.colorInfoRow}>
-          <Text style={styles.colorInfo}>You are color:</Text>
-          <View style={[styles.colorBox, { backgroundColor: savedColor }]} />
-        </View>
+        {playerColor !== '' && (
+          <View style={styles.colorInfoRow}>
+            <Text style={styles.colorInfo}>You are color:</Text>
+            <View style={[styles.colorBox, { backgroundColor: playerColor }]} />
+          </View>
+        )}
+
         <Text style={styles.info}>
           You can only work on squares that aren’t already being worked on.{"\n"}
           Tap a cell to highlight. → Pick a number below. → {"\n"} Press ✔ to confirm.
@@ -264,7 +417,7 @@ const SudokuScreen = ({ route, navigation }) => {
         </View>
 
         {/* Sudoku grid */}
-        <View style={styles.gridContainer} key={gameId}>
+        <View style={styles.gridContainer} key={gameStateId}>
           {Array.from({ length: 9 }).map((_, rowIndex) => (
             <View key={rowIndex} style={styles.row}>
               {Array.from({ length: 9 }).map((_, colIndex) => {
@@ -290,14 +443,19 @@ const SudokuScreen = ({ route, navigation }) => {
         </View>
 
         {/* Player color info and restart button */}
-        <View style={styles.colorRow}>
-          {playerColors.map((color, i) => (
-            <TouchableOpacity key={i} style={[styles.avatar, { borderColor: color }]} onPress={() => handleTouch(color)} />
-          ))}
-          <TouchableOpacity style={styles.restartButton} onPress={restartGame}>
-            <Text style={styles.restartText}>Restart</Text>
-          </TouchableOpacity>
-        </View>
+        {Object.keys(playerColors).length > 0 && (
+          <View style={styles.colorRow}>
+            {Object.entries(playerColors).map(([player, color]) => (
+              <View key={player} style={styles.playerBadge}>
+                <View style={[styles.colorCircle, { backgroundColor: color }]} />
+                <Text style={styles.playerName}>{player}</Text>
+              </View>
+            ))}
+            <TouchableOpacity style={styles.restartButton} onPress={restartGame}>
+              <Text style={styles.restartText}>Restart</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* message box */}
         <View style={styles.chatBox}>
@@ -357,6 +515,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#aaa',
   },
+  playerBadge: {
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  colorCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginBottom: 2,
+  },
+  playerName: {
+    fontSize: 12,
+    color: 'white',
+  },  
   
 
   // Sudoku grid styles
