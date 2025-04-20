@@ -14,8 +14,6 @@ import {
 } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
 import { Button } from 'tamagui';
-import axios from 'axios';
-import { Cookies } from '@react-native-cookies/cookies';
 
 type Props = {
   navigation: NavigationProp<any>;
@@ -29,48 +27,6 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('SignUp');
   };
 
-  // Create an axios instance with cookie support
-  const axiosInstance = axios.create({
-    withCredentials: true,  // Allow cookies to be sent/received
-  });
-
-  // const getCsrfToken = async () => {
-  //   const res = await axiosInstance.get(`${BASE_URL}/api/csrf-token/`);
-  //   const csrfToken = res.data.csrfToken;
-  //   // Optionally, you can store or set the cookie manually here
-  //   setCsrfToken(csrfToken);
-  //   console.log('CSRF Token:', csrfToken);
-  //   return csrfToken;
-  // };
-
-  // const handleLogin = async () => {
-  //   try {
-  //     const csrfToken = await getCsrfToken();
-  
-  //     const response = await axiosInstance.post(endpoints.login, {
-  //       username,
-  //       password,
-  //     }, {
-  //       headers: {
-  //         'X-CSRFToken': csrfToken,
-  //       },
-  //     });
-  
-  //     const data = response.data;
-  //     console.log('Login response:', data);
-  
-  //     if (response.status === 200 && data.success) {
-  //       // Store the user details in your app context
-  //       setUser(data);
-  //       navigation.navigate('Profile');
-  //     } else {
-  //       Alert.alert('Login Failed', data.error || 'Login failed');
-  //     }
-  //   } catch (error) {
-  //     console.error('Login error:', error);
-  //     Alert.alert('Error', 'Network error or server is down.');
-  //   }
-  // };
 
   const handleLogin = async () => {
     try {
