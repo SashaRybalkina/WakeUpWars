@@ -5,8 +5,10 @@ import DateTimePicker from "@react-native-community/datetimepicker"
 import { type NavigationProp, useRoute } from "@react-navigation/native"
 import axios from "axios"
 import { endpoints } from "../../api"
+import { DayOfWeek, DayOfWeekLabels } from "./DayOfWeek";
 
 const DAYS = ["M", "T", "W", "TH", "F", "S", "SU"]
+const extendedDays = new Set(["T", "TH", "S"]);
 
 const ChallSchedule = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const route = useRoute()
@@ -25,11 +27,6 @@ const ChallSchedule = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const [visibleGames, setVisibleGames] = useState<string[][]>([]) // Games currently visible
   const [activeDay, setActiveDay] = useState<string | null>(null) // Currently selected day
   const [alarmSchedule, setAlarmSchedule] = useState<{ dayOfWeek: number; alarmTime: string; userName: string }[]>([])
-
-  const getDayLabel = (dayOfWeek: number): string => {
-    const labels = ["M", "T", "W", "TH", "F", "S", "SU"]
-    return labels[dayOfWeek] || ""
-  }
 
   useEffect(() => {
     const fetchSchedule = async () => {
@@ -66,14 +63,17 @@ const ChallSchedule = ({ navigation }: { navigation: NavigationProp<any> }) => {
         const gamesByDay: Record<string, string[][]> = {}
 
         data.forEach((day: any) => {
-          const label = DAYS[day.dayOfWeek]
+          const label = DayOfWeekLabels[day.dayOfWeek as DayOfWeek];
           if (label) {
-            parsedDays[label] = true
-
-            // Store games for this day
-            gamesByDay[label] = day.games.map((g: any) => [g.name, g.repeats || "-", g.minutes || "-"])
+            parsedDays[label] = true;
+  
+            gamesByDay[label] = day.games.map((g: any) => [
+              g.name,
+              g.repeats || "-",
+              g.minutes || "-",
+            ]);
           }
-        })
+        });
 
         setSelectedDays(parsedDays)
         setAllGames(gamesByDay)
@@ -249,7 +249,7 @@ const ChallSchedule = ({ navigation }: { navigation: NavigationProp<any> }) => {
               {DAYS.map((day, index) => {
                 const isSelected = selectedDays[day]
                 const isActive = activeDay === day
-                const alarmItem = alarmSchedule.find((item) => getDayLabel(item.dayOfWeek) === day)
+                const alarmItem = alarmSchedule.find((item) => DayOfWeekLabels[item.dayOfWeek as DayOfWeek] === day);
 
                 return (
                   <View key={index} style={styles.dayColumn}>
@@ -275,21 +275,13 @@ const ChallSchedule = ({ navigation }: { navigation: NavigationProp<any> }) => {
                             styles.dayBar,
                             styles.selectedDayBar,
                             isActive && styles.activeDayBar,
-                            day === "T" ? styles.extendedDayBar : {},
+                            extendedDays.has(day) && styles.extendedDayBar, // Added this line to apply extended style
                           ]}
                         />
-                        {day === "T" && alarmItem?.alarmTime && (
-                          <View style={styles.alarmBadge}>
-                            <Ionicons name="alarm" size={14} color="#FFD700" />
-                            <Text style={styles.alarmTimeText}>{alarmItem.alarmTime}</Text>
-                          </View>
-                        )}
-                        {day === "W" && alarmItem?.alarmTime && (
-                          <View style={styles.alarmBadge}>
-                            <Ionicons name="alarm" size={14} color="#FFD700" />
-                            <Text style={styles.alarmTimeText}>{alarmItem.alarmTime}</Text>
-                          </View>
-                        )}
+                        <View style={styles.alarmBadge}>
+                          <Ionicons name="alarm" size={14} color="#FFD700" />
+                          <Text style={styles.alarmTimeText}>{alarmItem.alarmTime}</Text>
+                        </View>
                       </View>
                     ) : (
                       <View
@@ -297,8 +289,7 @@ const ChallSchedule = ({ navigation }: { navigation: NavigationProp<any> }) => {
                           styles.dayBar,
                           isSelected && styles.selectedDayBar,
                           isActive && styles.activeDayBar,
-                          day === "T" ? styles.extendedDayBar : {},
-                          day === "W" ? styles.mediumDayBar : {},
+                          extendedDays.has(day) && styles.extendedDayBar,
                         ]}
                       />
                     )}

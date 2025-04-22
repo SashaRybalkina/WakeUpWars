@@ -13,7 +13,7 @@ import { Ionicons } from "@expo/vector-icons"
 import DateTimePicker from "@react-native-community/datetimepicker"
 import { NavigationProp, useRoute } from "@react-navigation/native"
 import { LinearGradient } from "expo-linear-gradient"
-import { endpoints } from "../../api"
+import { BASE_URL, endpoints } from "../../api"
 
 type Props = {
   navigation: NavigationProp<any>
@@ -136,7 +136,7 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
     return date.toLocaleDateString(undefined, options)
   }
 
-  const handleCreateChallenge = () => {
+  const handleCreateChallenge = async() => {
     if (!name.trim()) {
       Alert.alert("Error", "Please enter a challenge name")
       return
@@ -204,31 +204,39 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
     }
     console.log(payload)
 
-    fetch(endpoints.createGroupChallenge, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    })
-      .then((res) => {
-        if (!res.ok) {
-          return res.json().then((error) => {
-            console.error("Error from server:", error)
-            throw new Error(error.message || "Failed to create challenge")
-          })
-        }
-        return res.json()
-      })
-      .then((data) => {
-        console.log("Challenge created:", data)
-        Alert.alert("Success", "Challenge created successfully", [
-          { text: "OK", onPress: () => navigation.navigate("Groups") }
-        ])
-      })
-      .catch((err) => {
-        Alert.alert("Error", err.message)
-      })
+    try {
+      const csrfRes = await fetch(`${BASE_URL}/api/csrf-token/`, {
+        credentials: 'include',                      
+      });
+      if (!csrfRes.ok) throw new Error('Failed to fetch CSRF token');
+      const { csrfToken } = await csrfRes.json();     
+      console.log('csrfToken:', csrfToken);
+  
+  
+      const res = await fetch(endpoints.createGroupChallenge, {
+        method: 'POST',
+        credentials: 'include',                    
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,                
+        },
+        body: JSON.stringify(payload),
+      });
+  
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to create challenge');
+      }
+  
+      const data = await res.json();
+      console.log('Challenge created:', data);
+      Alert.alert('Success', 'Challenge created successfully', [
+        { text: 'OK', onPress: () => navigation.navigate('Groups') },
+      ]);
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
+    }
+  
   }
 
   return (

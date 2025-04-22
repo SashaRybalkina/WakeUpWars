@@ -19,29 +19,63 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
 
   useEffect(() => {
     if (!user) return
-
+  
     const fetchChallenges = async () => {
       try {
         setLoading(true)
         const response = await axios.get(endpoints.challengeList(Number(user.id), "Personal"))
-        const data = response.data.map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          daysCompleted: c.daysCompleted || 0,
-          startDate: c.startDate,
-          endDate: c.endDate || null,
-          totalDays: c.totalDays ?? 30,
-          daysOfWeek: c.daysOfWeek ?? [],
-          isCompleted: c.endDate ? new Date(c.endDate) < new Date() : false,
-        }))
-        setChallenges(data)
+        
+        // Fetch alarm schedules for each challenge
+        const challengesWithAlarms = await Promise.all(
+          response.data.map(async (c: any) => {
+            try {
+              // Fetch alarm schedule for this challenge
+              const scheduleRes = await axios.get(endpoints.challengeSchedule(c.id))
+              
+              // Extract alarm schedule
+              const alarmSchedule = scheduleRes.data.map((day: any) => ({
+                dayOfWeek: day.dayOfWeek,
+                alarmTime: day.alarmTime,
+                userName: "",
+              }))
+              
+              return {
+                id: c.id,
+                name: c.name,
+                daysCompleted: c.daysCompleted || 0,
+                startDate: c.startDate,
+                endDate: c.endDate || null,
+                totalDays: c.totalDays ?? 30,
+                daysOfWeek: c.daysOfWeek ?? [],
+                alarmSchedule: alarmSchedule, // Add the alarm schedule
+                isCompleted: c.endDate ? new Date(c.endDate) < new Date() : false,
+              }
+            } catch (error) {
+              console.error(`Failed to fetch schedule for challenge ${c.id}:`, error)
+              // Return challenge without alarm data if there was an error
+              return {
+                id: c.id,
+                name: c.name,
+                daysCompleted: c.daysCompleted || 0,
+                startDate: c.startDate,
+                endDate: c.endDate || null,
+                totalDays: c.totalDays ?? 30,
+                daysOfWeek: c.daysOfWeek ?? [],
+                alarmSchedule: [], // Empty array if we couldn't fetch alarms
+                isCompleted: c.endDate ? new Date(c.endDate) < new Date() : false,
+              }
+            }
+          })
+        )
+        
+        setChallenges(challengesWithAlarms)
       } catch (error) {
         console.error("Failed to fetch personal challenges:", error)
       } finally {
         setLoading(false)
       }
     }
-
+  
     fetchChallenges()
   }, [user])
 

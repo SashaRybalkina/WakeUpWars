@@ -1,6 +1,8 @@
 import type React from "react"
 import { View, Text, Image, StyleSheet, type ImageSourcePropType } from "react-native"
 import { LinearGradient } from "expo-linear-gradient"
+import { Ionicons } from "@expo/vector-icons"
+import { DayOfWeek, DayOfWeekLabels } from "./DayOfWeek"
 
 interface ChallengeCardProps {
   title: string
@@ -8,11 +10,29 @@ interface ChallengeCardProps {
   daysComplete: number
   totalDays: number
   daysOfWeek: string[]
+  alarmSchedule?: { dayOfWeek: number; alarmTime: string; userName: string }[] // Add optional prop for alarm schedule
 }
 
-const ChallengeCard: React.FC<ChallengeCardProps> = ({ title, icon, daysComplete, totalDays, daysOfWeek }) => {
-  const dayMap = ["M", "T", "W", "TH", "F", "S", "S"]
+export const orderedDayLabels = (): string[] => [
+  DayOfWeekLabels[DayOfWeek.M],
+  DayOfWeekLabels[DayOfWeek.T],
+  DayOfWeekLabels[DayOfWeek.W],
+  DayOfWeekLabels[DayOfWeek.TH],
+  DayOfWeekLabels[DayOfWeek.F],
+  DayOfWeekLabels[DayOfWeek.S],
+  DayOfWeekLabels[DayOfWeek.SU],
+]
 
+const ChallengeCard: React.FC<ChallengeCardProps> = ({ 
+  title, 
+  icon, 
+  daysComplete, 
+  totalDays, 
+  daysOfWeek,
+  alarmSchedule = [] // Default to empty array if not provided
+}) => {
+  
+  const dayMap = orderedDayLabels();
   const progressPercentage = (daysComplete / totalDays) * 100
 
   return (
@@ -26,11 +46,36 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({ title, icon, daysComplete
           <Text style={styles.title}>{title}</Text>
 
           <View style={styles.daysContainer}>
-            {dayMap.map((day, index) => (
-              <View key={index} style={[styles.dayCircle, daysOfWeek.includes(day) ? styles.activeDayCircle : {}]}>
-                <Text style={[styles.dayText, daysOfWeek.includes(day) ? styles.activeDayText : {}]}>{day}</Text>
-              </View>
-            ))}
+            {dayMap.map((day, index) => {
+              const isActive = daysOfWeek.includes(day);
+              const alarmItem = alarmSchedule.find(
+                (item) => DayOfWeekLabels[item.dayOfWeek as DayOfWeek] === day
+              );
+              const hasAlarm = isActive && alarmItem?.alarmTime;
+              
+              return (
+                <View key={index} style={styles.dayWrapper}>
+                  <View style={[
+                    styles.dayCircle, 
+                    isActive ? styles.activeDayCircle : {}
+                  ]}>
+                    <Text style={[
+                      styles.dayText, 
+                      isActive ? styles.activeDayText : {}
+                    ]}>
+                      {day}
+                    </Text>
+                  </View>
+                  
+                  {/* Show alarm indicator if this day has an alarm */}
+                  {hasAlarm && (
+                    <View style={styles.alarmIndicator}>
+                      <Ionicons name="alarm" size={10} color="#FFD700" />
+                    </View>
+                  )}
+                </View>
+              );
+            })}
           </View>
 
           <View style={styles.progressContainer}>
@@ -85,6 +130,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginBottom: 10,
   },
+  dayWrapper: {
+    alignItems: "center",
+    marginRight: 4,
+    position: "relative",
+  },
   dayCircle: {
     width: 28,
     height: 28,
@@ -92,7 +142,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#F0F0F0",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 4,
   },
   activeDayCircle: {
     backgroundColor: "#aaaaff",
@@ -104,6 +153,18 @@ const styles = StyleSheet.create({
   },
   activeDayText: {
     color: "#FFF",
+  },
+  alarmIndicator: {
+    position: "absolute",
+    bottom: -5,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    borderRadius: 8,
+    width: 16,
+    height: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 215, 0, 0.3)",
   },
   progressContainer: {
     marginTop: 4,

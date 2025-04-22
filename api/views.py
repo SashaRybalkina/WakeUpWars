@@ -256,19 +256,19 @@ class CreateGroupChallengeView(APIView):
         data = request.data
         try:
             # 🔍 STEP 1: Check for alarm conflicts
-            conflicting = []
-            for user_id in data['members']:
-                for sched in data['alarm_schedule']:
-                    day = sched['dayOfWeek']
-                    if AlarmSchedule.objects.filter(uID_id=user_id, dayOfWeek=day).exists():
-                        user = User.objects.get(id=user_id)
-                        conflicting.append((user.username, day))
+            # conflicting = []
+            # for user_id in data['members']:
+            #     for sched in data['alarm_schedule']:
+            #         day = sched['dayOfWeek']
+            #         if AlarmSchedule.objects.filter(uID_id=user_id, dayOfWeek=day).exists():
+            #             user = User.objects.get(id=user_id)
+            #             conflicting.append((user.username, day))
 
-            if conflicting:
-                return Response({
-                    'error': 'Alarm conflict detected for group members.',
-                    'conflicts': conflicting  # Return which users and days are in conflict
-                }, status=status.HTTP_400_BAD_REQUEST)
+            # if conflicting:
+            #     return Response({
+            #         'error': 'Alarm conflict detected for group members.',
+            #         'conflicts': conflicting  # Return which users and days are in conflict
+            #     }, status=status.HTTP_400_BAD_REQUEST)
 
             # if No conflicts, continue to create challenge
             challenge = Challenge.objects.create(
