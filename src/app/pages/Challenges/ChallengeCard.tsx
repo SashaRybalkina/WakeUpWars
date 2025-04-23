@@ -14,14 +14,14 @@ interface ChallengeCardProps {
 }
 
 export const orderedDayLabels = (): string[] => [
-  DayOfWeekLabels[DayOfWeek.M],
-  DayOfWeekLabels[DayOfWeek.T],
-  DayOfWeekLabels[DayOfWeek.W],
-  DayOfWeekLabels[DayOfWeek.TH],
-  DayOfWeekLabels[DayOfWeek.F],
-  DayOfWeekLabels[DayOfWeek.S],
-  DayOfWeekLabels[DayOfWeek.SU],
-]
+  DayOfWeekLabels[1], // Monday
+  DayOfWeekLabels[2], // Tuesday
+  DayOfWeekLabels[3], // Wednesday
+  DayOfWeekLabels[4], // Thursday
+  DayOfWeekLabels[5], // Friday
+  DayOfWeekLabels[6], // Saturday
+  DayOfWeekLabels[7], // Sunday
+];
 
 const ChallengeCard: React.FC<ChallengeCardProps> = ({ 
   title, 

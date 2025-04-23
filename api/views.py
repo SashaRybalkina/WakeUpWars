@@ -234,10 +234,10 @@ class ChallengeGameScheduleView(APIView):
             sched.alarm_schedule.dayOfWeek: sched.alarm_schedule.alarmTime.strftime("%H:%M")
             for sched in challenge_alarm_schedules
         }
-
         result = []
         for schedule in schedules:
             games = GameScheduleGameAssociation.objects.filter(game_schedule=schedule).order_by('game_order')
+            print("GameSchedule dayOfWeek values:", [schedule.dayOfWeek for schedule in schedules])
             result.append({
                 'dayOfWeek': schedule.dayOfWeek,
                 'alarmTime': alarm_times.get(schedule.dayOfWeek),

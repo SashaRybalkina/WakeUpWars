@@ -173,7 +173,7 @@ const ChallSchedule = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const goToProfile = () => navigation.navigate("Profile")
 
   const goToSudoku = () => {
-    navigation.navigate('Sudoku', { challengeId: 4 });
+    navigation.navigate('Sudoku', { challengeId: challId });
   };
 
   const handleGamePress = (game: string[], index: number) => {

@@ -15,6 +15,7 @@ import { type NavigationProp, useRoute } from "@react-navigation/native"
 import axios from "axios"
 import { endpoints } from "../../api"
 import { LinearGradient } from "expo-linear-gradient"
+import { DayOfWeekLabels, DayOfWeek } from "./DayOfWeek"; // Ensure this is imported
 
 type Props = {
   navigation: NavigationProp<any>
@@ -22,6 +23,16 @@ type Props = {
 
 const { width } = Dimensions.get("window")
 const cardWidth = Math.min(width * 0.9, 400)
+
+const DayOfWeekReverseLabels: Record<string, number> = {
+  M: 1,  // Monday
+  T: 2,  // Tuesday
+  W: 3,  // Wednesday
+  TH: 4, // Thursday
+  F: 5,  // Friday
+  S: 6,  // Saturday
+  SU: 7, // Sunday
+};
 
 // Function to generate a pastel color based on name
 const generatePastelColor = (name: string): string => {
@@ -62,39 +73,47 @@ const ChallDetails: React.FC<Props> = ({ navigation }) => {
   const [isFavorite, setIsFavorite] = useState(false)
   const [progressAnim] = useState(new Animated.Value(0))
 
-  const getDayLabel = (day: string): string => {
-    return day.charAt(0).toUpperCase()
-  }
+  const getDayLabel = (day: number): string => {
+    console.log("Day passed to getDayLabel:", day);
+    console.log("Mapped label:", DayOfWeekLabels[day as DayOfWeek]);
+    return DayOfWeekLabels[day as DayOfWeek] || "";
+  };
 
-  const getDayFullName = (day: string): string => {
-    const days: Record<string, string> = {
-      M: "Monday",
-      T: "Tuesday",
-      W: "Wednesday",
-      TH: "Thursday",
-      F: "Friday",
-      S: "Saturday",
-      SU: "Sunday",
-    }
-    return days[day] || day
-  }
+  const getDayFullName = (day: number): string => {
+    const fullNames: Record<number, string> = {
+      1: "Monday",
+      2: "Tuesday",
+      3: "Wednesday",
+      4: "Thursday",
+      5: "Friday",
+      6: "Saturday",
+      7: "Sunday",
+    };
+    return fullNames[day] || "";
+  };
 
   useEffect(() => {
     const fetchChallengeDetails = async () => {
       try {
-        const res = await axios.get(endpoints.challengeDetail(challId))
-        const data = res.data
-        setDaysComplete(data.daysCompleted)
-        setTotalDays(data.totalDays)
-        setMembers(data.members)
-        setDaysOfWeek(data.daysOfWeek)
+        const res = await axios.get(endpoints.challengeDetail(challId));
+        const data = res.data;
+  
+        // Convert short labels to numeric values
+        const parsedDaysOfWeek = (data.daysOfWeek as string[]).map((day) => DayOfWeekReverseLabels[day] || 0).filter((day) => day > 0);
+        setDaysOfWeek(parsedDaysOfWeek.map(String));
+  
+        setDaysComplete(data.daysCompleted);
+        setTotalDays(data.totalDays);
+        setMembers(data.members);
+  
+        console.log("Parsed daysOfWeek array:", parsedDaysOfWeek);
       } catch (err) {
-        console.error(err)
+        console.error(err);
       }
-    }
-
-    fetchChallengeDetails()
-  }, [])
+    };
+  
+    fetchChallengeDetails();
+  }, []);
 
   useEffect(() => {
     // Animate progress bar
@@ -170,12 +189,12 @@ const ChallDetails: React.FC<Props> = ({ navigation }) => {
           {/* Challenge Days Section */}
           <View style={styles.challengeCard}>
             <View style={styles.daysContainer}>
-              {daysOfWeek.map((day, idx) => (
-                <View key={idx} style={styles.dayBadge}>
-                  <Text style={styles.dayText}>{getDayLabel(day)}</Text>
-                  <Text style={styles.daySubtext}>{getDayFullName(day).substring(0, 3)}</Text>
-                </View>
-              ))}
+            {daysOfWeek.map((day, idx) => (
+              <View key={idx} style={styles.dayBadge}>
+                <Text style={styles.dayText}>{getDayLabel(Number(day))}</Text>
+                <Text style={styles.daySubtext}>{getDayFullName(Number(day)).substring(0, 3)}</Text>
+              </View>
+            ))}
             </View>
 
             <View style={styles.progressContainer}>
