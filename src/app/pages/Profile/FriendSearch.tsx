@@ -92,8 +92,9 @@ const FriendsSearch: React.FC<Props> = ({ navigation }) => {
     if (!user?.id) return;
   
     try {
-      // refetch latest sent requests
-      const res = await fetch(endpoints.sentFriendRequests(Number(user.id)));
+      const res = await fetch(endpoints.sentFriendRequests(Number(user.id)), {
+        credentials: "include",
+      });
       const data = await res.json();
   
       const matchingRequest = data.find((r: any) => r.recipient.id === recipientId);
@@ -103,8 +104,18 @@ const FriendsSearch: React.FC<Props> = ({ navigation }) => {
         return;
       }
   
+      const tokenRes = await fetch(`${BASE_URL}/api/csrf-token/`, {
+        credentials: "include",
+      });
+      const tokenData = await tokenRes.json();
+      const csrfToken = tokenData.csrfToken;
+  
       const response = await fetch(endpoints.cancelFriendRequest(matchingRequest.id), {
         method: "DELETE",
+        headers: {
+          "X-CSRFToken": csrfToken,
+        },
+        credentials: "include",
       });
   
       if (!response.ok) {
@@ -117,15 +128,14 @@ const FriendsSearch: React.FC<Props> = ({ navigation }) => {
   
       setUsers(users.map((u) => ({
         ...u,
-        requestSent: updatedIds.includes(u.id)
+        requestSent: updatedIds.includes(u.id),
       })));
   
       Alert.alert("Cancelled", "Friend request cancelled successfully.");
     } catch (error: any) {
       Alert.alert("Error", error.message || "Something went wrong.");
     }
-  };
-  
+  };  
   
   const getInitials = (name: string) => {
     return name

@@ -157,19 +157,26 @@ class GroupDetailsView(APIView):
         except Group.DoesNotExist:
             return Response({'error': 'Group not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Get all challenges for the group
         challenges = Challenge.objects.filter(groupID=group)
-
-        # Use ChallengeSummarySerializer to include `daysCompleted` etc.
         serializer = ChallengeSummarySerializer(challenges, many=True, context={'user': request.user})
 
+        numeric_to_label = {1: "M", 2: "T", 3: "W", 4: "TH", 5: "F", 6: "S", 7: "SU"}
+        
+        enriched_challenges = []
+        for chall in challenges:
+            game_schedules = GameSchedule.objects.filter(challenge=chall).values_list("dayOfWeek", flat=True).distinct()
+            days_of_week = sorted([numeric_to_label[day] for day in game_schedules if day in numeric_to_label])
+            summary_data = next((item for item in serializer.data if item["id"] == chall.id), {})
+            summary_data["daysOfWeek"] = days_of_week
+            enriched_challenges.append(summary_data)
+
         memberships = GroupMembership.objects.filter(groupID=group)
-        members = [{'id': m.uID.id, 'name': m.uID.name} for m in memberships] # add icons eventually
+        members = [{'id': m.uID.id, 'name': m.uID.name} for m in memberships]
 
         return Response({
             'id': group.id,
             'name': group.name,
-            'challenges': serializer.data,
+            'challenges': enriched_challenges,
             'members': members
         }, status=status.HTTP_200_OK)
 
@@ -211,8 +218,25 @@ class ChallengeListView(APIView):
                 id__in=ChallengeMembership.objects.filter(uID=user_id).values_list('challengeID', flat=True),
                 groupID=None
             )
-        serializer = ChallengeSummarySerializer(challenges, many=True, context={'user': request.user})
-        return Response(serializer.data)
+
+        numeric_to_label = {1: "M", 2: "T", 3: "W", 4: "TH", 5: "F", 6: "S", 7: "SU"}
+
+        response_data = []
+        for challenge in challenges:
+            game_days = (
+                GameSchedule.objects.filter(challenge=challenge)
+                .values_list('dayOfWeek', flat=True)
+                .distinct()
+            )
+            day_labels = [numeric_to_label[d] for d in sorted(game_days)]
+
+            serialized = ChallengeSummarySerializer(challenge, context={'user': request.user}).data
+            serialized['daysOfWeek'] = day_labels
+            serialized['totalDays'] = (challenge.endDate - challenge.startDate).days + 1
+
+            response_data.append(serialized)
+
+        return Response(response_data)
 
 
 class ChallengeDetailView(APIView):
@@ -226,10 +250,16 @@ class ChallengeDetailView(APIView):
         members = [{'id': m.uID.id, 'name': m.uID.name} for m in memberships]
 
         serializer = ChallengeSummarySerializer(challenge, context={'user': request.user})
+        
+        game_schedules = GameSchedule.objects.filter(challenge=challenge).values_list('dayOfWeek', flat=True).distinct()
+        numeric_to_label = {1: "M", 2: "T", 3: "W", 4: "TH", 5: "F", 6: "S", 7: "SU"}
+        days_of_week = [numeric_to_label[d] for d in sorted(game_schedules)]
+
         return Response({
             **serializer.data,
             'members': members,
             'totalDays': (challenge.endDate - challenge.startDate).days + 1,
+            'daysOfWeek': days_of_week
         })
         
         
@@ -245,7 +275,7 @@ class ChallengeGameScheduleView(APIView):
         result = []
         for schedule in schedules:
             games = GameScheduleGameAssociation.objects.filter(game_schedule=schedule).order_by('game_order')
-            print("GameSchedule dayOfWeek values:", [schedule.dayOfWeek for schedule in schedules])
+
             result.append({
                 'dayOfWeek': schedule.dayOfWeek,
                 'alarmTime': alarm_times.get(schedule.dayOfWeek),
@@ -256,7 +286,7 @@ class ChallengeGameScheduleView(APIView):
             })
 
         return Response(result, status=status.HTTP_200_OK)
-
+    
 
 class CreateGroupChallengeView(APIView):
     @transaction.atomic

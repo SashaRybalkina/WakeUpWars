@@ -23,6 +23,7 @@ type Props = {
 
 const { width } = Dimensions.get("window")
 const cardWidth = Math.min(width * 0.9, 400)
+const DAY_ORDER = ["M", "T", "W", "TH", "F", "S", "SU"];
 
 const DayOfWeekReverseLabels: Record<string, number> = {
   M: 1,  // Monday
@@ -97,9 +98,12 @@ const ChallDetails: React.FC<Props> = ({ navigation }) => {
       try {
         const res = await axios.get(endpoints.challengeDetail(challId));
         const data = res.data;
-  
-        // Convert short labels to numeric values
-        const parsedDaysOfWeek = (data.daysOfWeek as string[]).map((day) => DayOfWeekReverseLabels[day] || 0).filter((day) => day > 0);
+
+        const parsedDaysOfWeek = (data.daysOfWeek as string[])
+        .filter((day): day is keyof typeof DayOfWeekReverseLabels => day in DayOfWeekReverseLabels)
+        .sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b))
+        .map(day => DayOfWeekReverseLabels[day]);
+      
         setDaysOfWeek(parsedDaysOfWeek.map(String));
   
         setDaysComplete(data.daysCompleted);

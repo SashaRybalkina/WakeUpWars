@@ -2,7 +2,7 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { useUser } from "../context/UserContext"
 import { endpoints } from "../api"
-import { ImageBackground, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { ImageBackground, StyleSheet, Text, TouchableOpacity, View, ScrollView } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import type { NavigationProp } from "@react-navigation/native"
 import UserProfileCard from "./Components/UserProfileCard"
@@ -50,63 +50,73 @@ const Profile: React.FC<Props> = ({ navigation }) => {
 
   return (
     <ImageBackground source={require("../images/cgpt.png")} style={styles.background} resizeMode="cover">
-      <UserProfileCard name={profileData?.name || "Loading..."} skillLevels={profileData?.skill_levels || []} />
+      {/* ScrollView wraps all content except the bottom navigation */}
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <UserProfileCard name={profileData?.name || "Loading..."} skillLevels={profileData?.skill_levels || []} />
 
-      <View style={styles.profileButtons}>
-        <TouchableOpacity style={styles.profileButton} onPress={() => navigation.navigate("Friends1")}>
-          <View style={styles.iconShadowContainer}>
-            <Ionicons name="people" size={40} color={"#fff"} />
-          </View>
-          <Text style={styles.profileButtonText}>Friends</Text>
+        <View style={styles.profileButtons}>
+          <TouchableOpacity style={styles.profileButton} onPress={() => navigation.navigate("Friends1")}>
+            <View style={styles.iconShadowContainer}>
+              <Ionicons name="people" size={40} color={"#fff"} />
+            </View>
+            <Text style={styles.profileButtonText}>Friends</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.profileButton} onPress={() => navigation.navigate("PersChall1")}>
+            <View style={styles.iconShadowContainer}>
+              <Ionicons name="trophy" size={40} color={"#FFD700"}  />
+            </View>
+            <Text style={[styles.profileButtonText, { color: "#FF0" }]}>Challenges</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.menu}>
+          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
+            <View style={styles.menuItemContent}>
+              <Ionicons name="star" size={22} color="#FFD700" style={styles.menuIcon} />
+              <Text style={styles.menuText}>My Skills</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={22} color="#FFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
+            <View style={styles.menuItemContent}>
+              <Ionicons name="podium" size={22} color="#FFD700" style={styles.menuIcon} />
+              <Text style={styles.menuText}>Leaderboard</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={22} color="#FFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
+            <View style={styles.menuItemContent}>
+              <Ionicons name="alarm" size={22} color="#FFD700" style={styles.menuIcon} />
+              <Text style={styles.menuText}>Alarms</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={22} color="#FFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
+            <View style={styles.menuItemContent}>
+              <Ionicons name="help-circle" size={22} color="#FFD700" style={styles.menuIcon} />
+              <Text style={styles.menuText}>Support</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={22} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity style={styles.logoutButton} activeOpacity={0.8} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={22} color="#FFF" style={styles.logoutIcon} />
+          <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.profileButton} onPress={() => navigation.navigate("PersChall1")}>
-          <View style={styles.iconShadowContainer}>
-            <Ionicons name="trophy" size={40} color={"#FFD700"}  />
-          </View>
-          <Text style={[styles.profileButtonText, { color: "#FF0" }]}>Challenges</Text>
-        </TouchableOpacity>
-      </View>
+        
+        {/* Add padding at the bottom to ensure content isn't hidden behind the nav bar */}
+        <View style={styles.bottomPadding} />
+      </ScrollView>
 
-      <View style={styles.menu}>
-        <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
-          <View style={styles.menuItemContent}>
-            <Ionicons name="star" size={22} color="#FFD700" style={styles.menuIcon} />
-            <Text style={styles.menuText}>My Skills</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={22} color="#FFF" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
-          <View style={styles.menuItemContent}>
-            <Ionicons name="podium" size={22} color="#FFD700" style={styles.menuIcon} />
-            <Text style={styles.menuText}>Leaderboard</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={22} color="#FFF" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
-          <View style={styles.menuItemContent}>
-            <Ionicons name="alarm" size={22} color="#FFD700" style={styles.menuIcon} />
-            <Text style={styles.menuText}>Alarms</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={22} color="#FFF" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
-          <View style={styles.menuItemContent}>
-            <Ionicons name="help-circle" size={22} color="#FFD700" style={styles.menuIcon} />
-            <Text style={styles.menuText}>Support</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={22} color="#FFF" />
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity style={styles.logoutButton} activeOpacity={0.8} onPress={handleLogout}>
-        <Ionicons name="log-out-outline" size={22} color="#FFF" style={styles.logoutIcon} />
-        <Text style={styles.logoutText}>Log Out</Text>
-      </TouchableOpacity>
-
-      {/* Navigation Bar */}
+      {/* Navigation Bar stays fixed at the bottom */}
       <View style={styles.navBar}>
         <TouchableOpacity style={styles.navButton} onPress={goToChallenges}>
           <Ionicons name="star" size={28} color="#FFF" />
@@ -135,7 +145,15 @@ const Profile: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   background: {
     flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+    width: '100%',
+  },
+  scrollViewContent: {
     alignItems: "center",
+    paddingTop: 20,
+    paddingBottom: 20,
   },
   profileContainer: {
     alignItems: "center",
@@ -239,24 +257,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  buttons: {
-    backgroundColor: "#211F26",
-    flexDirection: "row",
-    height: 100,
-    justifyContent: "space-around",
-    alignItems: "center",
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
-  button: {
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "transparent",
-    borderRadius: 0,
-    borderWidth: 0,
-    marginBottom: 15,
+  bottomPadding: {
+    height: 100, // Ensure content isn't hidden behind the nav bar
   },
   navBar: {
     backgroundColor: "#211F26",
