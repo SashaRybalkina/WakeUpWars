@@ -12,7 +12,7 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import authenticate, get_user_model
 from .serializers import UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer, MessageSerializer, ChallengeSummarySerializer, CatSerializer, GameSerializer, FriendSerializer, FriendRequestSerializer, CreateGroupSerializer
-from .models import Group, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule, AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest, SkillLevel
+from .models import Group, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule, AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest, SkillLevel, PendingGroupChallenge, PendingGroupChallengeAvailability, GroupChallengeInvite
 from django.http import JsonResponse
 
 #### Sudoku Game Imports ####
@@ -293,7 +293,7 @@ class CreateGroupChallengeView(APIView):
     def post(self, request):
         data = request.data
         try:
-            # 🔍 STEP 1: Check for alarm conflicts
+            # Check for alarm conflicts
             # conflicting = []
             # for user_id in data['members']:
             #     for sched in data['alarm_schedule']:
@@ -353,6 +353,54 @@ class CreateGroupChallengeView(APIView):
 
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+
+class CreatePendingGroupChallengeView(APIView):
+    @transaction.atomic
+    def post(self, request):
+        data = request.data
+        try:
+            initiator_id = data.get('member')
+
+            # Create the pending challenge
+            pendingChallenge = PendingGroupChallenge.objects.create(
+                name=data['name'],
+                groupID_id=data['group_id'],
+                endDate=data['end_date']
+            )
+
+            # Add availability entries for the initiator
+            alarm_schedule = data.get('alarm_schedule', [])
+
+            availability_entries = [
+                PendingGroupChallengeAvailability(
+                    pendingChall=pendingChallenge,
+                    uID_id=initiator_id,
+                    dayOfWeek=entry['dayOfWeek'],
+                    alarmTime=datetime.strptime(entry['time'], "%H:%M").time()
+                )
+                for entry in alarm_schedule
+            ]
+            PendingGroupChallengeAvailability.objects.bulk_create(availability_entries)
+
+
+            # Send invites to other group members
+            group_members = GroupMembership.objects.filter(groupID_id=data['group_id']) \
+                                                   .exclude(uID_id=initiator_id)
+
+            invites = [
+                GroupChallengeInvite(
+                    pendingChall=pendingChallenge,
+                    uID=member.uID
+                ) for member in group_members
+            ]
+            GroupChallengeInvite.objects.bulk_create(invites)
+
+            return Response({"success": True, "pending_challenge_id": pendingChallenge.id}, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
     
 class SendFriendRequestView(APIView):

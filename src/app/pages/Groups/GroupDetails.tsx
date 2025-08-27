@@ -202,7 +202,7 @@ const GroupDetails: React.FC<Props> = ({ navigation }) => {
               <TouchableOpacity
                 style={styles.addNewButton}
                 onPress={() => {
-                  navigation.navigate("GroupChall2", {
+                  navigation.navigate("GroupChall1", {
                     groupId: groupData.id,
                     groupMembers: groupData.members,
                   })

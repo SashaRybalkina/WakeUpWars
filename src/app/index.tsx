@@ -15,6 +15,7 @@ import Games from './pages/Games/Games';
 import GroupScreen from './pages/Groups';
 import GroupChall1 from './pages/Groups/GroupChall1';
 import GroupChall2 from './pages/Groups/GroupChall2';
+import GroupChallCollab from './pages/Groups/GroupChallCollab';
 import GroupChall3 from './pages/Groups/GroupChall3';
 import GroupChall3Old from './pages/Groups/GroupChall3Old';
 import GroupChall4Old from './pages/Groups/GroupChall4Old';
@@ -113,6 +114,11 @@ function App() {
         <Stack.Screen
           name="GroupChall2"
           component={GroupChall2}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="GroupChallCollab"
+          component={GroupChallCollab}
           options={{ headerShown: false }}
         />
         <Stack.Screen

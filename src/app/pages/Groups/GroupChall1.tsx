@@ -30,6 +30,10 @@ const GroupChall1: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('GroupChall2', { groupId, groupMembers });
   };
 
+  const goToCollab = (groupId: number, groupMembers: { id: number; name: string }[]) => {
+    navigation.navigate('GroupChallCollab', { groupId, groupMembers });
+  };
+
   const goToMessages = () => {
     navigation.navigate('Messages');
   };
@@ -60,7 +64,13 @@ const GroupChall1: React.FC<Props> = ({ navigation }) => {
         >
           <Text style={styles.navToChallText}>Manually</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navToChall}>
+        <TouchableOpacity 
+          style={styles.navToChall}
+          onPress={() => {
+            console.log("Navigating to GroupChallCollab with members:", groupMembers);
+            goToCollab(groupId, groupMembers);
+          }}
+          >
           <Text style={styles.navToChallText}>Collaberatively</Text>
         </TouchableOpacity>
       </View>

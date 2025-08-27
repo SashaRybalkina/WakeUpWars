@@ -174,6 +174,33 @@ class ChallengeAlarmSchedule(models.Model):
 
     def __str__(self):
         return f"Alarm schedule {self.alarm_schedule.id} for challenge {self.challenge.name}"
+    
+
+class PendingGroupChallenge(models.Model):
+    groupID = models.ForeignKey(Group, on_delete=models.CASCADE)
+    endDate = models.DateField()
+    name = models.CharField(max_length=255, default='Challenge')
+    
+    class Meta:
+        db_table = 'PendingGroupChallenges'
+
+
+class PendingGroupChallengeAvailability(models.Model):
+    pendingChall = models.ForeignKey(PendingGroupChallenge, on_delete=models.CASCADE)
+    uID = models.ForeignKey(User, on_delete=models.CASCADE)
+    dayOfWeek = models.IntegerField()  # Integer field to store day of the week (1-7)
+    alarmTime = models.TimeField()
+
+    class Meta:
+        db_table = 'PendingGroupChallengeAvailabilities'
+
+
+class GroupChallengeInvite(models.Model):
+    pendingChall = models.ForeignKey(PendingGroupChallenge, on_delete=models.CASCADE)
+    uID = models.ForeignKey(User, on_delete=models.CASCADE)
+        
+    class Meta:
+        db_table = 'GroupChallengeInvites'
 
 
 # Game Schedules: the days of the week games are scheduled for challenges
