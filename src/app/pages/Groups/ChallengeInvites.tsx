@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react"
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native"
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, ImageBackground } from "react-native"
 import { NavigationProp, useNavigation, useRoute } from "@react-navigation/native"
 import { Ionicons } from "@expo/vector-icons"
 import { endpoints } from "../../api"
 import { useUser } from "../../context/UserContext"
+
 
 type Props = {
   navigation: NavigationProp<any>
@@ -61,6 +62,12 @@ const ChallengeInvites: React.FC<Props> = ({ navigation }) => {
   }
 
   return (
+    <ImageBackground
+      source={require('../../images/cgpt.png')}
+      style={styles.background}
+      resizeMode="cover"
+    >
+      
     <View style={styles.container}>
       <Text style={styles.title}>Pending Challenge Invites</Text>
       {invites.length === 0 ? (
@@ -78,10 +85,15 @@ const ChallengeInvites: React.FC<Props> = ({ navigation }) => {
         />
       )}
     </View>
+
+    </ImageBackground>
   )
 }
 
 const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: "#1A1A1A",

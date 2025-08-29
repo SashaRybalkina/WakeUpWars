@@ -17,6 +17,7 @@ import GroupChall1 from './pages/Groups/GroupChall1';
 import GroupChall2 from './pages/Groups/GroupChall2';
 import GroupChallCollab from './pages/Groups/GroupChallCollab';
 import ChallengeInvites from './pages/Groups/ChallengeInvites';
+import EditAvailability from './pages/Groups/EditAvailability';
 import GroupChall3 from './pages/Groups/GroupChall3';
 import GroupChall3Old from './pages/Groups/GroupChall3Old';
 import GroupChall4Old from './pages/Groups/GroupChall4Old';
@@ -125,6 +126,11 @@ function App() {
         <Stack.Screen
           name="ChallengeInvites"
           component={ChallengeInvites}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="EditAvailability"
+          component={EditAvailability}
           options={{ headerShown: false }}
         />
         <Stack.Screen

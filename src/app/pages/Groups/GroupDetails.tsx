@@ -148,7 +148,7 @@ const GroupDetails: React.FC<Props> = ({ navigation }) => {
                   You have a challenge invite!
                 </Text>
                 <TouchableOpacity
-                  onPress={() => navigation.navigate("ChallengeInvite", { groupId })}
+                  onPress={() => navigation.navigate("ChallengeInvites", { groupId })}
                   style={{ marginTop: 6 }}
                 >
                   <Text style={{ color: '#0000EE', textDecorationLine: 'underline' }}>

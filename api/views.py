@@ -11,7 +11,7 @@ from datetime import time
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import authenticate, get_user_model
-from .serializers import UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer, MessageSerializer, ChallengeSummarySerializer, CatSerializer, GameSerializer, FriendSerializer, FriendRequestSerializer, CreateGroupSerializer
+from .serializers import PendingGroupChallengeSerializer, UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer, MessageSerializer, ChallengeSummarySerializer, CatSerializer, GameSerializer, FriendSerializer, FriendRequestSerializer, CreateGroupSerializer
 from .models import Group, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule, AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest, SkillLevel, PendingGroupChallenge, PendingGroupChallengeAvailability, GroupChallengeInvite
 from django.http import JsonResponse
 
@@ -32,6 +32,40 @@ User = get_user_model()
 def get_csrf_token(request):
     token = get_token(request)
     return JsonResponse({'csrfToken': token})
+
+
+class SetAvailabilityView(APIView):
+    def post(self, request, user_id, chall_id):
+        data = request.data.get('availability', [])
+
+        for item in data:
+            PendingGroupChallengeAvailability.objects.create(
+                pendingChall_id=chall_id,
+                uID_id=user_id,
+                dayOfWeek=item['dayOfWeek'],
+                alarmTime=item['alarmTime']
+            )
+
+        return Response({'status': 'updated'})
+    
+
+class GetAvailabilitiesView(APIView):
+    def get(self, request, chall_id):
+        availabilities = PendingGroupChallengeAvailability.objects.filter(
+            pendingChall_id=chall_id
+        )
+
+        data = [
+            {
+                "uID": entry.uID.id,
+                "dayOfWeek": entry.dayOfWeek,
+                "alarmTime": entry.alarmTime.strftime('%H:%M'),
+            }
+            for entry in availabilities
+        ]
+
+        return Response(data, status=status.HTTP_200_OK)
+
 
 
 class LoginView(APIView):
@@ -181,14 +215,23 @@ class GroupDetailsView(APIView):
         }, status=status.HTTP_200_OK)
     
 
-class ChallengeInviteListView(APIView):
+class HasChallengeInviteView(APIView):
     def get(self, request, user_id, group_id):
         has_invite = GroupChallengeInvite.objects.filter(
             uID=user_id,
-            groupID=group_id
+            groupID_id=group_id
         ).exists()
         
         return Response({'has_invite': has_invite})
+    
+
+class ChallengeInvitesListView(APIView):
+    def get(self, request, user_id, group_id):
+        invites = GroupChallengeInvite.objects.filter(uID=user_id, groupID=group_id)
+        challenges = [invite.pendingChall for invite in invites]
+        
+        serializer = PendingGroupChallengeSerializer(challenges, many=True)
+        return Response(serializer.data)
 
 
 class AddGroupMemberView(APIView):
@@ -401,6 +444,7 @@ class CreatePendingGroupChallengeView(APIView):
 
             invites = [
                 GroupChallengeInvite(
+                    groupID_id=data['group_id'],
                     pendingChall=pendingChallenge,
                     uID=member.uID
                 ) for member in group_members
