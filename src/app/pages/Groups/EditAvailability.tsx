@@ -23,6 +23,7 @@ type Props = {
 
 type AvailabilityEntry = {
   uID: number;
+  name: string;
   dayOfWeek: number;
   alarmTime: string; // may come as "HH:MM" or "HH:MM:SS"
 };
@@ -45,7 +46,11 @@ const toHHMM = (t?: string) => (t ? t.slice(0, 5) : '');
 
 const EditAvailability: React.FC<Props> = ({ navigation }) => {
   const route = useRoute();
-  const { pendingChallengeId } = route.params as { pendingChallengeId: number };
+  const { pendingChallengeId, pendingChallengeName, pendingChallengeEndDate } = route.params as { 
+    pendingChallengeId: number, 
+    pendingChallengeName: string, 
+    pendingChallengeEndDate: string };
+
   const { user } = useUser();
 
   const [availability, setAvailability] = useState<AvailabilityEntry[]>([]);
@@ -73,7 +78,7 @@ const EditAvailability: React.FC<Props> = ({ navigation }) => {
       try {
         const res = await fetch(endpoints.getAvailabilities(pendingChallengeId));
         const data = await res.json();
-        // console.log('server availability:', data);
+        console.log('Availability:', data);
         setAvailability(data);
         setUserAvailability(
           data.filter((entry: AvailabilityEntry) => entry.uID === user.id)
@@ -87,31 +92,36 @@ const EditAvailability: React.FC<Props> = ({ navigation }) => {
     fetchAvailability();
   }, [pendingChallengeId, user]);
 
-  const toggleCell = (dayIdx: number, timeIdx: number) => {
-    const dayOfWeek = dayIdx + 1;
-    const timeStr = TIMES[timeIdx]; // already "HH:MM"
+const toggleCell = (dayIdx: number, timeIdx: number) => {
+  const dayOfWeek = dayIdx + 1;
+  const timeStr = TIMES[timeIdx]; // already "HH:MM"
 
-    if (!timeStr) return;
+  if (!timeStr || !user?.id || !user?.name) return;
 
-    const exists = userAvailability.some(
-      entry => entry.dayOfWeek === dayOfWeek && toHHMM(entry.alarmTime) === timeStr
+  const exists = userAvailability.some(
+    entry => entry.dayOfWeek === dayOfWeek && toHHMM(entry.alarmTime) === timeStr
+  );
+
+  if (exists) {
+    setUserAvailability(prev =>
+      prev.filter(
+        entry =>
+          !(entry.dayOfWeek === dayOfWeek && toHHMM(entry.alarmTime) === timeStr)
+      )
     );
+  } else {
+    setUserAvailability(prev => [
+      ...prev,
+      {
+        uID: Number(user.id),
+        name: user.name,
+        dayOfWeek,
+        alarmTime: timeStr,
+      },
+    ]);
+  }
+};
 
-    if (exists) {
-      setUserAvailability(prev =>
-        prev.filter(entry => !(entry.dayOfWeek === dayOfWeek && toHHMM(entry.alarmTime) === timeStr))
-      );
-    } else {
-      setUserAvailability(prev => [
-        ...prev,
-        {
-          uID: Number(user?.id),
-          dayOfWeek,
-          alarmTime: timeStr, // keep zero-padded
-        },
-      ]);
-    }
-  };
 
   const isUserSlotSelected = (dayIdx: number, timeIdx: number) => {
     const dayOfWeek = dayIdx + 1;
@@ -165,18 +175,54 @@ const EditAvailability: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  return (
-    <ImageBackground
-      source={require('../../images/cgpt.png')}
-      style={styles.background}
-      resizeMode="cover"
-    >
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Edit Your Availability</Text>
 
-        {loading ? (
-          <ActivityIndicator size="large" color="#FFD700" />
-        ) : (
+    const handleDecline = async () => {
+        try {
+            const csrfRes = await fetch(`${BASE_URL}/api/csrf-token/`, {
+                credentials: 'include',                      
+        });
+        if (!csrfRes.ok) throw new Error('Failed to fetch CSRF token');
+        const { csrfToken } = await csrfRes.json();   
+
+      const res = await fetch(endpoints.declineChallengeInvite(Number(user?.id), pendingChallengeId), {
+        method: 'POST',
+        credentials: 'include',                    
+        headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken,                
+        },
+      });
+
+      if (!res.ok) throw new Error('Failed to decline invite.');
+
+      Alert.alert('Success', 'Invite declined.');
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
+    }
+  };
+
+return (
+  <ImageBackground
+    source={require('../../images/cgpt.png')}
+    style={styles.background}
+    resizeMode="cover"
+  >
+    <ScrollView
+      contentContainerStyle={styles.scrollContentContainer}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.challengeInfoContainer}>
+        <Text style={styles.challengeTitle}>{pendingChallengeName}</Text>
+        <Text style={styles.challengeEndDate}>Ends: {pendingChallengeEndDate}</Text>
+      </View>
+
+      <Text style={styles.title}>Edit Your Availability</Text>
+
+      {loading ? (
+        <ActivityIndicator size="large" color="#FFD700" />
+      ) : (
+        <View style={styles.formSection}>
+          <Text style={styles.sectionLabel}>Select Availability</Text>
           <ScrollView horizontal>
             <View style={styles.grid}>
               <View style={styles.row}>
@@ -208,7 +254,6 @@ const EditAvailability: React.FC<Props> = ({ navigation }) => {
                         ]}
                         onPress={() => toggleCell(dayIdx, timeIdx)}
                       >
-                        {/* Colored overlays for users in this slot */}
                         {users.length > 0 && (
                           <View pointerEvents="none" style={styles.stripeOverlay}>
                             {users.map((u, i) => (
@@ -229,35 +274,60 @@ const EditAvailability: React.FC<Props> = ({ navigation }) => {
               ))}
             </View>
           </ScrollView>
-        )}
+        </View>
+      )}
 
-        <TouchableOpacity style={styles.saveButton} onPress={handleSubmit}>
-          <Text style={styles.saveButtonText}>Save My Availability</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </ImageBackground>
-  );
+      {!loading && availability.length > 0 && (() => {
+        const nameMap = new Map(availability.map(({ uID, name }) => [uID, name]));
+        return (
+          <View style={styles.legendContainer}>
+            {Array.from(nameMap.entries()).map(([id, name]) => (
+              <View key={id} style={styles.legendItem}>
+                <View style={[styles.legendColor, { backgroundColor: userColorMap[id] }]} />
+                <Text style={styles.legendText}>{name}</Text>
+              </View>
+            ))}
+          </View>
+        );
+      })()}
+
+      <TouchableOpacity style={styles.saveButton} onPress={handleSubmit}>
+        <Text style={styles.saveButtonText}>Save My Availability</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.saveButton} onPress={handleDecline}>
+        <Text style={styles.saveButtonText}>Decline Challenge Invite</Text>
+      </TouchableOpacity>
+    </ScrollView>
+  </ImageBackground>
+);
+
 };
 
 const styles = StyleSheet.create({
   background: {
     flex: 1,
   },
-  container: {
-    flex: 1,
-    paddingTop: 50,
-    paddingHorizontal: 12,
-  },
+  scrollContentContainer: {
+  paddingTop: 50,
+  paddingHorizontal: 12,
+  paddingBottom: 100, // give room for last button
+},
+//   container: {
+//     flex: 1,
+//     paddingTop: 50,
+//     paddingHorizontal: 12,
+//   },
   title: {
     color: '#FFF',
     fontSize: 24,
     fontWeight: '700',
     marginBottom: 20,
-    textAlign: 'center',
+    textAlign: 'left',
   },
   grid: {
     borderWidth: 1,
-    borderColor: '#555',
+    borderColor: '#ffffffd1',
   },
   row: {
     flexDirection: 'row',
@@ -266,7 +336,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 40,
     borderWidth: 1,
-    borderColor: '#444',
+    borderColor: '#ffffffd1',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
@@ -278,7 +348,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   interactiveCell: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: "rgba(255, 255, 255, 0)",
   },
   userSelected: {
     borderColor: '#FFD700',
@@ -291,17 +361,84 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   saveButton: {
-    backgroundColor: '#FFD700',
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     paddingVertical: 14,
     borderRadius: 10,
     marginTop: 20,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.38)",
   },
   saveButtonText: {
-    color: '#000',
-    fontWeight: '700',
+    color: "#FFF",
     fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
   },
+  formSection: {
+  backgroundColor: "rgba(255, 255, 255, 0.25)",
+  borderRadius: 16,
+  padding: 16,
+  marginBottom: 20,
+  borderWidth: 1,
+  borderColor: "rgba(255, 255, 255, 0.3)",
+},
+sectionLabel: {
+  fontSize: 18,
+  fontWeight: '600',
+  color: '#FFF',
+  marginBottom: 12,
+},
+legendContainer: {
+  flexDirection: 'row',
+  flexWrap: 'wrap',
+  marginTop: 10,
+  gap: 10,
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+legendItem: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginRight: 12,
+},
+legendColor: {
+  width: 16,
+  height: 16,
+  borderRadius: 4,
+  marginRight: 6,
+  borderWidth: 1,
+  borderColor: '#FFF',
+},
+legendText: {
+  color: '#FFF',
+  fontSize: 14,
+},
+challengeInfoContainer: {
+  backgroundColor: "rgba(255, 255, 255, 0.2)",
+  padding: 16,
+  borderRadius: 14,
+  borderWidth: 1,
+  borderColor: "rgba(255, 255, 255, 0.3)",
+  marginBottom: 20,
+  alignItems: 'center',
+},
+
+challengeTitle: {
+  fontSize: 20,
+  fontWeight: '700',
+  color: '#FFF',
+  marginBottom: 4,
+  textAlign: 'center',
+},
+
+challengeEndDate: {
+  fontSize: 14,
+  color: '#FFF',
+  fontStyle: 'italic',
+},
+
+
 });
 
 export default EditAvailability;

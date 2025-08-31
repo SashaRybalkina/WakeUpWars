@@ -369,7 +369,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
   },
   selectedCell: {
-    backgroundColor: '#4caf4fbf',
+    // backgroundColor: '#4caf4fbf',
+    borderColor: '#FFD700',
+    borderWidth: 2,
   },
   createButton: {
     borderRadius: 12,

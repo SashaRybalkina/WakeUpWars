@@ -47,17 +47,18 @@ class SetAvailabilityView(APIView):
             )
 
         return Response({'status': 'updated'})
-    
+        
 
 class GetAvailabilitiesView(APIView):
     def get(self, request, chall_id):
         availabilities = PendingGroupChallengeAvailability.objects.filter(
             pendingChall_id=chall_id
-        )
+        ).select_related('uID')
 
         data = [
             {
                 "uID": entry.uID.id,
+                "name": entry.uID.name,
                 "dayOfWeek": entry.dayOfWeek,
                 "alarmTime": entry.alarmTime.strftime('%H:%M'),
             }
@@ -215,23 +216,65 @@ class GroupDetailsView(APIView):
         }, status=status.HTTP_200_OK)
     
 
-class HasChallengeInviteView(APIView):
-    def get(self, request, user_id, group_id):
-        has_invite = GroupChallengeInvite.objects.filter(
-            uID=user_id,
-            groupID_id=group_id
-        ).exists()
-        
-        return Response({'has_invite': has_invite})
+# class GetPendingChallengesView(APIView):
+#     def get(self, request, group_id):
+#         challenges = PendingGroupChallenge.objects.filter(groupID__id=group_id)
+
+#         data = [
+#             {
+#                 "id": challenge.id,
+#                 "name": challenge.name,
+#                 "endDate": challenge.endDate.strftime('%Y-%m-%d'),
+#             }
+#             for challenge in challenges
+#         ]
+
+#         return Response(data, status=status.HTTP_200_OK)
+
     
 
-class ChallengeInvitesListView(APIView):
+class GetChallengeInvitesView(APIView):
     def get(self, request, user_id, group_id):
-        invites = GroupChallengeInvite.objects.filter(uID=user_id, groupID=group_id)
-        challenges = [invite.pendingChall for invite in invites]
+        invites = GroupChallengeInvite.objects.filter(
+            groupID_id=group_id,
+            uID_id=user_id,
+            accepted__in=[1, 2]
+        ).select_related('pendingChall')
+
+        data = [
+            {
+                "id": invite.pendingChall.id,
+                "name": invite.pendingChall.name,
+                "endDate": invite.pendingChall.endDate,
+                "accepted": invite.accepted
+            }
+            for invite in invites
+        ]
+
+        return Response({"invited_challenges": data}, status=status.HTTP_200_OK)
+    
+
+class DeclineChallengeInviteView(APIView):
+    def post(self, request, user_id, chall_id):
+        try:
+            invite = GroupChallengeInvite.objects.get(
+                uID_id=user_id,
+                pendingChall_id=chall_id
+            )
+            invite.accepted = 0
+            invite.save()
+            return Response({"message": "Invite declined successfully."}, status=status.HTTP_200_OK)
+
+        except GroupChallengeInvite.DoesNotExist:
+            return Response({"error": "Invite not found."}, status=status.HTTP_404_NOT_FOUND)
+
+# class ChallengeInvitesListView(APIView):
+#     def get(self, request, user_id, group_id):
+#         invites = GroupChallengeInvite.objects.filter(uID=user_id, groupID=group_id)
+#         challenges = [invite.pendingChall for invite in invites]
         
-        serializer = PendingGroupChallengeSerializer(challenges, many=True)
-        return Response(serializer.data)
+#         serializer = PendingGroupChallengeSerializer(challenges, many=True)
+#         return Response(serializer.data)
 
 
 class AddGroupMemberView(APIView):

@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons"
 import { type NavigationProp, useRoute } from "@react-navigation/native"
 import { LinearGradient } from "expo-linear-gradient"
 import ChallengeCard from "../Challenges/ChallengeCard"
+import PendingChallengeCard from "../Challenges/PendingChallengeCard"
 import { useFocusEffect } from "@react-navigation/native"
 import { ActivityIndicator } from "react-native"
 import { useUser } from "../../context/UserContext"
@@ -26,6 +27,18 @@ type Challenge = {
   isCompleted?: boolean
 }
 
+type PendingChallenge = {
+  id: number
+  name: string
+  endDate: string
+  accepted: number
+}
+
+// type InviteStatus = {
+//   id: number;
+//   accepted: number;
+// };
+
 type GroupData = {
   id: number
   name: string
@@ -41,7 +54,9 @@ const GroupDetails: React.FC<Props> = ({ navigation }) => {
 
   const [groupData, setGroupData] = useState<GroupData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [hasInvite, setHasInvite] = useState(false)
+
+  const [pendingChallenges, setPendingChallenges] = useState<PendingChallenge[]>([]);
+
 
 
   useFocusEffect(
@@ -74,10 +89,22 @@ const GroupDetails: React.FC<Props> = ({ navigation }) => {
   
           setGroupData(data)
 
+
+
           // Check for pending invites
-          const inviteResponse = await fetch(endpoints.hasChallengeInvites(Number(user.id), groupId))
-          const inviteData = await inviteResponse.json()
-          setHasInvite(inviteData.has_invite)
+          const inviteResponse = await fetch(endpoints.getChallengeInvites(Number(user.id), groupId));
+          const inviteData = await inviteResponse.json();
+          const formatted = inviteData.invited_challenges.map(
+            (item: PendingChallenge) => ({
+              id: item.id,
+              name: item.name,
+              endDate: item.endDate,
+              accepted: item.accepted
+            })
+          );
+
+
+          setPendingChallenges(formatted);
 
         } catch (error) {
           console.error("Failed to fetch group details:", error)
@@ -142,7 +169,7 @@ const GroupDetails: React.FC<Props> = ({ navigation }) => {
             </View>
 
 
-            {hasInvite && (
+            {/* {hasInvite && (
               <View style={{ backgroundColor: '#FFD700', padding: 10, borderRadius: 8, marginHorizontal: 20, marginBottom: 15 }}>
                 <Text style={{ color: '#000', fontWeight: 'bold', fontSize: 16 }}>
                   You have a challenge invite!
@@ -156,7 +183,7 @@ const GroupDetails: React.FC<Props> = ({ navigation }) => {
                   </Text>
                 </TouchableOpacity>
               </View>
-            )}
+            )} */}
 
 
 
@@ -201,6 +228,41 @@ const GroupDetails: React.FC<Props> = ({ navigation }) => {
             </View>
 
             <View style={styles.challengesSection}>
+
+              <Text style={styles.sectionTitle}>Pending Challenges</Text>
+
+              {pendingChallenges?.length === 0 ? (
+                <View style={styles.emptyStateContainer}>
+                  <Ionicons name="flag-outline" size={40} color="rgba(255,255,255,0.7)" />
+                  <Text style={styles.emptyStateText}>No pending challenges</Text>
+                </View>
+              ) : (
+                <View style={styles.challengeCardsContainer}>
+                  {pendingChallenges?.map((challenge) => (
+                    <TouchableOpacity
+                      key={challenge.id}
+                      style={styles.challengeCardWrapper}
+                      onPress={() =>
+                        navigation.navigate("EditAvailability", {
+                          pendingChallengeId: challenge.id,
+                          pendingChallengeName: challenge.name,
+                          pendingChallengeEndDate: challenge.endDate,
+                        })
+                      }
+                    >
+                      <PendingChallengeCard
+                        title={challenge.name}
+                        icon={require("../../images/school.png")}
+                        showInvite={challenge.accepted === 2}
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+
+
+
               <Text style={styles.sectionTitle}>Current Challenges</Text>
 
               {currentChallenges.length === 0 ? (

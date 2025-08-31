@@ -2,9 +2,9 @@ from django.urls import path
 from .views import (LoginView, RegisterView, GroupListView, HelloWorldView, UserProfileView, 
                     UserMessagesView, GroupDetailsView, CatListView, GameListView, ChallengeListView, 
                     ChallengeDetailView, ChallengeGameScheduleView, CreateGroupChallengeView, CreatePendingGroupChallengeView, FriendListView, 
-                    AddGroupMemberView, SendFriendRequestView, FriendRequestListView, RespondToFriendRequestView, ChallengeInvitesListView,
-                    SentFriendRequestListView, AllUsersView, CancelFriendRequestView, CreateGroupView, CreatePersonalChallengeView, HasChallengeInviteView,
-                    GetAvailabilitiesView, SetAvailabilityView)
+                    AddGroupMemberView, SendFriendRequestView, FriendRequestListView, RespondToFriendRequestView,
+                    SentFriendRequestListView, AllUsersView, CancelFriendRequestView, CreateGroupView, CreatePersonalChallengeView, GetChallengeInvitesView,
+                    GetAvailabilitiesView, SetAvailabilityView, GetPendingChallengesView, DeclineChallengeInviteView)
 from .views import CreateSudokuGameView, ValidateSudokuMoveView, get_csrf_token
 
 urlpatterns = [
@@ -28,11 +28,13 @@ urlpatterns = [
     path('friend-requests-sent/<int:user_id>/', SentFriendRequestListView.as_view(), name='sent-friend-requests'),
     path('friend-request/respond/<int:request_id>/', RespondToFriendRequestView.as_view(), name='respond-friend-request'),
     path('friend-request/send/', SendFriendRequestView.as_view(), name='send-friend-request'),
-    path('has-challenge-invites/<int:user_id>/<int:group_id>/', HasChallengeInviteView.as_view(), name='has-challenge-invites'),
-    path('challenge-invites/<int:user_id>/<int:group_id>/', ChallengeInvitesListView.as_view(), name='challenge-invites'),
+    path('get-challenge-invites/<int:user_id>/<int:group_id>/', GetChallengeInvitesView.as_view(), name='get-challenge-invites'),
+    # path('challenge-invites/<int:user_id>/<int:group_id>/', ChallengeInvitesListView.as_view(), name='challenge-invites'),
     
+    path('get-pending-challenges/<int:group_id>/', GetPendingChallengesView.as_view(), name='get-pending-challenges'),
     path('get-availabilities/<int:chall_id>/', GetAvailabilitiesView.as_view(), name='get-availabilities'),
     path('set-availability/<int:user_id>/<int:chall_id>/', SetAvailabilityView.as_view(), name='set-availability'),
+    path('decline-challenge-invite/<int:user_id>/<int:chall_id>/', DeclineChallengeInviteView.as_view(), name='decline-challenge-invite'),
 
     path('profile/all/', AllUsersView.as_view(), name='all-users'),
     path('friend-request/delete/<int:request_id>/', CancelFriendRequestView.as_view(), name='cancel-friend-request'),

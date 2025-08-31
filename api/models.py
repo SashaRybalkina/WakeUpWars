@@ -199,6 +199,7 @@ class GroupChallengeInvite(models.Model):
     groupID = models.ForeignKey(Group, on_delete=models.CASCADE)
     pendingChall = models.ForeignKey(PendingGroupChallenge, on_delete=models.CASCADE)
     uID = models.ForeignKey(User, on_delete=models.CASCADE)
+    accepted = models.IntegerField() # 0 means declined, 1 means accepted, 2 means neither (pending)
         
     class Meta:
         db_table = 'GroupChallengeInvites'
