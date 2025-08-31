@@ -27,6 +27,6 @@ export const endpoints = {
   validateSudokuMove: `${BASE_URL}/api/sudoku/validate/`,
   createPersonalChallenge: `${BASE_URL}/api/create-personal-challenge/`,
   leaderboard: (id: number) => `${BASE_URL}/api/challenge-leaderboard/${id}/`,
-  submitGameScores: `${BASE_URL}/api/submit-game-scores/`,
+  submitGameScores: () => `${BASE_URL}/api/submit-game-scores/`,
 };
 

@@ -1,5 +1,5 @@
 from datetime import timezone, datetime, date
-from datetime import date as date_cls
+from datetime import date as date_cls, timedelta
 from django.db.models import Sum, F
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -748,57 +748,50 @@ class CreatePersonalChallengeView(APIView):
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # AI was used to help generate this class
+
 class ChallengeLeaderboardView(APIView):
-    """
-    GET /challenge-leaderboard/<chall_id>/?since=YYYY-MM-DD&until=YYYY-MM-DD
-    Window defaults to [challenge.startDate, min(challenge.endDate, today)].
-    Returns [{ name, points, rank }]
-    """
     def get(self, request, chall_id):
-        # 1) Load challenge to get its window
         challenge = get_object_or_404(Challenge, id=chall_id)
 
-        # 2) Compute default window: start = startDate, end = min(endDate, today)
-        default_since = challenge.startDate
-        default_until = min(challenge.endDate, date.today())
-
-        # 3) Allow explicit overrides via query params
-        since_param = request.GET.get("since")
-        until_param = request.GET.get("until")
-
-        since = since_param or default_since
-        until = until_param or default_until
-
-        # 4) Filter performances for that challenge within the window (inclusive)
-        qs = GamePerformance.objects.filter(
-            challenge_id=chall_id,
-            date__gte=challenge.startDate,
-            date__lte=min(challenge.endDate, date.today())
+        # Query-string overrides, fall back to full challenge window
+        since = date_cls.fromisoformat(
+            request.GET.get("since", str(challenge.startDate))
+        )
+        until = date_cls.fromisoformat(
+            request.GET.get("until", str(max(challenge.endDate, date_cls.today())))
         )
 
-        # 5) Aggregate per user and order by points (tie-break by name)
+        qs = GamePerformance.objects.filter(
+            challenge_id=chall_id,
+            date__range=(since, until)
+        )
+
         rows = (qs.values("user_id", "user__name")
                 .annotate(points=Sum("score"))
                 .order_by("-points", "user__name"))
 
-        # 6) Dense-rank in Python (DB-agnostic)
-        data, last_points, rank = [], None, 0
+        # dense-rank
+        out, last_pts, rank = [], None, 0
         for r in rows:
-            if r["points"] != last_points:
+            if r["points"] != last_pts:
                 rank += 1
-                last_points = r["points"]
-            data.append({
-                "name": r["user__name"] or "Anonymous",
+                last_pts = r["points"]
+            out.append({
+                "name":   r["user__name"] or "Anonymous",
                 "points": int(r["points"] or 0),
-                "rank": rank,
+                "rank":   rank,
             })
 
         return Response({
             "since": str(since),
             "until": str(until),
-            "challenge": {"id": challenge.id, "startDate": str(challenge.startDate), "endDate": str(challenge.endDate)},
-            "leaderboard": data
-        }, status=status.HTTP_200_OK)
+            "challenge": {
+                "id": challenge.id,
+                "startDate": str(challenge.startDate),
+                "endDate": str(challenge.endDate),
+            },
+            "leaderboard": out,
+        })
 
 # AI generated
 class SubmitGameScoresView(APIView):

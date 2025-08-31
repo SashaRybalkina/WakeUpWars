@@ -113,10 +113,8 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
    }) => {
      try {
        const token = await fetch(`${BASE_URL}/api/csrf-token/`, { credentials: 'include' });
-       console.log('[debug] token status', token.status);
        const { csrfToken } = await token.json();
-       console.log('[debug] submitGameScores →', endpoints.submitGameScores);
-       await fetch(endpoints.submitGameScores, {
+       await fetch(endpoints.submitGameScores(), {
          method: 'POST',
          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
          credentials: 'include',
