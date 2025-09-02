@@ -571,13 +571,30 @@ class CreatePatternGameView(APIView):
     def post(self, request):
         challenge_id = request.data.get('challenge_id')
         user = request.user
+
         if not challenge_id:
-            return Response({'error':'Missing challenge_id'}, status=400)
+            return Response({'success': False, 'error': 'Missing challenge_id'}, status=400)
+
+        try:
+            Challenge.objects.get(id=challenge_id)
+        except Challenge.DoesNotExist:
+            return Response({'success': False, 'error': 'Challenge not found'}, status=404)
+
         try:
             payload = get_or_create_pattern_game(challenge_id, user)
-            return Response(payload, status=200)
+
+            return Response({
+                "success": True,
+                "game_state_id": payload.get("game_state_id"),
+                "pattern_sequence": payload.get("pattern_sequence", []),
+                "current_round": payload.get("current_round", 1),
+                "is_multiplayer": payload.get("is_multiplayer", True),
+                "color": payload.get("color")
+            }, status=200)
+
         except Exception as e:
-            return Response({'error': str(e)}, status=400)
+            return Response({'success': False, 'error': str(e)}, status=500)
+
 
 class ValidatePatternMoveView(APIView):
     def post(self, request):
@@ -585,8 +602,38 @@ class ValidatePatternMoveView(APIView):
         round_number  = request.data.get('round_number')
         player_seq    = request.data.get('player_sequence') or []
         user = request.user
+
         if not all([game_state_id, round_number is not None]):
-            return Response({'error':'Missing params'}, status=400)
+            return Response({'success': False, 'error': 'Missing parameters'}, status=400)
+
+        try:
+            game_state_id = int(game_state_id)
+            round_number = int(round_number)
+        except ValueError:
+            return Response({'success': False, 'error': 'Invalid ID or round number format'}, status=400)
+
         from asgiref.sync import async_to_sync
-        res = async_to_sync(validate_pattern_move)(int(game_state_id), user, int(round_number), player_seq)
-        return Response(res, status=200)
+
+        try:
+            result = async_to_sync(validate_pattern_move)(game_state_id, user, round_number, player_seq)
+
+            if result.get('is_correct'):
+                return Response({
+                    'success': True,
+                    'result': 'correct',
+                    'updated_sequence': result.get('pattern_sequence', []),
+                    'score': result.get('score'),
+                    'round_completed': result.get('round_completed', False),
+                    'completed': result.get('is_complete', False)
+                }, status=200)
+            else:
+                return Response({
+                    'success': False,
+                    'result': 'incorrect',
+                    'expected_sequence': result.get('pattern_sequence', []),
+                    'score': result.get('score'),
+                    'round_failed': True
+                }, status=200)
+
+        except Exception as e:
+            return Response({'success': False, 'error': str(e)}, status=500)
