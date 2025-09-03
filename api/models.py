@@ -121,6 +121,7 @@ class Game(models.Model):
 # scheduled on the same day through code instead of the db, it gets weird with the personal and group challenge cases
 class Challenge(models.Model):
     groupID = models.ForeignKey(Group, null=True, blank=True, on_delete=models.CASCADE) # null if personal challenge
+    isPublic = models.BooleanField()
     startDate = models.DateField()
     endDate = models.DateField()
     name = models.CharField(max_length=255, default='Challenge')

@@ -327,14 +327,18 @@ class AddGroupMemberView(APIView):
         
 class ChallengeListView(APIView):
     def get(self, request, user_id, which_chall):
-        is_group = which_chall == 'Group'
-        if is_group:
+        if which_chall == 'Group':
             group_ids = GroupMembership.objects.filter(uID=user_id).values_list('groupID', flat=True)
             challenges = Challenge.objects.filter(groupID__in=group_ids)
-        else:
+        elif which_chall == 'Personal':
             challenges = Challenge.objects.filter(
                 id__in=ChallengeMembership.objects.filter(uID=user_id).values_list('challengeID', flat=True),
                 groupID=None
+            )
+        elif which_chall == 'Public':
+            challenges = Challenge.objects.filter(
+                id__in=ChallengeMembership.objects.filter(uID=user_id).values_list('challengeID', flat=True),
+                isPublic=True
             )
 
         numeric_to_label = {1: "M", 2: "T", 3: "W", 4: "TH", 5: "F", 6: "S", 7: "SU"}

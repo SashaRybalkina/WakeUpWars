@@ -9,6 +9,7 @@ import Challenges from './pages/Challenges';
 import Chall1 from './pages/Challenges/Chall1';
 import ChallDetails from './pages/Challenges/ChallDetails';
 import ChallSchedule from './pages/Challenges/ChallSchedule';
+import CreatePublicChall1 from './pages/Challenges/CreatePublicChall1';
 import Categories from './pages/Games/Categories';
 import GameExpanded from './pages/Games/GameExpanded';
 import Games from './pages/Games/Games';
@@ -200,6 +201,11 @@ function App() {
         <Stack.Screen
           name="SignUp"
           component={SignUpScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="CreatePublicChall1"
+          component={CreatePublicChall1}
           options={{ headerShown: false }}
         />
         <Stack.Screen
