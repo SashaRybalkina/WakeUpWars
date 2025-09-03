@@ -1,10 +1,11 @@
 from django.urls import path
 from .views import (LoginView, RegisterView, GroupListView, HelloWorldView, UserProfileView, 
                     UserMessagesView, GroupDetailsView, CatListView, GameListView, ChallengeListView, 
-                    ChallengeDetailView, ChallengeGameScheduleView, CreateGroupChallengeView, FriendListView, 
-                    AddGroupMemberView, SendFriendRequestView, FriendRequestListView, RespondToFriendRequestView, 
-                    SentFriendRequestListView, AllUsersView, CancelFriendRequestView, CreateGroupView, CreatePersonalChallengeView,
-                    ChallengeLeaderboardView, SubmitGameScoresView, ChallengeDailyHistoryView)
+                    ChallengeDetailView, ChallengeGameScheduleView, CreateGroupChallengeView, CreatePendingGroupChallengeView, FriendListView, 
+                    AddGroupMemberView, SendFriendRequestView, FriendRequestListView, RespondToFriendRequestView,
+                    SentFriendRequestListView, AllUsersView, CancelFriendRequestView, CreateGroupView, CreatePersonalChallengeView, GetChallengeInvitesView,
+                    GetAvailabilitiesView, SetAvailabilityView, DeclineChallengeInviteView, ChallengeLeaderboardView, SubmitGameScoresView, ChallengeDailyHistoryView)
+
 from .views import CreateSudokuGameView, ValidateSudokuMoveView, get_csrf_token
 
 urlpatterns = [
@@ -23,10 +24,19 @@ urlpatterns = [
     path('challenge-detail/<int:chall_id>/', ChallengeDetailView.as_view(), name='challenge-detail'),
     path('challenge-schedule/<int:chall_id>/', ChallengeGameScheduleView.as_view(), name='challenge-schedule'),
     path('create-group-challenge/', CreateGroupChallengeView.as_view(), name='create-group-challenge'),
+    path('create-pending-group-challenge/', CreatePendingGroupChallengeView.as_view(), name='create-group-challenge'),
     path('friend-requests/<int:user_id>/', FriendRequestListView.as_view(), name='friend-requests'),
     path('friend-requests-sent/<int:user_id>/', SentFriendRequestListView.as_view(), name='sent-friend-requests'),
     path('friend-request/respond/<int:request_id>/', RespondToFriendRequestView.as_view(), name='respond-friend-request'),
     path('friend-request/send/', SendFriendRequestView.as_view(), name='send-friend-request'),
+    path('get-challenge-invites/<int:user_id>/<int:group_id>/', GetChallengeInvitesView.as_view(), name='get-challenge-invites'),
+    # path('challenge-invites/<int:user_id>/<int:group_id>/', ChallengeInvitesListView.as_view(), name='challenge-invites'),
+    
+    # path('get-pending-challenges/<int:group_id>/', GetPendingChallengesView.as_view(), name='get-pending-challenges'),
+    path('get-availabilities/<int:chall_id>/', GetAvailabilitiesView.as_view(), name='get-availabilities'),
+    path('set-availability/<int:user_id>/<int:chall_id>/', SetAvailabilityView.as_view(), name='set-availability'),
+    path('decline-challenge-invite/<int:user_id>/<int:chall_id>/', DeclineChallengeInviteView.as_view(), name='decline-challenge-invite'),
+
     path('profile/all/', AllUsersView.as_view(), name='all-users'),
     path('friend-request/delete/<int:request_id>/', CancelFriendRequestView.as_view(), name='cancel-friend-request'),
     path('create-group/', CreateGroupView.as_view(), name='create-group'),

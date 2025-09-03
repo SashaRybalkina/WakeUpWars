@@ -15,8 +15,8 @@ from datetime import time
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import authenticate, get_user_model
-from .serializers import UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer, MessageSerializer, ChallengeSummarySerializer, CatSerializer, GameSerializer, FriendSerializer, FriendRequestSerializer, CreateGroupSerializer
-from .models import Group, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule, AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest, SkillLevel
+from .serializers import PendingGroupChallengeSerializer, UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer, MessageSerializer, ChallengeSummarySerializer, CatSerializer, GameSerializer, FriendSerializer, FriendRequestSerializer, CreateGroupSerializer
+from .models import Group, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule, AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest, SkillLevel, PendingGroupChallenge, PendingGroupChallengeAvailability, GroupChallengeInvite
 from django.http import JsonResponse
 from typing     import Dict, List
 from rest_framework.exceptions import ValidationError
@@ -39,6 +39,63 @@ User = get_user_model()
 def get_csrf_token(request):
     token = get_token(request)
     return JsonResponse({'csrfToken': token})
+
+
+class SetAvailabilityView(APIView):
+    def post(self, request, user_id, chall_id):
+        availability_data = request.data.get('availability', [])
+
+        for item in availability_data:
+            day = item['dayOfWeek']
+            time = item['alarmTime']
+
+            # Try to find existing availability
+            existing = PendingGroupChallengeAvailability.objects.filter(
+                pendingChall_id=chall_id,
+                uID_id=user_id,
+                dayOfWeek=day,
+                alarmTime=time
+            ).first()
+
+            if existing:
+                # If availability exists, remove it
+                existing.delete()
+            else:
+                # Otherwise, create it
+                PendingGroupChallengeAvailability.objects.create(
+                    pendingChall_id=chall_id,
+                    uID_id=user_id,
+                    dayOfWeek=day,
+                    alarmTime=time
+                )
+
+        # Mark the invite as accepted
+        GroupChallengeInvite.objects.filter(
+            pendingChall_id=chall_id,
+            uID_id=user_id
+        ).update(accepted=1)
+
+        return Response({'status': 'availability toggled and invite accepted'})
+        
+
+class GetAvailabilitiesView(APIView):
+    def get(self, request, chall_id):
+        availabilities = PendingGroupChallengeAvailability.objects.filter(
+            pendingChall_id=chall_id
+        ).select_related('uID')
+
+        data = [
+            {
+                "uID": entry.uID.id,
+                "name": entry.uID.name,
+                "dayOfWeek": entry.dayOfWeek,
+                "alarmTime": entry.alarmTime.strftime('%H:%M'),
+            }
+            for entry in availabilities
+        ]
+
+        return Response(data, status=status.HTTP_200_OK)
+
 
 
 class LoginView(APIView):
@@ -182,6 +239,67 @@ class GroupDetailsView(APIView):
             'challenges': enriched_challenges,
             'members': members
         }, status=status.HTTP_200_OK)
+    
+
+# class GetPendingChallengesView(APIView):
+#     def get(self, request, group_id):
+#         challenges = PendingGroupChallenge.objects.filter(groupID__id=group_id)
+
+#         data = [
+#             {
+#                 "id": challenge.id,
+#                 "name": challenge.name,
+#                 "endDate": challenge.endDate.strftime('%Y-%m-%d'),
+#             }
+#             for challenge in challenges
+#         ]
+
+#         return Response(data, status=status.HTTP_200_OK)
+
+    
+
+class GetChallengeInvitesView(APIView):
+    def get(self, request, user_id, group_id):
+        invites = GroupChallengeInvite.objects.filter(
+            groupID_id=group_id,
+            uID_id=user_id,
+            accepted__in=[1, 2]
+        ).select_related('pendingChall')
+
+        data = [
+            {
+                "id": invite.pendingChall.id,
+                "name": invite.pendingChall.name,
+                "endDate": invite.pendingChall.endDate,
+                "accepted": invite.accepted
+            }
+            for invite in invites
+        ]
+
+        return Response({"invited_challenges": data}, status=status.HTTP_200_OK)
+    
+
+class DeclineChallengeInviteView(APIView):
+    def post(self, request, user_id, chall_id):
+        try:
+            invite = GroupChallengeInvite.objects.get(
+                uID_id=user_id,
+                pendingChall_id=chall_id
+            )
+            invite.accepted = 0
+            invite.save()
+            return Response({"message": "Invite declined successfully."}, status=status.HTTP_200_OK)
+
+        except GroupChallengeInvite.DoesNotExist:
+            return Response({"error": "Invite not found."}, status=status.HTTP_404_NOT_FOUND)
+
+# class ChallengeInvitesListView(APIView):
+#     def get(self, request, user_id, group_id):
+#         invites = GroupChallengeInvite.objects.filter(uID=user_id, groupID=group_id)
+#         challenges = [invite.pendingChall for invite in invites]
+        
+#         serializer = PendingGroupChallengeSerializer(challenges, many=True)
+#         return Response(serializer.data)
 
 
 class AddGroupMemberView(APIView):
@@ -212,14 +330,19 @@ class AddGroupMemberView(APIView):
         
 class ChallengeListView(APIView):
     def get(self, request, user_id, which_chall):
-        is_group = which_chall == 'Group'
-        if is_group:
+        if which_chall == 'Group':
             group_ids = GroupMembership.objects.filter(uID=user_id).values_list('groupID', flat=True)
             challenges = Challenge.objects.filter(groupID__in=group_ids)
-        else:
+        elif which_chall == 'Personal':
             challenges = Challenge.objects.filter(
                 id__in=ChallengeMembership.objects.filter(uID=user_id).values_list('challengeID', flat=True),
-                groupID=None
+                groupID=None,
+                isPublic=False
+            )
+        elif which_chall == 'Public':
+            challenges = Challenge.objects.filter(
+                id__in=ChallengeMembership.objects.filter(uID=user_id).values_list('challengeID', flat=True),
+                isPublic=True
             )
 
         numeric_to_label = {1: "M", 2: "T", 3: "W", 4: "TH", 5: "F", 6: "S", 7: "SU"}
@@ -296,7 +419,7 @@ class CreateGroupChallengeView(APIView):
     def post(self, request):
         data = request.data
         try:
-            # 🔍 STEP 1: Check for alarm conflicts
+            # Check for alarm conflicts
             # conflicting = []
             # for user_id in data['members']:
             #     for sched in data['alarm_schedule']:
@@ -316,7 +439,8 @@ class CreateGroupChallengeView(APIView):
                 name=data['name'],
                 groupID_id=data['group_id'],
                 startDate=data['start_date'],
-                endDate=data['end_date']
+                endDate=data['end_date'],
+                isPublic=False
             )
 
             # Add members
@@ -356,6 +480,56 @@ class CreateGroupChallengeView(APIView):
 
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+
+class CreatePendingGroupChallengeView(APIView):
+    @transaction.atomic
+    def post(self, request):
+        data = request.data
+        try:
+            initiator_id = data.get('member')
+
+            # Create the pending challenge
+            pendingChallenge = PendingGroupChallenge.objects.create(
+                name=data['name'],
+                groupID_id=data['group_id'],
+                endDate=data['end_date']
+            )
+
+            # Add availability entries for the initiator
+            alarm_schedule = data.get('alarm_schedule', [])
+
+            availability_entries = [
+                PendingGroupChallengeAvailability(
+                    pendingChall=pendingChallenge,
+                    uID_id=initiator_id,
+                    dayOfWeek=entry['dayOfWeek'],
+                    alarmTime=datetime.strptime(entry['time'], "%H:%M").time()
+                )
+                for entry in alarm_schedule
+            ]
+            PendingGroupChallengeAvailability.objects.bulk_create(availability_entries)
+
+
+            # create invites for everyone (accepted = 2 means neither accepted nor declined, 1 
+            # means accepted, 0 means declined)
+            group_members = GroupMembership.objects.filter(groupID_id=data['group_id'])
+
+            invites = [
+                GroupChallengeInvite(
+                    groupID_id=data['group_id'],
+                    pendingChall=pendingChallenge,
+                    uID=member.uID,
+                    accepted=1 if member.uID_id == initiator_id else 2
+                ) for member in group_members
+            ]
+            GroupChallengeInvite.objects.bulk_create(invites)
+
+            return Response({"success": True, "pending_challenge_id": pendingChallenge.id}, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
     
 class SendFriendRequestView(APIView):
@@ -713,6 +887,7 @@ class CreatePersonalChallengeView(APIView):
             challenge = Challenge.objects.create(
                 name=name,
                 groupID=None,
+                isPublic=False,
                 startDate=datetime.now().date(),
                 endDate=end_date
             )
