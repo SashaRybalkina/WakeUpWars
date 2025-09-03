@@ -1,12 +1,16 @@
-from datetime import timezone, datetime
+from datetime import timezone, datetime, date, timedelta
+from datetime import date as date_cls, timedelta
+from django.db.models import Sum, F
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework import generics, permissions
 from rest_framework import status
 from django.db import transaction
+from collections import defaultdict
 from datetime import time
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
@@ -14,10 +18,13 @@ from django.contrib.auth import authenticate, get_user_model
 from .serializers import PendingGroupChallengeSerializer, UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer, MessageSerializer, ChallengeSummarySerializer, CatSerializer, GameSerializer, FriendSerializer, FriendRequestSerializer, CreateGroupSerializer
 from .models import Group, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule, AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest, SkillLevel, PendingGroupChallenge, PendingGroupChallengeAvailability, GroupChallengeInvite
 from django.http import JsonResponse
+from typing     import Dict, List
+from rest_framework.exceptions import ValidationError
 
 #### Sudoku Game Imports ####
-from .models import SudokuGameState, Challenge, SudokuGamePlayer, User, Game
+from .models import SudokuGameState, Challenge, SudokuGamePlayer, User, Game, GamePerformance
 from api.sudokuStuff.utils import validate_sudoku_move, get_or_create_game
+from .serializers import ChallengeSummarySerializer
 from sudoku import Sudoku
 import time
 from django.contrib.auth import login
@@ -106,10 +113,8 @@ class LoginView(APIView):
             user = User.objects.get(username=username)
         except User.DoesNotExist:
             return Response({'success': False, 'error': 'Username does not exist'}, status=status.HTTP_404_NOT_FOUND)
-            return Response({'success': False, 'error': 'Username does not exist'}, status=status.HTTP_404_NOT_FOUND)
 
         if not user.check_password(password):
-            return Response({'success': False, 'error': 'Incorrect password'}, status=status.HTTP_401_UNAUTHORIZED)
             return Response({'success': False, 'error': 'Incorrect password'}, status=status.HTTP_401_UNAUTHORIZED)
 
         if not user.is_active:
@@ -120,8 +125,6 @@ class LoginView(APIView):
 
         serializer = UserSerializer(user)
         return Response({'success': True, **serializer.data})
-
-
 
 class RegisterView(APIView):
     def post(self, request):
@@ -719,6 +722,15 @@ class CreateSudokuGameView(APIView):
 
         game_data = get_or_create_game(challenge_id, user)
 
+        # Add game id so that inside the db, they are unique (Right now they're all just 'sudoku')
+        try:
+            state_id = game_data.get("game_state_id")
+            if state_id:
+                state = SudokuGameState.objects.get(id=state_id)
+                game_data["game_id"] = state.game_id  # make game_id explicit
+        except SudokuGameState.DoesNotExist:
+            pass
+
         return Response(game_data, status=status.HTTP_200_OK)
 
     
@@ -912,3 +924,231 @@ class CreatePersonalChallengeView(APIView):
         except Exception as e:
             traceback.print_exc()
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# AI was used to help generate this class
+
+
+class ChallengeLeaderboardView(APIView):
+    """
+    GET /challenge-leaderboard/<chall_id>/
+        -> overall leaderboard (unchanged)
+
+    GET /challenge-leaderboard/<chall_id>/?history=7
+        -> overall + "history" dict for the last 7 days
+    """
+    def get(self, request, chall_id):
+        challenge = get_object_or_404(Challenge, id=chall_id)
+
+        # -------------------- overall window --------------------
+        default_since = challenge.startDate
+        default_until = min(challenge.endDate, date.today())
+
+        rows = (GamePerformance.objects
+                .filter(challenge_id=chall_id,
+                        date__gte=default_since,
+                        date__lte=default_until)
+                .values("user_id", "user__name")
+                .annotate(points=Sum("score"))
+                .order_by("-points", "user__name"))
+
+        overall, last_pts, rank = [], None, 0
+        for r in rows:
+            if r["points"] != last_pts:
+                rank += 1
+                last_pts = r["points"]
+            overall.append({
+                "name":  r["user__name"] or "Anonymous",
+                "points": int(r["points"] or 0),
+                "rank":  rank,
+            })
+
+        payload = {
+            "since": str(default_since),
+            "until": str(default_until),
+            "leaderboard": overall,
+        }
+
+        # -------------------- optional daily history --------------------
+        try:
+            n_days = int(request.GET.get("history", 0))
+        except ValueError:
+            n_days = 0
+
+        if n_days > 0:
+            end_day   = default_until
+            start_day = max(default_since, end_day - timedelta(days=n_days-1))
+
+            # fetch all rows for that window once
+            daily_qs = (GamePerformance.objects
+                        .filter(challenge_id=chall_id,
+                                date__gte=start_day,
+                                date__lte=end_day)
+                        .values("date", "user__name")
+                        .annotate(points=Sum("score"))
+                        .order_by("date", "-points", "user__name"))
+
+            # group by day -> list
+            grouped: dict[date, list[dict]] = defaultdict(list)
+            for r in daily_qs:
+                grouped[r["date"]].append(r)
+
+            # rank inside each day
+            history: dict[str, list[dict]] = {}
+            for d in (start_day + timedelta(i) for i in range(n_days)):
+                rows = grouped.get(d, [])
+                out, last_pts, rank = [], None, 0
+                for r in rows:
+                    if r["points"] != last_pts:
+                        rank += 1
+                        last_pts = r["points"]
+                    out.append({
+                        "name":   r["user__name"] or "Anonymous",
+                        "points": int(r["points"] or 0),
+                        "rank":   rank,
+                    })
+                history[str(d)] = out        # even if empty → easier for UI
+
+            payload["history"] = history
+
+        return Response(payload, status=status.HTTP_200_OK)
+
+# AI generated
+class SubmitGameScoresView(APIView):
+    """
+    POST /submit-game-scores/
+    Body: { challenge_id, game_name|game_id, date?, scores: [{username|user_id, score, ...}] }
+    """
+    def post(self, request):
+        data = request.data
+        challenge_id = data.get("challenge_id")
+        game_id = data.get("game_id")
+        game_name = data.get("game_name")
+        scores = data.get("scores", [])
+        date_str = data.get("date")  # 'YYYY-MM-DD' or null
+
+        if not challenge_id or not scores or not (game_id or game_name):
+            return Response({"detail": "Missing required fields."}, status=status.HTTP_400_BAD_REQUEST)
+
+        challenge = get_object_or_404(Challenge, id=challenge_id)
+
+        if game_id:
+            game = get_object_or_404(Game, id=game_id)
+        else:
+            qs = Game.objects.filter(name=game_name).order_by('id')
+            if not qs.exists():
+                return Response({"detail": "Unknown game_name"}, status=400)
+            # pick the earliest (or latest) created row deterministically
+            game = qs.first()
+
+        play_date = date_cls.fromisoformat(date_str) if date_str else date_cls.today()
+
+        created_or_updated = 0
+        with transaction.atomic():
+            for row in scores:
+                user = None
+                if "user_id" in row:
+                    user = get_object_or_404(User, id=row["user_id"])
+                elif "username" in row:
+                    user = get_object_or_404(User, username=row["username"])
+                else:
+                    return Response({"detail": "Each score needs username or user_id."}, status=400)
+
+                sc = int(row.get("score", 0))
+
+                # Idempotent upsert: one row per (challenge, game, user, date)
+                obj, created = GamePerformance.objects.update_or_create(
+                    challenge=challenge, game=game, user=user, date=play_date,
+                    defaults={"score": sc}
+                )
+                # If prefer to accumulate multiple plays in one day:
+                # if created: obj.score = sc
+                # else: obj.score = F('score') + sc; obj.save(update_fields=['score'])
+                created_or_updated += 1
+
+        return Response({"ok": True, "count": created_or_updated}, status=status.HTTP_200_OK)
+
+class ChallengeUpdateView(generics.UpdateAPIView):
+    queryset = Challenge.objects.all()
+    serializer_class = ChallengeSummarySerializer      # use the one you have
+    permission_classes = [permissions.IsAdminUser]
+
+class ChallengeDailyHistoryView(APIView):
+    """
+    GET /api/challenge-leaderboard/<chall_id>/history/
+        → full daily history (challenge start ⟶ min(challenge_end, today))
+
+    GET …/history/?start=YYYY-MM-DD&end=YYYY-MM-DD
+        → history for that inclusive window
+        • both params optional
+        • if only one provided we treat it as *both* (single day)
+    """
+
+    def get(self, request, chall_id):
+        challenge = get_object_or_404(Challenge, id=chall_id)
+
+        # ---------- 1. parse & validate date params ----------
+        def parse(d: str) -> date:
+            try:
+                return datetime.strptime(d, "%Y-%m-%d").date()
+            except ValueError:
+                raise ValidationError(f"Bad date: {d!r} (YYYY-MM-DD expected)")
+
+        start_str = request.GET.get("start")
+        end_str   = request.GET.get("end")
+
+        if start_str and not end_str:
+            end_str = start_str
+        if end_str and not start_str:
+            start_str = end_str
+
+        if start_str:
+            start = parse(start_str)
+            end   = parse(end_str)
+        else:
+            start = challenge.startDate
+            end   = min(challenge.endDate, date.today())
+
+        if start < challenge.startDate or end > challenge.endDate or start > end:
+            raise ValidationError("Date range outside the challenge window.")
+
+        n_days = (end - start).days + 1
+
+        # ---------- 2. one query for the whole window ----------
+        qs = (
+            GamePerformance.objects
+            .filter(challenge_id=chall_id, date__gte=start, date__lte=end)
+            .values("date", "user__name")
+            .annotate(points=Sum("score"))
+            .order_by("date", "-points", "user__name")
+        )
+
+        # ---------- 3. group + rank per day ----------
+        grouped: Dict[date, List[dict]] = defaultdict(list)
+        for r in qs:
+            grouped[r["date"]].append(r)
+
+        history: Dict[str, List[dict]] = {}
+        for d in (start + timedelta(i) for i in range(n_days)):
+            daily = grouped.get(d, [])
+            out: List[dict] = []
+            rank, last_pts = 0, None
+            for r in daily:
+                if r["points"] != last_pts:
+                    rank += 1
+                    last_pts = r["points"]
+                out.append(
+                    {
+                        "name":   r["user__name"] or "Anonymous",
+                        "points": int(r["points"] or 0),
+                        "rank":   rank,
+                    }
+                )
+            if out:                            # only send non-empty days
+                history[str(d)] = out
+
+        payload = {
+            "since": str(start),
+            "until": str(end),
+            "history": history,
+        }
+        return Response(payload, status=status.HTTP_200_OK)

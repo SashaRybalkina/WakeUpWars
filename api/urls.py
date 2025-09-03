@@ -4,7 +4,8 @@ from .views import (LoginView, RegisterView, GroupListView, HelloWorldView, User
                     ChallengeDetailView, ChallengeGameScheduleView, CreateGroupChallengeView, CreatePendingGroupChallengeView, FriendListView, 
                     AddGroupMemberView, SendFriendRequestView, FriendRequestListView, RespondToFriendRequestView,
                     SentFriendRequestListView, AllUsersView, CancelFriendRequestView, CreateGroupView, CreatePersonalChallengeView, GetChallengeInvitesView,
-                    GetAvailabilitiesView, SetAvailabilityView, DeclineChallengeInviteView)
+                    GetAvailabilitiesView, SetAvailabilityView, DeclineChallengeInviteView, ChallengeLeaderboardView, SubmitGameScoresView, ChallengeDailyHistoryView)
+
 from .views import CreateSudokuGameView, ValidateSudokuMoveView, get_csrf_token
 
 urlpatterns = [
@@ -43,4 +44,7 @@ urlpatterns = [
     path('sudoku/validate/', ValidateSudokuMoveView.as_view(), name='validate-sudoku'),
     path('csrf-token/', get_csrf_token, name='get-csrf-token'),
     path("create-personal-challenge/", CreatePersonalChallengeView.as_view(), name="create_personal_challenge"),
+    path('challenge-leaderboard/<int:chall_id>/', ChallengeLeaderboardView.as_view(), name='challenge-leaderboard'),
+    path("challenge-leaderboard/<int:chall_id>/history/", ChallengeDailyHistoryView.as_view(), name="challenge-leaderboard-history"),
+    path('submit-game-scores/', SubmitGameScoresView.as_view(), name='submit-game-scores'),
 ]
