@@ -15,6 +15,7 @@ type Props = {
 
 const GameExpanded: React.FC<Props> = ({ navigation }) => {
   const route = useRoute();
+  console.log("Route params:", route.params);
   const { catType, gameId, gameName, groupId, groupMembers, onGameSelected } = route.params as {
     catType: string;
     gameId: number;

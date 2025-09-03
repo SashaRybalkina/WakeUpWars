@@ -35,6 +35,7 @@ import SignUpScreen from './pages/SignUp';
 import StartScreen from './pages/StartScreen';
 import SudokuScreen from './pages/SudokuScreen';
 import CreateGroup from './pages/Groups/CreateGroup';
+import PatternGameScreen from './pages/PatternGame/PatternGameScreen';
 
 const Stack = createStackNavigator();
 
@@ -84,6 +85,11 @@ function App() {
           name="Sudoku"
           component={SudokuScreen}
           options={{ animationEnabled: false }}
+        />
+        <Stack.Screen
+          name="PatternGame"
+          component={PatternGameScreen}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="Messages"

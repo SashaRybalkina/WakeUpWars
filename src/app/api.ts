@@ -1,4 +1,4 @@
-export const BASE_URL = 'https://6173286ce6c4.ngrok-free.app';
+export const BASE_URL = 'https://8374b6523d33.ngrok-free.app';
 
 export const endpoints = {
   // getToken
@@ -26,5 +26,6 @@ export const endpoints = {
   createSudokuGame: `${BASE_URL}/api/sudoku/create/`,
   validateSudokuMove: `${BASE_URL}/api/sudoku/validate/`,
   createPersonalChallenge: `${BASE_URL}/api/create-personal-challenge/`,
+  createPatternGame: `${BASE_URL}/api/pattern/create/`,
 };
 
