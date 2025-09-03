@@ -134,40 +134,43 @@ const ChallDetails: React.FC<Props> = ({ navigation }) => {
   }, [])
 
   // AI generated
-  useEffect(() => {
-    const fetchLeaderboard = async () => {
-      try {
-        setLbLoading(true)
-        setLbError(null)
+//   ---------- Leaderboard fetch ----------
+    useEffect(() => {
+      (async () => {
+        try {
+          setLbLoading(true);
+          setLbError(null);
 
-        const res = await axios.get(endpoints.leaderboard(challId))
-        // The backend may return either an array or an object with metadata
-        //  - Array: [{ name, points, rank }, ...]
-        //  - Object: { since, until, leaderboard: [...] }
-        const data = res.data
-        console.log(data)
+          const res = await fetch(endpoints.leaderboard(challId), {
+            credentials: 'include',
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-        if (Array.isArray(data)) {
-          setLeaderboard(data as LeaderRow[])
-          setLbSince(null)
-          setLbUntil(null)
-        } else if (data && Array.isArray(data.leaderboard)) {
-          setLeaderboard(data.leaderboard as LeaderRow[])
-          setLbSince(data.since ?? null)
-          setLbUntil(data.until ?? null)
-        } else {
-          setLeaderboard([])
+          const data = await res.json();
+          console.log('leaderboard raw', data);
+
+          if (Array.isArray(data)) {
+            // plain array variant
+            setLeaderboard(data);
+            setLbSince(null);
+            setLbUntil(null);
+          } else if (data && Array.isArray(data.leaderboard)) {
+            // object variant (the one you just logged)
+            setLeaderboard(data.leaderboard);
+            setLbSince(data.since ?? null);
+            setLbUntil(data.until ?? null);
+          } else {
+            // unexpected payload
+            setLeaderboard([]);
+          }
+        } catch (err) {
+          console.error(err);
+          setLbError('Failed to load leaderboard');
+        } finally {
+          setLbLoading(false);
         }
-      } catch (e) {
-        setLbError("Failed to load leaderboard")
-        setLeaderboard([])
-      } finally {
-        setLbLoading(false)
-      }
-    }
-
-    fetchLeaderboard()
-  }, [challId])
+      })();
+    }, [challId]);
 
   useEffect(() => {
     // Animate progress bar

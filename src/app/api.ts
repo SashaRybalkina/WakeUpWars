@@ -28,6 +28,15 @@ export const endpoints = {
   createPersonalChallenge: `${BASE_URL}/api/create-personal-challenge/`,
   leaderboard: (id: number) => `${BASE_URL}/api/challenge-leaderboard/${id}/`,
   submitGameScores: () => `${BASE_URL}/api/submit-game-scores/`,
-  leaderboardHistory: (id: number, days = 7) => `${BASE_URL}/challenge-leaderboard/${id}/?history=${days}`,
 };
 
+export const leaderboardHistory = (
+  challId: number,
+  start?: string,
+  end?: string,
+) => {
+  const url = new URL(`/api/challenge-leaderboard/${challId}/history/`, BASE_URL);
+  if (start) url.searchParams.set("start", start);
+  if (end)   url.searchParams.set("end",   end);
+  return url.toString();
+};

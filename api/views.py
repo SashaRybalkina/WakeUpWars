@@ -1,4 +1,4 @@
-from datetime import timezone, datetime, date
+from datetime import timezone, datetime, date, timedelta
 from datetime import date as date_cls, timedelta
 from django.db.models import Sum, F
 from rest_framework.views import APIView
@@ -18,6 +18,8 @@ from django.contrib.auth import authenticate, get_user_model
 from .serializers import UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer, MessageSerializer, ChallengeSummarySerializer, CatSerializer, GameSerializer, FriendSerializer, FriendRequestSerializer, CreateGroupSerializer
 from .models import Group, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule, AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest, SkillLevel
 from django.http import JsonResponse
+from typing     import Dict, List
+from rest_framework.exceptions import ValidationError
 
 #### Sudoku Game Imports ####
 from .models import SudokuGameState, Challenge, SudokuGamePlayer, User, Game, GamePerformance
@@ -894,3 +896,84 @@ class ChallengeUpdateView(generics.UpdateAPIView):
     queryset = Challenge.objects.all()
     serializer_class = ChallengeSummarySerializer      # use the one you have
     permission_classes = [permissions.IsAdminUser]
+
+class ChallengeDailyHistoryView(APIView):
+    """
+    GET /api/challenge-leaderboard/<chall_id>/history/
+        → full daily history (challenge start ⟶ min(challenge_end, today))
+
+    GET …/history/?start=YYYY-MM-DD&end=YYYY-MM-DD
+        → history for that inclusive window
+        • both params optional
+        • if only one provided we treat it as *both* (single day)
+    """
+
+    def get(self, request, chall_id):
+        challenge = get_object_or_404(Challenge, id=chall_id)
+
+        # ---------- 1. parse & validate date params ----------
+        def parse(d: str) -> date:
+            try:
+                return datetime.strptime(d, "%Y-%m-%d").date()
+            except ValueError:
+                raise ValidationError(f"Bad date: {d!r} (YYYY-MM-DD expected)")
+
+        start_str = request.GET.get("start")
+        end_str   = request.GET.get("end")
+
+        if start_str and not end_str:
+            end_str = start_str
+        if end_str and not start_str:
+            start_str = end_str
+
+        if start_str:
+            start = parse(start_str)
+            end   = parse(end_str)
+        else:
+            start = challenge.startDate
+            end   = min(challenge.endDate, date.today())
+
+        if start < challenge.startDate or end > challenge.endDate or start > end:
+            raise ValidationError("Date range outside the challenge window.")
+
+        n_days = (end - start).days + 1
+
+        # ---------- 2. one query for the whole window ----------
+        qs = (
+            GamePerformance.objects
+            .filter(challenge_id=chall_id, date__gte=start, date__lte=end)
+            .values("date", "user__name")
+            .annotate(points=Sum("score"))
+            .order_by("date", "-points", "user__name")
+        )
+
+        # ---------- 3. group + rank per day ----------
+        grouped: Dict[date, List[dict]] = defaultdict(list)
+        for r in qs:
+            grouped[r["date"]].append(r)
+
+        history: Dict[str, List[dict]] = {}
+        for d in (start + timedelta(i) for i in range(n_days)):
+            daily = grouped.get(d, [])
+            out: List[dict] = []
+            rank, last_pts = 0, None
+            for r in daily:
+                if r["points"] != last_pts:
+                    rank += 1
+                    last_pts = r["points"]
+                out.append(
+                    {
+                        "name":   r["user__name"] or "Anonymous",
+                        "points": int(r["points"] or 0),
+                        "rank":   rank,
+                    }
+                )
+            if out:                            # only send non-empty days
+                history[str(d)] = out
+
+        payload = {
+            "since": str(start),
+            "until": str(end),
+            "history": history,
+        }
+        return Response(payload, status=status.HTTP_200_OK)

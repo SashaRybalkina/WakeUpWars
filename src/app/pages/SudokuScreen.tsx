@@ -159,55 +159,18 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
       setGameStateId(game_state_id);
       setGameId(game_id);
 
-      // AI - Turn a fully-filled board into a playable one by blanking N cells at random
-      const makePlayable = (flat: string[], blanks = 1) => {
-        const result = [...flat];
-        const idxs = Array.from({ length: result.length }, (_, i) => i);
+      // Set up board
+      const flatten = (board: number[][]): string[] =>
+        board.flat().map((n) => (n === null || n === 0 ? '' : n.toString()));
 
-        // shuffle a bit
-        for (let i = idxs.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [idxs[i], idxs[j]] = [idxs[j], idxs[i]];
-        }
+      setGrid(flatten(puzzle));
+      setInitialCells(flatten(puzzle).map((n) => n !== ''));
 
-        let removed = 0;
-        for (const i of idxs) {
-          if (removed >= blanks) break;
-          result[i] = '';   // blank it out
-          removed++;
-        }
-        return result;
-      };
-
-      // AI - Set up board
-     const flatten = (board: number[][]): string[] => {
-       const out: string[] = [];
-       for (let r = 0; r < (board?.length ?? 0); r++) {
-         const row = board[r] || [];
-         for (let c = 0; c < row.length; c++) {
-           const n = row[c];
-           out.push(n === null || n === 0 ? '' : String(n));
-         }
-       }
-       return out;
-     };
-
-      const flat = flatten(puzzle);
-      // If the puzzle is fully filled (no blanks), make it playable for single player.
-      // (Keep the original if the server already gave us a proper puzzle with blanks.)
-      const isFullyFilled = flat.every((s) => s !== '');
-
-      // If you can detect single-player here, use that too; otherwise, just fix fully-filled boards.
-      const playable = isFullyFilled ? makePlayable(flat, 1) : flat;
-
-      setGrid(playable);
-      setInitialCells(playable.map((n) => n !== ''));
       setCellColors(Array(81).fill('white'));
       // setTimeLeft(300);
       setGameCompleted(false);
       setSelectedIndex(null);
       // setPendingInput('');
-
 
       // WebSocket connection for multiplayer
       if (is_multiplayer) {
