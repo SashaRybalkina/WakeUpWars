@@ -18,50 +18,7 @@ const PatternGameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [level, setLevel] = useState(1);
   const [highlightIndex, setHighlightIndex] = useState<number | null>(null);
 
-  // Generate new pattern every time level increases
-  useEffect(() => {
-    const newPattern = generatePattern(level);
-    setPattern(newPattern);
-    setPlayerInput([]);
-    setShowingPattern(true);
-    animatePattern(newPattern);
-  }, [level]);
 
-  // Generate random pattern
-  const generatePattern = (len: number): string[] => {
-    return Array.from({ length: len }, () => COLORS[Math.floor(Math.random() * COLORS.length)]) as string[];
-  };
-
-  // Animate the pattern
-  const animatePattern = async (patternToShow: string[]) => {
-    for (let i = 0; i < patternToShow.length; i++) {
-      setHighlightIndex(i);
-      await new Promise(res => setTimeout(res, 600));
-      setHighlightIndex(null);
-      await new Promise(res => setTimeout(res, 200));
-    }
-    setShowingPattern(false);
-  };
-
-  // Handle player's button press
-  const handlePress = (color: string) => {
-    if (showingPattern) return;
-
-    const newInput = [...playerInput, color];
-    setPlayerInput(newInput);
-
-    const currentIndex = newInput.length - 1;
-    if (newInput[currentIndex] !== pattern[currentIndex]) {
-      Alert.alert('❌ Incorrect', 'You pressed the wrong color. Game Over!');
-      setLevel(1);
-      return;
-    }
-
-    if (newInput.length === pattern.length) {
-      Alert.alert('✅ Correct!', 'Get ready for the next round.');
-      setTimeout(() => setLevel(level + 1), 1000);
-    }
-  };
 
   return (
     <ImageBackground
@@ -80,13 +37,12 @@ const PatternGameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
         {/* Pattern display */}
         <View style={styles.patternRow}>
-          {pattern.map((color, index) => (
+          {COLORS.map((color, index) => (
             <View
               key={index}
               style={[
                 styles.patternBox,
                 { backgroundColor: color },
-                highlightIndex === index && styles.highlightBox,
               ]}
             />
           ))}
@@ -101,7 +57,7 @@ const PatternGameScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             <TouchableOpacity
               key={color}
               style={[styles.colorButton, { backgroundColor: color }]}
-              onPress={() => handlePress(color)}
+              //onPress={() => handlePress(color)}
             />
           ))}
         </View>
