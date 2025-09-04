@@ -64,10 +64,6 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
     navigation.navigate("Profile")
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toISOString().split("T")[0] // Returns YYYY-MM-DD format
-  }
 
   const Challenge: React.FC<{
     id: number
@@ -118,7 +114,15 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
           <View style={styles.emptyStateContainer}>
             <Ionicons name="flag-outline" size={70} color="rgba(255,255,255,0.7)" />
             <Text style={styles.emptyStateText}>No challenges yet</Text>
-            <Text style={styles.emptyStateSubText}>Join a challenge to get started</Text>
+            
+              <TouchableOpacity
+                style={styles.addNewButton}
+                onPress={() => {
+                  navigation.navigate("CreatePublicChall1");
+                }}
+              >
+                <Text style={styles.addNewButtonText}>Add new +</Text>
+              </TouchableOpacity>
           </View>
         ) : (
           <ScrollView
@@ -137,6 +141,15 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
                 daysOfWeek={challenge.daysOfWeek}
               />
             ))}
+
+              <TouchableOpacity
+                style={styles.addNewButton}
+                onPress={() => {
+                  navigation.navigate("CreatePublicChall1");
+                }}
+              >
+                <Text style={styles.addNewButtonText}>Add new +</Text>
+              </TouchableOpacity>
           </ScrollView>
         )}
       </ImageBackground>
@@ -275,6 +288,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
     fontWeight: "600",
+  },
+    addNewButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignSelf: "center",
+    marginTop: 30,
+    marginBottom: 5,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+  },
+  addNewButtonText: {
+    color: "#000",
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
   },
 })
 

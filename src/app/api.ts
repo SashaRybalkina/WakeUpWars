@@ -6,8 +6,8 @@ export const endpoints = {
   register: `${BASE_URL}/api/register/`,
   groups: (userId: number) => `${BASE_URL}/api/user-groups/${userId}/`,
   friends: (userId: number) => `${BASE_URL}/api/user-friends/${userId}/`,
-  cats: (singOrMult: string) => `${BASE_URL}/api/cats/${singOrMult}/`,
-  games: (catId: number) => `${BASE_URL}/api/games/${catId}/`,
+  cats: () => `${BASE_URL}/api/cats/`,
+  games: (catId: number, singOrMult: string) => `${BASE_URL}/api/games/${catId}/${singOrMult}/`,
   messages: (userId: number) => `${BASE_URL}/api/messages/${userId}/`,
   profile: (userId: number) => `${BASE_URL}/api/profile/${userId}/`,
   groupProfile: (groupId: number) => `${BASE_URL}/api/groups/${groupId}/`,
@@ -16,9 +16,18 @@ export const endpoints = {
   challengeList: (userId: number, whichChall: string) => `${BASE_URL}/api/challenges/${userId}/${whichChall}/`,
   challengeSchedule: (challId: number) => `${BASE_URL}/api/challenge-schedule/${challId}/`,
   createGroupChallenge: `${BASE_URL}/api/create-group-challenge/`,
+  createPendingGroupChallenge: `${BASE_URL}/api/create-pending-group-challenge/`,
   allUsers: () => `${BASE_URL}/api/profile/all/`,
   sendFriendRequest: () => `${BASE_URL}/api/friend-request/send/`,
   friendRequests: (userId: number) => `${BASE_URL}/api/friend-requests/${userId}/`,
+  getChallengeInvites: (userId: number, groupId: number) => `${BASE_URL}/api/get-challenge-invites/${userId}/${groupId}/`,
+  // challengeInvites: (userId: number, groupId: number) => `${BASE_URL}/api/challenge-invites/${userId}/${groupId}/`,
+
+  // pendingChallenges: (groupId: number) => `${BASE_URL}/api/get-pending-challenges/${groupId}/`,
+  getAvailabilities: (challId: number) => `${BASE_URL}/api/get-availabilities/${challId}/`,
+  setUserAvailability: (userId: number, challId: number) => `${BASE_URL}/api/set-availability/${userId}/${challId}/`,
+  declineChallengeInvite: (userId: number, challId: number) => `${BASE_URL}/api/decline-challenge-invite/${userId}/${challId}/`,
+
   sentFriendRequests: (userId: number) => `${BASE_URL}/api/friend-requests-sent/${userId}/`,
   respondToFriendRequest: (requestId: number) => `${BASE_URL}/api/friend-request/respond/${requestId}/`,
   cancelFriendRequest: (requestId: number) => `${BASE_URL}/api/friend-request/delete/${requestId}/`,
@@ -26,6 +35,5 @@ export const endpoints = {
   createSudokuGame: `${BASE_URL}/api/sudoku/create/`,
   validateSudokuMove: `${BASE_URL}/api/sudoku/validate/`,
   createPersonalChallenge: `${BASE_URL}/api/create-personal-challenge/`,
-  createPatternGame: `${BASE_URL}/api/pattern/create/`,
 };
 

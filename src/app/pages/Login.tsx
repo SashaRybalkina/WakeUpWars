@@ -44,6 +44,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
     try {
       // Step 1: Get CSRF token and store in context
+      console.log("here")
       const res = await fetch(`${BASE_URL}/api/csrf-token/`, {
         credentials: 'include',
       });

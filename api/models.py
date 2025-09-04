@@ -93,12 +93,10 @@ class Notification(models.Model):
 
 # Game Categories: Different categories of games
 class GameCategory(models.Model):
-    categoryName = models.CharField(max_length=255)
-    isMultiplayer = models.BooleanField(default=False)
+    categoryName = models.CharField(max_length=255, unique=True)
 
     class Meta:
         db_table = 'GameCategories'
-        unique_together = ('categoryName', 'isMultiplayer')
 
     def __str__(self):
         return self.categoryName
@@ -108,6 +106,7 @@ class GameCategory(models.Model):
 class Game(models.Model):
     name = models.CharField(max_length=255)
     category = models.ForeignKey(GameCategory, on_delete=models.CASCADE)
+    isMultiplayer = models.BooleanField()
 
     class Meta:
         db_table = 'Games'
@@ -121,6 +120,7 @@ class Game(models.Model):
 # scheduled on the same day through code instead of the db, it gets weird with the personal and group challenge cases
 class Challenge(models.Model):
     groupID = models.ForeignKey(Group, null=True, blank=True, on_delete=models.CASCADE) # null if personal challenge
+    isPublic = models.BooleanField()
     startDate = models.DateField()
     endDate = models.DateField()
     name = models.CharField(max_length=255, default='Challenge')
@@ -174,6 +174,35 @@ class ChallengeAlarmSchedule(models.Model):
 
     def __str__(self):
         return f"Alarm schedule {self.alarm_schedule.id} for challenge {self.challenge.name}"
+    
+
+class PendingGroupChallenge(models.Model):
+    groupID = models.ForeignKey(Group, on_delete=models.CASCADE)
+    endDate = models.DateField()
+    name = models.CharField(max_length=255, default='Challenge')
+    
+    class Meta:
+        db_table = 'PendingGroupChallenges'
+
+
+class PendingGroupChallengeAvailability(models.Model):
+    pendingChall = models.ForeignKey(PendingGroupChallenge, on_delete=models.CASCADE)
+    uID = models.ForeignKey(User, on_delete=models.CASCADE)
+    dayOfWeek = models.IntegerField()  # Integer field to store day of the week (1-7)
+    alarmTime = models.TimeField()
+
+    class Meta:
+        db_table = 'PendingGroupChallengeAvailabilities'
+
+
+class GroupChallengeInvite(models.Model):
+    groupID = models.ForeignKey(Group, on_delete=models.CASCADE)
+    pendingChall = models.ForeignKey(PendingGroupChallenge, on_delete=models.CASCADE)
+    uID = models.ForeignKey(User, on_delete=models.CASCADE)
+    accepted = models.IntegerField() # 0 means declined, 1 means accepted, 2 means neither (pending)
+        
+    class Meta:
+        db_table = 'GroupChallengeInvites'
 
 
 # Game Schedules: the days of the week games are scheduled for challenges
@@ -213,6 +242,7 @@ class GamePerformance(models.Model):
 
     class Meta:
         db_table = 'GamePerformances'
+        unique_together = ('challenge', 'game', 'user', 'date')
 
     def __str__(self):
         return f"Performance by {self.user.username} in {self.game.name} on {self.date}"

@@ -9,12 +9,16 @@ import Challenges from './pages/Challenges';
 import Chall1 from './pages/Challenges/Chall1';
 import ChallDetails from './pages/Challenges/ChallDetails';
 import ChallSchedule from './pages/Challenges/ChallSchedule';
+import CreatePublicChall1 from './pages/Challenges/CreatePublicChall1';
+import LeaderboardDetails from './pages/Challenges/LeaderboardDetails'
 import Categories from './pages/Games/Categories';
 import GameExpanded from './pages/Games/GameExpanded';
 import Games from './pages/Games/Games';
 import GroupScreen from './pages/Groups';
 import GroupChall1 from './pages/Groups/GroupChall1';
 import GroupChall2 from './pages/Groups/GroupChall2';
+import GroupChallCollab from './pages/Groups/GroupChallCollab';
+import EditAvailability from './pages/Groups/EditAvailability';
 import GroupChall3 from './pages/Groups/GroupChall3';
 import GroupChall3Old from './pages/Groups/GroupChall3Old';
 import GroupChall4Old from './pages/Groups/GroupChall4Old';
@@ -83,6 +87,11 @@ function App() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
+          name="LeaderboardDetails"
+          component={LeaderboardDetails}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
           name="Sudoku"
           component={SudokuScreen}
           options={{ animationEnabled: false }}
@@ -120,6 +129,16 @@ function App() {
         <Stack.Screen
           name="GroupChall2"
           component={GroupChall2}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="GroupChallCollab"
+          component={GroupChallCollab}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="EditAvailability"
+          component={EditAvailability}
           options={{ headerShown: false }}
         />
         <Stack.Screen
@@ -195,6 +214,11 @@ function App() {
         <Stack.Screen
           name="SignUp"
           component={SignUpScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="CreatePublicChall1"
+          component={CreatePublicChall1}
           options={{ headerShown: false }}
         />
         <Stack.Screen
