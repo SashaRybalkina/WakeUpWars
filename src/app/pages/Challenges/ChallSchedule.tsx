@@ -197,10 +197,19 @@ const ChallSchedule = ({ navigation }: { navigation: NavigationProp<any> }) => {
     navigation.navigate('Sudoku', { challengeId: challId });
   };
 
+  const goToPattern = () => {
+    navigation.navigate('PatternGame', { challengeId: challId, whichChall });
+  }
+
   const handleGamePress = (game: string[], index: number) => {
     if (game[0] === "Sudoku" || game[0] === "Group Sudoku") {
       goToSudoku();
-    } else {
+    } 
+    // If the second game exists and matches certain names
+    else if (game[1] === "Pattern Game") {
+      goToPattern(); // Navigate to the second game (custom handler)
+    }
+    else {
       removeGame(index);
     }
   };

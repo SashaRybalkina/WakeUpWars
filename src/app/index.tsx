@@ -99,7 +99,11 @@ function App() {
         <Stack.Screen
           name="PatternGame"
           component={PatternGameScreen}
-          options={{ headerShown: false }}
+          //options={{ headerShown: false }}
+          initialParams={{
+            challengeId: 41,       // testing purpose only
+            devAutoLogin: true,    // testing purpose only
+          }}
         />
         <Stack.Screen
           name="Messages"

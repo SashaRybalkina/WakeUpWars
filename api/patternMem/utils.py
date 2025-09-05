@@ -70,6 +70,11 @@ def get_or_create_pattern_game(challenge_id: int, user) -> Dict[str, Any]:
             pattern_sequence=pattern,
             is_completed=False
         )
+        
+        # let the developer see the pattern in console for testing
+        print(f"[PATTERN][create] gs={game_state.id} chall={challenge_id} rounds={max_rounds}", flush=True)
+        for i, seq in enumerate(pattern, start=1):
+            print(f"  - round {i}: {seq}", flush=True)
 
     # Ensure user is recorded as a player
     PatternMemorizationGamePlayer.objects.get_or_create(
@@ -118,6 +123,13 @@ def validate_pattern_move(game_state_id: int, user, round_number: int, player_se
     expected = game_state.pattern_sequence[round_number - 1]
     norm_expected = [e.strip().lower() for e in expected]
     norm_player = [e.strip().lower() for e in player_sequence]
+
+    # For debugging, having correct answer and player input
+    print(
+        f"[PATTERN][validate] gs={game_state_id} user={getattr(user, 'username', user)} "
+        f"round={round_number} expected={norm_expected} got={norm_player}",
+        flush=True
+    )
 
     # Full match check (strict policy: only full match scores).
     is_full_match = (norm_player == norm_expected)

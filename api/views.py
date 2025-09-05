@@ -4,11 +4,8 @@ from django.db.models import Sum, F
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework import generics, permissions
-from rest_framework import status
 from django.db import transaction
 from collections import defaultdict
 from datetime import time
@@ -36,6 +33,7 @@ import traceback
 
 ### Pattern Memorization###
 from api.patternMem.utils import get_or_create_pattern_game, validate_pattern_move
+from api.models import PatternMemorizationGameState
 
 User = get_user_model()
 
@@ -102,11 +100,11 @@ class GetAvailabilitiesView(APIView):
 
 
 
-class LoginView(APIView):
-    def post(self, request):
-        print("Request data:", request.data)
-        username = request.data.get('username')
-        password = request.data.get('password')
+# class LoginView(APIView):
+#     def post(self, request):
+#         print("Request data:", request.data)
+#         username = request.data.get('username')
+#         password = request.data.get('password')
 class LoginView(APIView):
     def post(self, request):
         print("Request data:", request.data)
@@ -758,77 +756,96 @@ class CreatePersonalChallengeView(APIView):
 ### Pattern Memorization ###
 class CreatePatternGameView(APIView):
     def post(self, request):
+        """
+        Create (or reuse) a pattern game for a challenge, and ensure the user joins it.
+        Request:  { "challenge_id": <int> }
+        Response: { success, game_state_id, current_round, max_rounds, is_multiplayer, pattern_sequence? }
+        """
         challenge_id = request.data.get('challenge_id')
         user = request.user
 
         if not challenge_id:
-            return Response({'success': False, 'error': 'Missing challenge_id'}, status=400)
+            return Response({'success': False, 'error': 'Missing challenge_id'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             Challenge.objects.get(id=challenge_id)
         except Challenge.DoesNotExist:
-            return Response({'success': False, 'error': 'Challenge not found'}, status=404)
+            return Response({'success': False, 'error': 'Challenge not found'}, status=status.HTTP_404_NOT_FOUND)
 
         try:
-            payload = get_or_create_pattern_game(challenge_id, user)
-
+            payload = get_or_create_pattern_game(int(challenge_id), user)
+            # utils returns: game_state_id, pattern_sequence, current_round, max_rounds, is_multiplayer
             return Response({
                 "success": True,
                 "game_state_id": payload.get("game_state_id"),
-                "pattern_sequence": payload.get("pattern_sequence", []),
                 "current_round": payload.get("current_round", 1),
+                "max_rounds": payload.get("max_rounds", 5),
                 "is_multiplayer": payload.get("is_multiplayer", True),
-                "color": payload.get("color")
-            }, status=200)
-
+                # expose for debug; 
+                "pattern_sequence": payload.get("pattern_sequence", []),
+            }, status=status.HTTP_200_OK)
         except Exception as e:
-            return Response({'success': False, 'error': str(e)}, status=500)
+            return Response({'success': False, 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class ValidatePatternMoveView(APIView):
+    ## AI was used to help generate this class
     def post(self, request):
+        """
+        Validate a player's move. Strict global sync policy.
+        Request:  { "game_state_id": <int>, "round_number": <int>, "player_sequence": <list[str]> }
+        Response (correct):
+        { success: true,  result: "correct",   round_score, is_complete, scores?, current_round }
+        Response (incorrect):
+        { success: false, result: "incorrect", round_score, is_complete, current_round }
+        """
         game_state_id = request.data.get('game_state_id')
         round_number  = request.data.get('round_number')
         player_seq    = request.data.get('player_sequence') or []
         user = request.user
 
-        if not all([game_state_id, round_number is not None]):
-            return Response({'success': False, 'error': 'Missing parameters'}, status=400)
+        if game_state_id is None or round_number is None:
+            return Response({'success': False, 'error': 'Missing parameters'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             game_state_id = int(game_state_id)
             round_number = int(round_number)
         except ValueError:
-            return Response({'success': False, 'error': 'Invalid ID or round number format'}, status=400)
-
-        from asgiref.sync import async_to_sync
+            return Response({'success': False, 'error': 'Invalid ID or round number format'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
+            # Run core validation (atomic inside utils)
             result = async_to_sync(validate_pattern_move)(game_state_id, user, round_number, player_seq)
-
-            if result.get('is_correct'):
-                return Response({
-                    'success': True,
-                    'result': 'correct',
-                    'updated_sequence': result.get('pattern_sequence', []),
-                    'score': result.get('score'),
-                    'round_completed': result.get('round_completed', False),
-                    'completed': result.get('is_complete', False)
-                }, status=200)
-            else:
-                return Response({
-                    'success': False,
-                    'result': 'incorrect',
-                    'expected_sequence': result.get('pattern_sequence', []),
-                    'score': result.get('score'),
-                    'round_failed': True
-                }, status=200)
-
         except Exception as e:
-            return Response({'success': False, 'error': str(e)}, status=500)
+            return Response({'success': False, 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # Map known error cases from utils
+        if result.get("error"):
+            return Response({'success': False, 'error': result["error"]}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Fetch latest current_round after the move (utils may advance it)
+        try:
+            gs = PatternMemorizationGameState.objects.get(id=game_state_id)
+            current_round = gs.current_round
+        except PatternMemorizationGameState.DoesNotExist:
+            current_round = None
+
+        # Build unified payload consistent with utils keys
+        payload = {
+            "round_score": result.get("round_score", 0),
+            "is_complete": result.get("is_complete", False),
+            "current_round": current_round,   # helpful for frontend flow
+        }
+        if "scores" in result and result["scores"] is not None:
+            payload["scores"] = result["scores"]
+
+        if result.get("is_correct"):
+            return Response({"success": True, "result": "correct", **payload}, status=status.HTTP_200_OK)
+        else:
+            return Response({"success": False, "result": "incorrect", **payload}, status=status.HTTP_200_OK)
+
 
 # AI was used to help generate this class
-
 
 class ChallengeLeaderboardView(APIView):
     """

@@ -1,4 +1,5 @@
-export const BASE_URL = 'https://2b8d88c4cc02.ngrok-free.app';
+export const BASE_URL = 'https://9ef44f634cd8.ngrok-free.app';
+
 
 export const endpoints = {
   // getToken
@@ -35,5 +36,24 @@ export const endpoints = {
   createSudokuGame: `${BASE_URL}/api/sudoku/create/`,
   validateSudokuMove: `${BASE_URL}/api/sudoku/validate/`,
   createPersonalChallenge: `${BASE_URL}/api/create-personal-challenge/`,
+  leaderboard: (id: number) => `${BASE_URL}/api/challenge-leaderboard/${id}/`,
+  submitGameScores: () => `${BASE_URL}/api/submit-game-scores/`,
+  // Pattern (REST)
+  patternCreate: `${BASE_URL}/api/pattern/create/`,
+  patternValidate: `${BASE_URL}/api/pattern/validate/`,
+  csrfToken: `${BASE_URL}/api/csrf-token/`,
+
 };
+
+export const leaderboardHistory = (
+  challId: number,
+  start?: string,
+  end?: string,
+) => {
+  const url = new URL(`/api/challenge-leaderboard/${challId}/history/`, BASE_URL);
+  if (start) url.searchParams.set("start", start);
+  if (end)   url.searchParams.set("end",   end);
+  return url.toString();
+};
+
 
