@@ -23,7 +23,6 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
       id: number
       name: string
       daysCompleted: number
-      startDate: string
       totalDays: number
       daysOfWeek: string[]
     }[]
@@ -42,7 +41,6 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
             id: c.id,
             name: c.name,
             daysCompleted: c.daysCompleted,
-            startDate: c.startDate,
             totalDays: c.totalDays ?? 30,
             daysOfWeek: c.daysOfWeek ?? [],
           }))
@@ -73,10 +71,9 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
     id: number
     name: string
     daysCompleted: number
-    startDate: string
     totalDays: number
     daysOfWeek: string[]
-  }> = ({ id, name, daysCompleted, startDate, totalDays, daysOfWeek }) => (
+  }> = ({ id, name, daysCompleted, totalDays, daysOfWeek }) => (
     <TouchableOpacity
       onPress={() =>
         navigation.navigate("ChallDetails", {
@@ -140,7 +137,6 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
                 id={challenge.id}
                 name={challenge.name}
                 daysCompleted={challenge.daysCompleted}
-                startDate={challenge.startDate}
                 totalDays={challenge.totalDays}
                 daysOfWeek={challenge.daysOfWeek}
               />
