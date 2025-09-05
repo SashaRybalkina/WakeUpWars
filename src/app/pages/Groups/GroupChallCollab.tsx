@@ -120,11 +120,12 @@ const GroupChallCollab: React.FC<Props> = ({ navigation }) => {
         console.log("Alarm Availabilities:", alarmSchedule)
 
         const payload = {
-            name,
-            group_id: groupId,
-            end_date: selectedDate.toISOString().split("T")[0],
-            member: user?.id,
-            alarm_schedule: alarmSchedule,
+          name,
+          group_id: groupId,
+          start_date: null,
+          end_date: selectedDate.toISOString().split("T")[0],
+          members: groupMembers.map((member) => member.id),
+          alarm_schedule: alarmSchedule,
         }
         console.log(payload)
 
@@ -137,7 +138,7 @@ const GroupChallCollab: React.FC<Props> = ({ navigation }) => {
         console.log('csrfToken:', csrfToken);
 
 
-        const res = await fetch(endpoints.createPendingGroupChallenge, {
+        const res = await fetch(endpoints.createPendingGroupChallenge(Number(user?.id)), {
             method: 'POST',
             credentials: 'include',                    
             headers: {

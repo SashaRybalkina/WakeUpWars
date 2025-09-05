@@ -442,7 +442,8 @@ class CreateGroupChallengeView(APIView):
                 groupID_id=data['group_id'],
                 startDate=data['start_date'],
                 endDate=data['end_date'],
-                isPublic=False
+                isPublic=data['is_public'],
+                isPending=data['is_pending']
             )
 
             # Add members
@@ -487,24 +488,48 @@ class CreateGroupChallengeView(APIView):
 
 class CreatePendingGroupChallengeView(APIView):
     @transaction.atomic
-    def post(self, request):
+    def post(self, request, initiator_id):
         data = request.data
         try:
-            initiator_id = data.get('member')
+            # Check for alarm conflicts
+            # conflicting = []
+            # for user_id in data['members']:
+            #     for sched in data['alarm_schedule']:
+            #         day = sched['dayOfWeek']
+            #         if AlarmSchedule.objects.filter(uID_id=user_id, dayOfWeek=day).exists():
+            #             user = User.objects.get(id=user_id)
+            #             conflicting.append((user.username, day))
 
-            # Create the pending challenge
-            pendingChallenge = PendingGroupChallenge.objects.create(
+            # if conflicting:
+            #     return Response({
+            #         'error': 'Alarm conflict detected for group members.',
+            #         'conflicts': conflicting  # Return which users and days are in conflict
+            #     }, status=status.HTTP_400_BAD_REQUEST)
+
+            # if No conflicts, continue to create challenge
+            challenge = Challenge.objects.create(
                 name=data['name'],
                 groupID_id=data['group_id'],
-                endDate=data['end_date']
+                startDate=data['start_date'],
+                endDate=data['end_date'],
+                isPublic=False,
+                isPending=True
             )
+
+            # Add inititor membership
+            ChallengeMembership.objects.create(
+                challengeID=challenge,
+                uID_id=initiator_id
+            )
+
+
 
             # Add availability entries for the initiator
             alarm_schedule = data.get('alarm_schedule', [])
 
             availability_entries = [
                 PendingGroupChallengeAvailability(
-                    pendingChall=pendingChallenge,
+                    chall=challenge,
                     uID_id=initiator_id,
                     dayOfWeek=entry['dayOfWeek'],
                     alarmTime=datetime.strptime(entry['time'], "%H:%M").time()
@@ -521,14 +546,14 @@ class CreatePendingGroupChallengeView(APIView):
             invites = [
                 GroupChallengeInvite(
                     groupID_id=data['group_id'],
-                    pendingChall=pendingChallenge,
+                    chall=challenge,
                     uID=member.uID,
                     accepted=1 if member.uID_id == initiator_id else 2
                 ) for member in group_members
             ]
             GroupChallengeInvite.objects.bulk_create(invites)
 
-            return Response({"success": True, "pending_challenge_id": pendingChallenge.id}, status=status.HTTP_201_CREATED)
+            return Response({"success": True, "challenge_id": challenge.id}, status=status.HTTP_201_CREATED)
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -890,6 +915,7 @@ class CreatePersonalChallengeView(APIView):
                 name=name,
                 groupID=None,
                 isPublic=False,
+                isPending=False,
                 startDate=datetime.now().date(),
                 endDate=end_date
             )

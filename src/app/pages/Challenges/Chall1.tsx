@@ -1,8 +1,8 @@
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View, StatusBar, ImageBackground } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
-import { type NavigationProp, useRoute } from "@react-navigation/native"
+import { type NavigationProp, useFocusEffect, useRoute } from "@react-navigation/native"
 import axios from "axios"
 import { endpoints } from "../../api"
 import { useUser } from "../../context/UserContext"
@@ -29,28 +29,32 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
     }[]
   >([])
 
-  useEffect(() => {
-    if (!user) return
+  useFocusEffect(
+    useCallback(() => {
+      if (!user) return
 
-    const fetchChallenges = async () => {
-      try {
-        const response = await axios.get(endpoints.challengeList(Number(user.id), whichChall))
-        const data = response.data.map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          daysCompleted: c.daysCompleted,
-          startDate: c.startDate,
-          totalDays: c.totalDays ?? 30,
-          daysOfWeek: c.daysOfWeek ?? [],
-        }))
-        setChalls(data)
-      } catch (error) {
-        console.error(error)
+      const fetchChallenges = async () => {
+        try {
+          const response = await axios.get(
+            endpoints.challengeList(Number(user.id), whichChall)
+          )
+          const data = response.data.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            daysCompleted: c.daysCompleted,
+            startDate: c.startDate,
+            totalDays: c.totalDays ?? 30,
+            daysOfWeek: c.daysOfWeek ?? [],
+          }))
+          setChalls(data)
+        } catch (error) {
+          console.error(error)
+        }
       }
-    }
 
-    fetchChallenges()
-  }, [user])
+      fetchChallenges()
+    }, [user?.id, whichChall]) // refetch if user or whichChall changes
+  )
 
   const goToMessages = () => {
     navigation.navigate("Messages")

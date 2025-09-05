@@ -17,7 +17,7 @@ export const endpoints = {
   challengeList: (userId: number, whichChall: string) => `${BASE_URL}/api/challenges/${userId}/${whichChall}/`,
   challengeSchedule: (challId: number) => `${BASE_URL}/api/challenge-schedule/${challId}/`,
   createGroupChallenge: `${BASE_URL}/api/create-group-challenge/`,
-  createPendingGroupChallenge: `${BASE_URL}/api/create-pending-group-challenge/`,
+  createPendingGroupChallenge: (userId: number) => `${BASE_URL}/api/create-pending-group-challenge/${userId}/`,
   allUsers: () => `${BASE_URL}/api/profile/all/`,
   sendFriendRequest: () => `${BASE_URL}/api/friend-request/send/`,
   friendRequests: (userId: number) => `${BASE_URL}/api/friend-requests/${userId}/`,

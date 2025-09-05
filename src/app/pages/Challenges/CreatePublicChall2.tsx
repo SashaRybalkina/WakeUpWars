@@ -15,6 +15,7 @@ import { NavigationProp, useRoute } from "@react-navigation/native"
 import { LinearGradient } from "expo-linear-gradient"
 import { BASE_URL, endpoints } from "../../api"
 import { Platform } from "react-native"
+import { useUser } from "../../context/UserContext"
 
 type Props = {
   navigation: NavigationProp<any>
@@ -28,6 +29,13 @@ const CreatePublicChall2: React.FC<Props> = ({ navigation }) => {
     categoryId: number
     singOrMult: string
   }
+
+  const { user } = useUser();
+
+  // Note: just inserting this user as "group members" since this is a public challenge
+  // they're creating
+  const groupMembers = user ? [{ id: user.id, name: user.name }] : [];
+
 
 
   const [name, setName] = useState("")
@@ -234,12 +242,14 @@ const CreatePublicChall2: React.FC<Props> = ({ navigation }) => {
 
     const payload = {
       name,
-      group_id: groupId,
-      start_date: new Date().toLocaleDateString('en-CA'),
+      group_id: null,
+      start_date: null,
       end_date: selectedDate.toISOString().split("T")[0],
       members: groupMembers.map((member) => member.id),
       alarm_schedule: alarmSchedule,
       game_schedules: gameSchedules,
+      is_public: true,
+      is_pending: true
     }
     console.log(payload)
 
@@ -270,7 +280,7 @@ const CreatePublicChall2: React.FC<Props> = ({ navigation }) => {
       const data = await res.json();
       console.log('Challenge created:', data);
       Alert.alert('Success', 'Challenge created successfully', [
-        { text: 'OK', onPress: () => navigation.navigate('GroupDetails', { groupId, groupMembers, refresh: Date.now() }) },
+        { text: 'OK', onPress: () => navigation.navigate('Chall1', { whichChall: "Public" }) },
       ]);
     } catch (err: any) {
       Alert.alert('Error', err.message);
@@ -397,9 +407,9 @@ const CreatePublicChall2: React.FC<Props> = ({ navigation }) => {
                   style={styles.addGameButton}
                   onPress={() => {
                     navigation.navigate("Categories", {
-                      groupId,
+                      groupId : null,
                       groupMembers,
-                      catType: "Group",
+                      catType: "Public",
                       onGameSelected: (game: { id: number; name: string }) => {
                         handleGameAdd(game)
                       },

@@ -244,6 +244,8 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
       members: groupMembers.map((member) => member.id),
       alarm_schedule: alarmSchedule,
       game_schedules: gameSchedules,
+      is_public: false,
+      isPending: false
     }
     console.log(payload)
 
@@ -274,7 +276,7 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
       const data = await res.json();
       console.log('Challenge created:', data);
       Alert.alert('Success', 'Challenge created successfully', [
-        { text: 'OK', onPress: () => navigation.navigate('GroupDetails', { groupId, groupMembers, refresh: Date.now() }) },
+        { text: 'OK', onPress: () => navigation.navigate('GroupDetails', { groupId, groupMembers }) },
       ]);
     } catch (err: any) {
       Alert.alert('Error', err.message);

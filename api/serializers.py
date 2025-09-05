@@ -61,6 +61,7 @@ class ChallengeSummarySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Challenge
+        # TODO: may need to update for public/pending stuff
         fields = [
             'id',
             'name',
