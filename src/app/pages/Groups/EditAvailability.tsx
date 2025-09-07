@@ -56,6 +56,7 @@ const EditAvailability: React.FC<Props> = ({ navigation }) => {
   const [availability, setAvailability] = useState<AvailabilityEntry[]>([]);
   const [userAvailability, setUserAvailability] = useState<AvailabilityEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isInitiator, setIsInitiator] = useState(false);
 
   // Assign a color to each user
   const userColorMap = useMemo(() => {
@@ -92,6 +93,11 @@ const fetchAvailabilities = async () => {
     setAvailability(data);
     setUserAvailability(data.filter((entry: AvailabilityEntry) => entry.uID === user.id));
     setPendingToggles([]); // clear pending toggles after full refresh
+    
+    const res2 = await fetch(endpoints.getInitiator(pendingChallengeId));
+    const data2 = await res2.json();
+    console.log('Initiator: ', data2.initiator_id);
+    setIsInitiator(data2.initiator_id === user?.id);
   } catch (error) {
     console.error("Error fetching availabilities:", error);
   } finally {

@@ -76,6 +76,12 @@ class SetAvailabilityView(APIView):
         ).update(accepted=1)
 
         return Response({'status': 'availability toggled and invite accepted'})
+    
+
+class GetChallengeInitiatorView(APIView):
+    def get(self, request, chall_id):
+        challenge = get_object_or_404(Challenge, id=chall_id)
+        return Response({"initiator_id": challenge.initiator_id}, status=status.HTTP_200_OK)
         
 
 class GetAvailabilitiesView(APIView):
@@ -219,7 +225,7 @@ class GroupDetailsView(APIView):
         except Group.DoesNotExist:
             return Response({'error': 'Group not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        challenges = Challenge.objects.filter(groupID=group)
+        challenges = Challenge.objects.filter(groupID=group, isPending=False)
         serializer = ChallengeSummarySerializer(challenges, many=True, context={'user': request.user})
 
         numeric_to_label = {1: "M", 2: "T", 3: "W", 4: "TH", 5: "F", 6: "S", 7: "SU"}
@@ -397,7 +403,7 @@ class ChallengeGameScheduleView(APIView):
         return Response(result, status=status.HTTP_200_OK)
     
 
-class CreateGroupChallengeView(APIView):
+class CreateManualGroupChallengeView(APIView):
     @transaction.atomic
     def post(self, request):
         data = request.data
@@ -421,10 +427,11 @@ class CreateGroupChallengeView(APIView):
             challenge = Challenge.objects.create(
                 name=data['name'],
                 groupID_id=data['group_id'],
+                initiator_id=None,
                 startDate=data['start_date'],
                 endDate=data['end_date'],
-                isPublic=data['is_public'],
-                isPending=data['is_pending']
+                isPublic=False,
+                isPending=False
             )
 
             # Add members
@@ -466,10 +473,63 @@ class CreateGroupChallengeView(APIView):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
 
-
-class CreatePendingGroupChallengeView(APIView):
+class CreatePublichallengeView(APIView):
     @transaction.atomic
-    def post(self, request, initiator_id):
+    def post(self, request):
+        data = request.data
+        try:
+            # if No conflicts, continue to create challenge
+            challenge = Challenge.objects.create(
+                name=data['name'],
+                groupID_id=None,
+                initiator_id=data['initiator_id'],
+                startDate=data['start_date'],
+                endDate=data['end_date'],
+                isPublic=True,
+                isPending=True
+            )
+
+            # Add membershio
+            ChallengeMembership.objects.create(
+                challengeID=challenge,
+                uID_id=data['initiator_id']
+            )
+
+            # Create alarms
+            for sched in data['alarm_schedule']:
+                alarm = AlarmSchedule.objects.create(
+                    uID_id=data['initiator_id'],
+                    dayOfWeek=sched['dayOfWeek'],
+                    alarmTime=sched['time']
+                )
+                ChallengeAlarmSchedule.objects.create(
+                    challenge=challenge,
+                    alarm_schedule=alarm
+                )
+
+            # Game schedules
+            for g_sched in data['game_schedules']:
+                game_schedule = GameSchedule.objects.create(
+                    challenge=challenge,
+                    dayOfWeek=g_sched['dayOfWeek']
+                )
+                for game in g_sched['games']:
+                    GameScheduleGameAssociation.objects.create(
+                        game_schedule=game_schedule,
+                        game_id=game['id'],
+                        game_order=game['order']
+                    )
+
+            return Response({'message': 'Challenge created successfully', 'challenge_id': challenge.id}, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+
+class CreatePendingCollaborativeGroupChallengeView(APIView):
+    @transaction.atomic
+    def post(self, request):
         data = request.data
         try:
             # Check for alarm conflicts
@@ -491,6 +551,7 @@ class CreatePendingGroupChallengeView(APIView):
             challenge = Challenge.objects.create(
                 name=data['name'],
                 groupID_id=data['group_id'],
+                initiator_id=data['initiator_id'],
                 startDate=data['start_date'],
                 endDate=data['end_date'],
                 isPublic=False,
@@ -500,7 +561,7 @@ class CreatePendingGroupChallengeView(APIView):
             # Add inititor membership
             ChallengeMembership.objects.create(
                 challengeID=challenge,
-                uID_id=initiator_id
+                uID_id=data['initiator_id']
             )
 
 
@@ -511,7 +572,7 @@ class CreatePendingGroupChallengeView(APIView):
             availability_entries = [
                 PendingGroupChallengeAvailability(
                     chall=challenge,
-                    uID_id=initiator_id,
+                    uID_id=data['initiator_id'],
                     dayOfWeek=entry['dayOfWeek'],
                     alarmTime=datetime.strptime(entry['time'], "%H:%M").time()
                 )
@@ -529,7 +590,7 @@ class CreatePendingGroupChallengeView(APIView):
                     groupID_id=data['group_id'],
                     chall=challenge,
                     uID=member.uID,
-                    accepted=1 if member.uID_id == initiator_id else 2
+                    accepted=1 if member.uID_id == data['initiator_id'] else 2
                 ) for member in group_members
             ]
             GroupChallengeInvite.objects.bulk_create(invites)
@@ -538,6 +599,115 @@ class CreatePendingGroupChallengeView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+
+
+class FinalizeCollaborativeGroupChallengeView(APIView):
+    def post(self, request, chall_id):
+        # Get the Challenge object or 404
+        challenge = get_object_or_404(Challenge, id=chall_id)
+
+        # Fetch all availability for this challenge
+        availabilities = PendingGroupChallengeAvailability.objects.filter(
+            chall=challenge
+        ).select_related("uID")
+
+        if not availabilities.exists():
+            return Response(
+                {"error": "No availabilities found for this challenge."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Get unique users involved
+        users_in_challenge = set(avail.uID for avail in availabilities)
+        num_users = len(users_in_challenge)
+
+        # Organize availability by day
+        by_day = defaultdict(list)  # {day: [(User, time), ...]}
+        for avail in availabilities:
+            by_day[avail.dayOfWeek].append((avail.uID, avail.alarmTime))
+
+        # Keep only days where every user has availability
+        valid_days = {
+            day: times for day, times in by_day.items() if len(times) == num_users
+        }
+
+        def time_to_minutes(t):
+            return t.hour * 60 + t.minute
+
+        def minutes_to_time(m):
+            return (datetime.min + timedelta(minutes=m)).time()
+
+        def heuristic_assignment(user_times):
+            """
+            If users don't all share a common time, assign each user
+            the available time closest to the global median.
+            """
+            all_times = sorted(t for times in user_times.values() for t in times)
+            median_time = all_times[len(all_times) // 2]
+
+            assignment = {}
+            for user, times in user_times.items():
+                assignment[user] = min(times, key=lambda t: abs(t - median_time))
+            return assignment
+
+        final_schedule = defaultdict(list)  # {day: [(User, minutes), ...]}
+
+        for day, entries in valid_days.items():
+            # group times per user
+            user_times = defaultdict(set)
+            for user, t in entries:
+                user_times[user].add(time_to_minutes(t))
+
+            # check if there is at least one common available time
+            common_times = set.intersection(*user_times.values())
+
+            if common_times:
+                # pick the earliest shared time
+                chosen_time = min(common_times)
+                for user in users_in_challenge:
+                    final_schedule[day].append((user, chosen_time))
+            else:
+                # assign each user the time closest to the group’s median
+                user_assignments = heuristic_assignment(user_times)
+                for user, minutes in user_assignments.items():
+                    final_schedule[day].append((user, minutes))
+
+        # Persist everything atomically
+        try:
+            with transaction.atomic():
+                created_schedules = []
+                for day, user_time_pairs in final_schedule.items():
+                    for user, minutes in user_time_pairs:
+                        alarm_time = minutes_to_time(minutes)
+                        alarm, _ = AlarmSchedule.objects.get_or_create(
+                            uID=user,
+                            dayOfWeek=day,
+                            alarmTime=alarm_time,
+                        )
+                        ChallengeAlarmSchedule.objects.get_or_create(
+                            challenge=challenge, alarm_schedule=alarm
+                        )
+                        created_schedules.append(
+                            {
+                                "user": user.username,
+                                "day": day,
+                                "time": alarm_time.strftime("%H:%M"),
+                            }
+                        )
+
+            return Response(
+                {"message": "Challenge schedule finalized.", "schedule": created_schedules},
+                status=status.HTTP_201_CREATED,
+            )
+
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+     
+
     
     
 class SendFriendRequestView(APIView):

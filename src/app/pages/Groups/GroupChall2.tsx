@@ -244,8 +244,6 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
       members: groupMembers.map((member) => member.id),
       alarm_schedule: alarmSchedule,
       game_schedules: gameSchedules,
-      is_public: false,
-      isPending: false
     }
     console.log(payload)
 
@@ -258,7 +256,7 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
       console.log('csrfToken:', csrfToken);
   
   
-      const res = await fetch(endpoints.createGroupChallenge, {
+      const res = await fetch(endpoints.createManualGroupChallenge, {
         method: 'POST',
         credentials: 'include',                    
         headers: {

@@ -122,6 +122,7 @@ const GroupChallCollab: React.FC<Props> = ({ navigation }) => {
         const payload = {
           name,
           group_id: groupId,
+          initiator_id: Number(user?.id),
           start_date: null,
           end_date: selectedDate.toISOString().split("T")[0],
           members: groupMembers.map((member) => member.id),
@@ -138,7 +139,7 @@ const GroupChallCollab: React.FC<Props> = ({ navigation }) => {
         console.log('csrfToken:', csrfToken);
 
 
-        const res = await fetch(endpoints.createPendingGroupChallenge(Number(user?.id)), {
+        const res = await fetch(endpoints.createPendingCollaborativeGroupChallenge(), {
             method: 'POST',
             credentials: 'include',                    
             headers: {
