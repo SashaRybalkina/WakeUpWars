@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
   },
   cell: {
     width: 50,
-    height: 40,
+    height: 30,
     borderWidth: 1,
     borderColor: '#ffffffd1',
     justifyContent: 'center',

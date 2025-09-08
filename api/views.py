@@ -15,8 +15,8 @@ from datetime import time
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import authenticate, get_user_model
-from .serializers import PendingGroupChallengeSerializer, UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer, MessageSerializer, ChallengeSummarySerializer, CatSerializer, GameSerializer, FriendSerializer, FriendRequestSerializer, CreateGroupSerializer
-from .models import Group, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule, AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest, SkillLevel, PendingGroupChallenge, PendingGroupChallengeAvailability, GroupChallengeInvite
+from .serializers import UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer, MessageSerializer, ChallengeSummarySerializer, CatSerializer, GameSerializer, FriendSerializer, FriendRequestSerializer, CreateGroupSerializer
+from .models import Group, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule, AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest, SkillLevel, PendingGroupChallengeAvailability, GroupChallengeInvite
 from django.http import JsonResponse
 from typing     import Dict, List
 from rest_framework.exceptions import ValidationError
@@ -548,16 +548,26 @@ class CreatePendingCollaborativeGroupChallengeView(APIView):
             #     }, status=status.HTTP_400_BAD_REQUEST)
 
             # if No conflicts, continue to create challenge
-            challenge = Challenge.objects.create(
-                name=data['name'],
-                groupID_id=data['group_id'],
-                initiator_id=data['initiator_id'],
-                startDate=data['start_date'],
-                endDate=data['end_date'],
-                isPublic=False,
-                isPending=True
-            )
+            print(data['name'])
+            print(data['group_id'])
+            print(data['initiator_id'])
+            print(data['end_date'])
+            try:
+                challenge = Challenge.objects.create(
+                    name=data['name'],
+                    groupID_id=data['group_id'],
+                    initiator_id=data['initiator_id'],
+                    startDate=None,
+                    endDate=data['end_date'],
+                    isPublic=False,
+                    isPending=True
+                )
+            except Exception as e:
+                print("Failed to create Challenge:", e)
+                raise
 
+
+            print("here1")
             # Add inititor membership
             ChallengeMembership.objects.create(
                 challengeID=challenge,
@@ -568,7 +578,7 @@ class CreatePendingCollaborativeGroupChallengeView(APIView):
 
             # Add availability entries for the initiator
             alarm_schedule = data.get('alarm_schedule', [])
-
+            print(data.get('alarm_schedule', []))
             availability_entries = [
                 PendingGroupChallengeAvailability(
                     chall=challenge,
@@ -579,7 +589,7 @@ class CreatePendingCollaborativeGroupChallengeView(APIView):
                 for entry in alarm_schedule
             ]
             PendingGroupChallengeAvailability.objects.bulk_create(availability_entries)
-
+            print("here2")
 
             # create invites for everyone (accepted = 2 means neither accepted nor declined, 1 
             # means accepted, 0 means declined)
@@ -594,6 +604,7 @@ class CreatePendingCollaborativeGroupChallengeView(APIView):
                 ) for member in group_members
             ]
             GroupChallengeInvite.objects.bulk_create(invites)
+            print("here3")
 
             return Response({"success": True, "challenge_id": challenge.id}, status=status.HTTP_201_CREATED)
 
@@ -629,9 +640,15 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
             by_day[avail.dayOfWeek].append((avail.uID, avail.alarmTime))
 
         # Keep only days where every user has availability
+        # valid_days = {
+        #     day: times for day, times in by_day.items() if len(times) == num_users
+        # }
         valid_days = {
-            day: times for day, times in by_day.items() if len(times) == num_users
+            day: times
+            for day, times in by_day.items()
+            if len({user for user, _ in times}) == num_users
         }
+
 
         def time_to_minutes(t):
             return t.hour * 60 + t.minute
@@ -650,6 +667,7 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
             assignment = {}
             for user, times in user_times.items():
                 assignment[user] = min(times, key=lambda t: abs(t - median_time))
+            print(assignment)
             return assignment
 
         final_schedule = defaultdict(list)  # {day: [(User, minutes), ...]}
@@ -673,6 +691,8 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
                 user_assignments = heuristic_assignment(user_times)
                 for user, minutes in user_assignments.items():
                     final_schedule[day].append((user, minutes))
+        
+        print(final_schedule)
 
         # Persist everything atomically
         try:

@@ -121,8 +121,8 @@ class Game(models.Model):
 class Challenge(models.Model):
     groupID = models.ForeignKey(Group, null=True, blank=True, on_delete=models.CASCADE) # null if personal or public challenge
     initiator = models.ForeignKey(User, null=True, on_delete=models.CASCADE) # not null for collab group challenges
-    isPublic = models.BooleanField()
-    isPending = models.BooleanField()
+    isPublic = models.BooleanField(default=False)
+    isPending = models.BooleanField(default=False)
     startDate = models.DateField(null=True)
     endDate = models.DateField()
     name = models.CharField(max_length=255, default='Challenge')
@@ -177,15 +177,6 @@ class ChallengeAlarmSchedule(models.Model):
     def __str__(self):
         return f"Alarm schedule {self.alarm_schedule.id} for challenge {self.challenge.name}"
     
-
-# class PendingGroupChallenge(models.Model):
-#     groupID = models.ForeignKey(Group, on_delete=models.CASCADE)
-#     endDate = models.DateField()
-#     name = models.CharField(max_length=255, default='Challenge')
-    
-#     class Meta:
-#         db_table = 'PendingGroupChallenges'
-
 
 class PendingGroupChallengeAvailability(models.Model):
     chall = models.ForeignKey(Challenge, on_delete=models.CASCADE)
