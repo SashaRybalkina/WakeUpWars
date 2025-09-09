@@ -1,4 +1,4 @@
-export const BASE_URL = 'https://1c160f8e4bce.ngrok-free.app';
+export const BASE_URL = 'https://069823e2135a.ngrok-free.app';
 
 export const endpoints = {
   // getToken
@@ -39,6 +39,7 @@ export const endpoints = {
   createPersonalChallenge: `${BASE_URL}/api/create-personal-challenge/`,
   leaderboard: (id: number) => `${BASE_URL}/api/challenge-leaderboard/${id}/`,
   submitGameScores: () => `${BASE_URL}/api/submit-game-scores/`,
+  skillLevels: () => `${BASE_URL}/api/skill-levels/`,
 };
 
 export const leaderboardHistory = (

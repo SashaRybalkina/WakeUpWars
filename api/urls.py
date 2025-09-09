@@ -1,11 +1,16 @@
 from django.urls import path
-from .views import (LoginView, RegisterView, GroupListView, HelloWorldView, UserProfileView, 
-                    UserMessagesView, GroupDetailsView, CatListView, GameListView, ChallengeListView, GetChallengeInitiatorView,
-                    ChallengeDetailView, ChallengeGameScheduleView, CreateManualGroupChallengeView, CreatePendingCollaborativeGroupChallengeView, FriendListView, 
-                    AddGroupMemberView, SendFriendRequestView, FriendRequestListView, RespondToFriendRequestView, FinalizeCollaborativeGroupChallengeScheduleView,
-                    SentFriendRequestListView, AllUsersView, CancelFriendRequestView, CreateGroupView, CreatePersonalChallengeView, GetChallengeInvitesView,
-                    GetAvailabilitiesView, SetAvailabilityView, DeclineChallengeInviteView, ChallengeLeaderboardView, SubmitGameScoresView, ChallengeDailyHistoryView)
-
+from .views import (LoginView, RegisterView, GroupListView, HelloWorldView, UserProfileView,
+                    UserMessagesView, GroupDetailsView, CatListView, GameListView,
+                    ChallengeListView, GetChallengeInitiatorView,
+                    ChallengeDetailView, ChallengeGameScheduleView, CreateManualGroupChallengeView,
+                    CreatePendingCollaborativeGroupChallengeView, FriendListView,
+                    AddGroupMemberView, SendFriendRequestView, FriendRequestListView,
+                    RespondToFriendRequestView, FinalizeCollaborativeGroupChallengeScheduleView,
+                    SentFriendRequestListView, AllUsersView, CancelFriendRequestView,
+                    CreateGroupView, CreatePersonalChallengeView, GetChallengeInvitesView,
+                    GetAvailabilitiesView, SetAvailabilityView, DeclineChallengeInviteView,
+                    ChallengeLeaderboardView, SubmitGameScoresView, ChallengeDailyHistoryView,
+                    SkillLevelsView)
 from .views import CreateSudokuGameView, ValidateSudokuMoveView, get_csrf_token
 
 urlpatterns = [
@@ -49,4 +54,5 @@ urlpatterns = [
     path('challenge-leaderboard/<int:chall_id>/', ChallengeLeaderboardView.as_view(), name='challenge-leaderboard'),
     path("challenge-leaderboard/<int:chall_id>/history/", ChallengeDailyHistoryView.as_view(), name="challenge-leaderboard-history"),
     path('submit-game-scores/', SubmitGameScoresView.as_view(), name='submit-game-scores'),
+    path('skill-levels/', SkillLevelsView.as_view(), name="skill-levels"),
 ]
