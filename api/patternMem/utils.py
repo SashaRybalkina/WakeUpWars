@@ -72,7 +72,7 @@ def get_or_create_pattern_game(challenge_id: int, user) -> Dict[str, Any]:
         )
         
         # let the developer see the pattern in console for testing
-        print(f"[PATTERN][create] gs={game_state.id} chall={challenge_id} rounds={max_rounds}", flush=True)
+        print(f"[PATTERN][create] gamestate={game_state.id} chall={challenge_id} rounds={max_rounds}", flush=True)
         for i, seq in enumerate(pattern, start=1):
             print(f"  - round {i}: {seq}", flush=True)
 

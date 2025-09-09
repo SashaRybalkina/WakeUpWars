@@ -8,6 +8,8 @@ import {
   Alert,
   ImageBackground,
   ActivityIndicator,
+  Vibration,            // NEW: haptic feedback (optional)
+  Platform,
 } from 'react-native';
 
 // Must match backend utils.ALLOWED_ELEMENTS
@@ -40,12 +42,19 @@ type WsGameOver = {
   type: 'game_over';
   scores: { username: string; rounds_completed: number; score: number }[];
 };
+// NEW: in-game round countdown
+type WsRoundCountdown = {
+  type: 'round_countdown';
+  seconds: number;
+};
+
 type WsIncoming =
   | WsLobbyState
   | WsLobbyCountdown
   | WsPatternSequence
   | WsAnswerResult
-  | WsGameOver;
+  | WsGameOver
+  | WsRoundCountdown;
 
 /*********** REST responses **************/
 type CreateResp = {
@@ -105,7 +114,7 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Lobby/WS (multiplayer)
   const [lobbyStatus, setLobbyStatus] = useState<string>(''); // e.g., waiting...
-  const [countdown, setCountdown] = useState<number | null>(null);
+  const [countdown, setCountdown] = useState<number | null>(null); // shared for lobby & in-game
   const [isMultiplayer, setIsMultiplayer] = useState<boolean>(false);
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -199,6 +208,11 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
             setLobbyStatus(`starting in ${msg.seconds}`);
             break;
           }
+          case 'round_countdown': { // NEW: in-game countdown
+            setCountdown(msg.seconds);
+            setLobbyStatus(`Next round in ${msg.seconds}`);
+            break;
+          }
           case 'pattern_sequence': {
             // Server pushes sequence for this round (multiplayer)
             setLobbyStatus('');
@@ -211,7 +225,12 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
           }
           case 'answer_result': {
             if (msg.error) {
-              showToast(`⚠️ ${msg.error}`);
+              // NEW: special UX for frozen
+              if (msg.error === 'Round frozen') {
+                showToast('⏸️ Next round starting…');
+              } else {
+                showToast(`⚠️ ${msg.error}`);
+              }
               break;
             }
             if (msg.is_complete) {
@@ -221,9 +240,11 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
               break;
             }
             if (msg.is_correct) {
+              if (Platform.OS === 'android')  
               showToast('✅ Correct');
               setPlayerInput([]);
             } else {
+              if (Platform.OS === 'android') Vibration.vibrate([0, 150, 60, 150]); // NEW: pattern
               showToast('❌ Incorrect, try again');
               setPlayerInput([]);
               // Depending on server design, it may resend the sequence. If not, we could replay here.
@@ -235,7 +256,7 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
               .sort((a, b) => b.score - a.score)
               .map((s) => `${s.username}: ${s.score} (R${s.rounds_completed})`)
               .join('\n');
-            Alert.alert('🏁 Game Over', lines || 'No scores', [
+            Alert.alert('🏁 Game Completed', lines || 'No scores', [
               { text: 'OK', onPress: () => navigation.goBack() },
             ]);
             break;
@@ -249,10 +270,9 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
       };
       ws.onclose = () => {
         setLobbyStatus('disconnected');
-      };      
-      
+      };
     },
-    [navigation, showToast]
+    [navigation, showToast, drainQueue]
   );
 
   const cleanupWs = useCallback(() => {
@@ -346,13 +366,15 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Handle color taps
   const handlePress = (color: string) => {
-    if (showingPattern || submitting) return;
+    // NEW: also block during countdown
+    if (showingPattern || submitting || countdown !== null) return;
     setPlayerInput((prev) => [...prev, color]);
   };
 
   // Submit (multiplayer via WS; single-player via REST)
   const submitAnswer = async () => {
-    if (showingPattern || submitting) return;
+    // NEW: also block during countdown
+    if (showingPattern || submitting || countdown !== null) return;
     if (!gameStateId) {
       Alert.alert('Error', 'Missing game_state_id');
       return;
@@ -403,6 +425,7 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
             { text: 'OK', onPress: () => navigation.goBack() },
           ]);
         } else {
+          if (Platform.OS === 'android')  // NEW
           showToast(`✅ +${j.round_score}`);
           const nextRound =
             typeof j.current_round === 'number' && j.current_round > level
@@ -413,6 +436,7 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
           await playRound(nextRound);
         }
       } else {
+        if (Platform.OS === 'android') Vibration.vibrate([0, 150, 60, 150]); // NEW
         showToast('❌ Incorrect');
         setPlayerInput([]);
         await playRound(level);
@@ -492,10 +516,11 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
           <TouchableOpacity
             style={[
               styles.smallBtnPrimary,
-              (showingPattern || submitting || playerInput.length === 0) && { opacity: 0.6 },
+              // NEW: also dim when countdown is active
+              (showingPattern || submitting || playerInput.length === 0 || countdown !== null) && { opacity: 0.6 },
             ]}
             onPress={submitAnswer}
-            disabled={showingPattern || submitting || playerInput.length === 0}
+            disabled={showingPattern || submitting || playerInput.length === 0 || countdown !== null}
           >
             <Text style={styles.smallBtnPrimaryText}>{submitting ? 'Submitting...' : 'Submit'}</Text>
           </TouchableOpacity>
@@ -515,16 +540,18 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
                 styles.colorButton,
                 { backgroundColor: c, opacity: showingPattern ? 0.6 : 1 },
               ]}
-              disabled={showingPattern || submitting}
+              disabled={showingPattern || submitting || countdown !== null}  // NEW: block during countdown
               onPress={() => handlePress(c)}
             />
           ))}
         </View>
 
-        {/* Countdown overlay (multiplayer) */}
+        {/* Countdown overlay (for lobby & in-game) */}
         {isMultiplayer && countdown !== null && (
           <View style={styles.overlay}>
-            <Text style={styles.countdownText}>{countdown}</Text>
+            <Text style={[styles.countdownText]}>
+              {countdown}
+            </Text>
           </View>
         )}
 
