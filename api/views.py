@@ -3,10 +3,7 @@ from datetime import date as date_cls, timedelta
 from django.db.models import Sum, F
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAdminUser
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, IsAdminUser
 from rest_framework import generics, permissions
 from rest_framework import status
 from django.db import transaction
@@ -15,7 +12,7 @@ from datetime import time
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import authenticate, get_user_model
-from .serializers import UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer, MessageSerializer, ChallengeSummarySerializer, CatSerializer, GameSerializer, FriendSerializer, FriendRequestSerializer, CreateGroupSerializer
+from .serializers import UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer, MessageSerializer, ChallengeSummarySerializer, CatSerializer, GameSerializer, FriendSerializer, FriendRequestSerializer, CreateGroupSerializer, SkillLevelSerializer
 from .models import Group, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule, AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest, SkillLevel, PendingGroupChallengeAvailability, GroupChallengeInvite
 from django.http import JsonResponse
 from typing     import Dict, List
@@ -1362,3 +1359,11 @@ class RecomputeUserSkills(APIView):
         user = get_object_or_404(User, pk=user_id)
         skills = recompute_skill_for_user(user)
         return Response({"success": True, "skills": skills})
+
+class SkillLevelsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        qs = SkillLevel.objects.filter(user=request.user).select_related("category")
+        data = SkillLevelSerializer(qs, many=True).data
+        return Response(data)
