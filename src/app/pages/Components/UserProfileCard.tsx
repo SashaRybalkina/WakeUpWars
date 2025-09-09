@@ -1,19 +1,14 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
-
-type SkillLevel = {
-  category: { categoryName: string };
-  totalEarned: number;
-  totalPossible: number;
-};
+import { useUser } from '../../context/UserContext';
 
 type Props = {
   name: string;
-  skillLevels: SkillLevel[];
   avatarSource?: any; // Optional override
 };
 
-const UserProfileCard: React.FC<Props> = ({ name, skillLevels, avatarSource }) => {
+const UserProfileCard: React.FC<Props> = ({ name, avatarSource }) => {
+  const { skillLevels } = useUser();
   return (
     <View style={styles.profileContainer}>
       <Image
@@ -22,16 +17,14 @@ const UserProfileCard: React.FC<Props> = ({ name, skillLevels, avatarSource }) =
       />
       <Text style={styles.profileName}>{name}</Text>
       <View style={styles.statsContainer}>
-        {skillLevels.map((skill, index) => {
-          const skillLevel =
-            skill.totalPossible === 0
-              ? 0
-              : ((skill.totalEarned / skill.totalPossible) * 10).toFixed(1);
+      {skillLevels.map((s, i) => {
+        const level = s.totalPossible === 0 ? "0.0"
+                     : ((s.totalEarned / s.totalPossible) * 10).toFixed(1);
           return (
-            <View style={styles.statCard} key={index}>
+            <View style={styles.statCard} key={i}>
               <Text style={styles.stat}>
-                {skill.category.categoryName}{' '}
-                <Text style={styles.statValue}>{skillLevel} Points</Text>
+                {s.category.categoryName}{' '}
+                <Text style={styles.statValue}>{level} Points</Text>
               </Text>
             </View>
           );
