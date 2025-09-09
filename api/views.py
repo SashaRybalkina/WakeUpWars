@@ -232,8 +232,12 @@ class GroupDetailsView(APIView):
         
         enriched_challenges = []
         for chall in challenges:
-            game_schedules = GameSchedule.objects.filter(challenge=chall).values_list("dayOfWeek", flat=True).distinct()
-            days_of_week = sorted([numeric_to_label[day] for day in game_schedules if day in numeric_to_label])
+            alarm_schedules = AlarmSchedule.objects.filter(
+                challengealarmschedule__challenge=chall
+            ).values_list("dayOfWeek", flat=True).distinct()
+
+            days_of_week = sorted([numeric_to_label[day] for day in alarm_schedules if day in numeric_to_label])
+
             summary_data = next((item for item in serializer.data if item["id"] == chall.id), {})
             summary_data["daysOfWeek"] = days_of_week
             enriched_challenges.append(summary_data)
@@ -366,9 +370,14 @@ class ChallengeDetailView(APIView):
 
         serializer = ChallengeSummarySerializer(challenge, context={'user': request.user})
         
-        game_schedules = GameSchedule.objects.filter(challenge=challenge).values_list('dayOfWeek', flat=True).distinct()
+        # game_schedules = GameSchedule.objects.filter(challenge=challenge).values_list('dayOfWeek', flat=True).distinct()
         numeric_to_label = {1: "M", 2: "T", 3: "W", 4: "TH", 5: "F", 6: "S", 7: "SU"}
-        days_of_week = [numeric_to_label[d] for d in sorted(game_schedules)]
+        # days_of_week = [numeric_to_label[d] for d in sorted(game_schedules)]
+        alarm_schedules = AlarmSchedule.objects.filter(
+            challengealarmschedule__challenge=challenge
+        ).values_list("dayOfWeek", flat=True).distinct()
+
+        days_of_week = sorted([numeric_to_label[day] for day in alarm_schedules if day in numeric_to_label])
 
         return Response({
             **serializer.data,
@@ -380,27 +389,40 @@ class ChallengeDetailView(APIView):
         
 class ChallengeGameScheduleView(APIView):
     def get(self, request, chall_id):
-        schedules = GameSchedule.objects.filter(challenge_id=chall_id).order_by('dayOfWeek')
+        # Get all ChallengeAlarmSchedules linked to this challenge
+        challenge_alarm_schedules = (
+            ChallengeAlarmSchedule.objects
+            .filter(challenge_id=chall_id)
+            .select_related("alarm_schedule")
+            .order_by("alarm_schedule__dayOfWeek")
+        )
 
-        challenge_alarm_schedules = ChallengeAlarmSchedule.objects.filter(challenge_id=chall_id)
-        alarm_times = {
-            sched.alarm_schedule.dayOfWeek: sched.alarm_schedule.alarmTime.strftime("%H:%M")
-            for sched in challenge_alarm_schedules
-        }
         result = []
-        for schedule in schedules:
-            games = GameScheduleGameAssociation.objects.filter(game_schedule=schedule).order_by('game_order')
+        for cas in challenge_alarm_schedules:
+            alarm_schedule = cas.alarm_schedule
+
+            # Get games for this challenge & day if you still need them
+            games = (
+                GameScheduleGameAssociation.objects
+                .filter(game_schedule__challenge_id=chall_id,
+                        game_schedule__dayOfWeek=alarm_schedule.dayOfWeek)
+                .order_by("game_order")
+            )
 
             result.append({
-                'dayOfWeek': schedule.dayOfWeek,
-                'alarmTime': alarm_times.get(schedule.dayOfWeek),
-                'games': [{
-                    'name': g.game.name,
-                    'order': g.game_order
-                } for g in games]
+                "dayOfWeek": alarm_schedule.dayOfWeek,
+                "alarmTime": alarm_schedule.alarmTime.strftime("%H:%M"),
+                "games": [
+                    {
+                        "name": g.game.name,
+                        "order": g.game_order
+                    }
+                    for g in games
+                ]
             })
 
         return Response(result, status=status.HTTP_200_OK)
+
     
 
 class CreateManualGroupChallengeView(APIView):
@@ -716,6 +738,13 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
                                 "time": alarm_time.strftime("%H:%M"),
                             }
                         )
+
+                # make the challenge no longer pending
+                challenge.isPending = False
+                challenge.save(update_fields=["isPending"])
+
+                # delete all invites
+                GroupChallengeInvite.objects.filter(chall=challenge).delete()
 
             return Response(
                 {"message": "Challenge schedule finalized.", "schedule": created_schedules},

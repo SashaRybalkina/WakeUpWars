@@ -17,11 +17,23 @@ const DAYS = ["M", "T", "W", "TH", "F", "S", "SU"];
 // Zero-pad to match API format like "06:00"
 // const TIMES = Array.from({ length: 12 }, (_, i) => `${String(i + 6).padStart(2, '0')}:00`);
 
-const TIMES = Array.from({ length: 24 * 4 }, (_, i) => {
-  const hours = Math.floor(i / 4);
-  const minutes = (i % 4) * 15;
-  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+// const TIMES = Array.from({ length: 44 }, (_, i) => {
+//   const totalMinutes = 4 * 60 + i * 15; // start at 4:00
+//   const hours24 = Math.floor(totalMinutes / 60);
+//   const minutes = totalMinutes % 60;
+
+//   const period = hours24 >= 12 ? "PM" : "AM";
+//   const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
+
+//   return `${hours12}:${String(minutes).padStart(2, "0")} ${period}`;
+// });
+const TIMES = Array.from({ length: 44 }, (_, i) => {
+  const totalMinutes = 4 * 60 + i * 15; // start at 4:00
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 });
+
 
 type Props = {
   navigation: NavigationProp<any>
@@ -184,35 +196,47 @@ const toggleCell = (dayIdx: number, timeIdx: number) => {
   };
 
 
+  const formatTo12Hour = (time24: string) => {
+    const [hStr, mStr] = time24.split(":");
+    if (!hStr) return;
+    if (!mStr) return;
+    let hours = parseInt(hStr, 10);
+    const minutes = parseInt(mStr, 10);
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
+    return `${hours}:${mStr} ${ampm}`;
+};
 
 
- const handleSubmit = async () => {
-  // convert pending toggles into payload entries (HH:MM)
-  const payload = pendingToggles.map(({ dayOfWeek, alarmTime }) => ({
-    dayOfWeek,
-    alarmTime: toHHMM(alarmTime),
-  }));
-
+const handleSubmit = async () => {
   try {
+    // payload already in 24-hour HH:MM
+    const payload = pendingToggles.map(({ dayOfWeek, alarmTime }) => ({
+      dayOfWeek,
+      alarmTime, // already "HH:MM"
+    }));
+
     const csrfRes = await fetch(`${BASE_URL}/api/csrf-token/`, {
       credentials: 'include',
     });
     if (!csrfRes.ok) throw new Error('Failed to fetch CSRF token');
     const { csrfToken } = await csrfRes.json();
 
-    const res = await fetch(endpoints.setUserAvailability(Number(user?.id), pendingChallengeId), {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': csrfToken,
-      },
-      body: JSON.stringify({ availability: payload }),
-    });
+    const res = await fetch(
+      endpoints.setUserAvailability(Number(user?.id), pendingChallengeId),
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+        },
+        body: JSON.stringify({ availability: payload }),
+      }
+    );
 
     if (!res.ok) throw new Error('Failed to update availability.');
 
-    // success -> clear pending toggles and re-fetch authoritative state
     setPendingToggles([]);
     await fetchAvailabilities();
 
@@ -220,7 +244,47 @@ const toggleCell = (dayIdx: number, timeIdx: number) => {
   } catch (err: any) {
     Alert.alert('Error', err.message);
   }
-}; 
+};
+
+
+
+
+
+//  const handleSubmit = async () => {
+//   // convert pending toggles into payload entries (HH:MM)
+//   const payload = pendingToggles.map(({ dayOfWeek, alarmTime }) => ({
+//     dayOfWeek,
+//     alarmTime: toHHMM(alarmTime),
+//   }));
+
+//   try {
+//     const csrfRes = await fetch(`${BASE_URL}/api/csrf-token/`, {
+//       credentials: 'include',
+//     });
+//     if (!csrfRes.ok) throw new Error('Failed to fetch CSRF token');
+//     const { csrfToken } = await csrfRes.json();
+
+//     const res = await fetch(endpoints.setUserAvailability(Number(user?.id), pendingChallengeId), {
+//       method: 'POST',
+//       credentials: 'include',
+//       headers: {
+//         'Content-Type': 'application/json',
+//         'X-CSRFToken': csrfToken,
+//       },
+//       body: JSON.stringify({ availability: payload }),
+//     });
+
+//     if (!res.ok) throw new Error('Failed to update availability.');
+
+//     // success -> clear pending toggles and re-fetch authoritative state
+//     setPendingToggles([]);
+//     await fetchAvailabilities();
+
+//     Alert.alert('Success', 'Your availability was saved.');
+//   } catch (err: any) {
+//     Alert.alert('Error', err.message);
+//   }
+// }; 
 
 
     const handleDecline = async () => {
@@ -312,7 +376,7 @@ return (
               {TIMES.map((time, timeIdx) => (
                 <View key={timeIdx} style={styles.row}>
                   <View style={styles.cell}>
-                    <Text style={styles.headerText}>{time}</Text>
+                    <Text style={styles.headerText}>{formatTo12Hour(time)}</Text>
                   </View>
 
 {DAYS.map((_, dayIdx) => {
