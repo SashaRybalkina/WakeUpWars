@@ -202,12 +202,14 @@ const ChallSchedule = ({ navigation }: { navigation: NavigationProp<any> }) => {
   }
 
   const handleGamePress = (game: string[], index: number) => {
-    if (game[0] === "Sudoku" || game[0] === "Group Sudoku") {
+    const name = (game[0] || "").trim().toLowerCase();
+
+    if (name.includes("sudoku")) { // If the sudoku exists and matches certain names
       goToSudoku();
     } 
-    // If the second game exists and matches certain names
-    else if (game[0] === "Pattern Game") {
-      goToPattern(); // Navigate to the second game (custom handler)
+    // If the pattern game exists and matches certain names
+    else if (name.includes("pattern")) {
+      goToPattern(); 
     }
     else {
       removeGame(index);
@@ -374,36 +376,53 @@ const ChallSchedule = ({ navigation }: { navigation: NavigationProp<any> }) => {
                 contentContainerStyle={styles.gamesScrollContainer}
               >
                 <View style={styles.gamesGrid}>
-                  {visibleGames.map((game, index) => (
-                    <TouchableOpacity 
-                      key={index} 
-                      style={[
-                        styles.gameCard,
-                        game[0] === "Sudoku" && styles.sudokuGameCard
-                      ]} 
-                      onPress={() => handleGamePress(game, index)}
-                    >
-                      <Text style={styles.gameTitle}>{game[0]}</Text>
-                      {game[0] !== "Sudoku" ? (
-                        <>
-                          <Text style={styles.gameDetail}>Repeats: {game[1]}</Text>
-                          <Text style={styles.gameDetail}>Minutes: {game[2]}</Text>
-                        </>
-                      ) : (
-                        <>
-                          <ImageBackground
-                            source={require("../../images/sudoku.png")}
-                            style={styles.sudokuImage}
-                            resizeMode="contain"
-                          />
-                          <View style={styles.playIndicator}>
-                            <Ionicons name="play-circle" size={24} color="#FFD700" />
-                            <Text style={styles.playText}>Play</Text>
-                          </View>
-                        </>
-                      )}
-                    </TouchableOpacity>
-                  ))}
+                  {visibleGames.map((game, index) => {
+                    const name = (game[0] || "").trim();
+                    const lower = name.toLowerCase();
+                    const isSudoku = lower.includes("sudoku");   
+                    const isPattern = lower.includes("pattern"); 
+
+                    return (
+                      <TouchableOpacity
+                        key={index}
+                        style={[styles.gameCard, isSudoku && styles.sudokuGameCard]}
+                        onPress={() => handleGamePress(game, index)}
+                      >
+                        <Text style={styles.gameTitle}>{name}</Text>
+
+                        {isSudoku ? (
+                          <>
+                            <ImageBackground
+                              source={require("../../images/sudoku.png")}
+                              style={styles.sudokuImage}
+                              resizeMode="contain"
+                            />
+                            <View style={styles.playIndicator}>
+                              <Ionicons name="play-circle" size={24} color="#FFD700" />
+                              <Text style={styles.playText}>Play</Text>
+                            </View>
+                          </>
+                        ) : isPattern ? (
+                          <>
+                            <ImageBackground
+                              source={require("../../images/patternGame.png")}
+                              style={styles.sudokuImage}
+                              resizeMode="contain"
+                            />
+                            <View style={styles.playIndicator}>
+                              <Ionicons name="play-circle" size={24} color="#FFD700" />
+                              <Text style={styles.playText}>Play</Text>
+                            </View>
+                          </>
+                        ) : (
+                          <>
+                            <Text style={styles.gameDetail}>Repeats: {game[1]}</Text>
+                            <Text style={styles.gameDetail}>Minutes: {game[2]}</Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </ScrollView>
             ) : (
@@ -698,12 +717,12 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(50, 50, 60, 0.7)",
     borderRadius: 15,
     padding: 12,
-    width: 120,
+    width: 130,
     marginRight: 12,
     alignItems: "center",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.1)",
-    height: 120,
+    height: 130,
   },
   sudokuGameCard: {
     borderColor: "rgba(255, 215, 0, 0.3)",
@@ -714,7 +733,7 @@ const styles = StyleSheet.create({
   gameTitle: {
     color: "#FFF",
     fontWeight: "700",
-    fontSize: 16,
+    fontSize: 12,
     marginBottom: 6,
   },
   gameDetail: {
@@ -723,9 +742,9 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   sudokuImage: {
-    width: 80,
-    height: 80,
-    marginTop: 5,
+    width: 50,
+    height: 50,
+    marginTop: 4,
   },
   playIndicator: {
     flexDirection: "row",
