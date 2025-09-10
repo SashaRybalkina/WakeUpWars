@@ -1289,3 +1289,19 @@ class ChallengeDailyHistoryView(APIView):
             "history": history,
         }
         return Response(payload, status=status.HTTP_200_OK)
+
+class RecomputeUserSkills(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, user_id: int):
+        user = get_object_or_404(User, pk=user_id)
+        skills = recompute_skill_for_user(user)
+        return Response({"success": True, "skills": skills})
+
+class SkillLevelsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        qs = SkillLevel.objects.filter(user=request.user).select_related("category")
+        data = SkillLevelSerializer(qs, many=True).data
+        return Response(data)
