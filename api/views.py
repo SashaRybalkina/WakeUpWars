@@ -35,6 +35,9 @@ import traceback
 from api.patternMem.utils import get_or_create_pattern_game, validate_pattern_move
 from api.models import PatternMemorizationGameState
 
+import logging
+logger = logging.getLogger(__name__)
+
 User = get_user_model()
 
 @ensure_csrf_cookie
@@ -1138,6 +1141,8 @@ class SubmitGameScoresView(APIView):
     """
     def post(self, request):
         data = request.data
+        logger.debug(f"[SubmitGameScores] incoming data={data}")
+
         challenge_id = data.get("challenge_id")
         game_id = data.get("game_id")
         game_name = data.get("game_name")
@@ -1145,18 +1150,22 @@ class SubmitGameScoresView(APIView):
         date_str = data.get("date")  # 'YYYY-MM-DD' or null
 
         if not challenge_id or not scores or not (game_id or game_name):
+            logger.warning("[SubmitGameScores] missing required fields")
             return Response({"detail": "Missing required fields."}, status=status.HTTP_400_BAD_REQUEST)
 
         challenge = get_object_or_404(Challenge, id=challenge_id)
 
         if game_id:
             game = get_object_or_404(Game, id=game_id)
+            logger.debug(f"[SubmitGameScores] resolved game via id={game_id}")
         else:
             qs = Game.objects.filter(name=game_name).order_by('id')
             if not qs.exists():
+                logger.warning(f"[SubmitGameScores] unknown game_name={game_name}")
                 return Response({"detail": "Unknown game_name"}, status=400)
             # pick the earliest (or latest) created row deterministically
             game = qs.first()
+            logger.debug(f"[SubmitGameScores] resolved game via name={game_name} to id={game.id}")
 
         play_date = date_cls.fromisoformat(date_str) if date_str else date_cls.today()
 
@@ -1169,6 +1178,7 @@ class SubmitGameScoresView(APIView):
                 elif "username" in row:
                     user = get_object_or_404(User, username=row["username"])
                 else:
+                    logger.error(f"[SubmitGameScores] score row missing user_id/username: {row}")
                     return Response({"detail": "Each score needs username or user_id."}, status=400)
 
                 sc = int(row.get("score", 0))
@@ -1182,7 +1192,13 @@ class SubmitGameScoresView(APIView):
                 # if created: obj.score = sc
                 # else: obj.score = F('score') + sc; obj.save(update_fields=['score'])
                 created_or_updated += 1
+                
+                logger.debug(
+                    f"[SubmitGameScores] upsert "
+                    f"user={user.username} score={sc} -> id={obj.id} created={created}"
+                )
 
+                
         return Response({"ok": True, "count": created_or_updated}, status=status.HTTP_200_OK)
 
 class ChallengeUpdateView(generics.UpdateAPIView):

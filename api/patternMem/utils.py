@@ -1,4 +1,5 @@
  # utils.py – core logic for Pattern Memorization
+from math import remainder
 from django.db import transaction
 from asgiref.sync import sync_to_async
 from typing import List, Dict, Any
@@ -53,6 +54,7 @@ def get_or_create_pattern_game(challenge_id: int, user) -> Dict[str, Any]:
         # Here we try to find a Game named "Pattern Memorization". Adjust as needed.
         # If you prefer hardcoding, replace with: pm_game = Game.objects.get(id=<your_id>)
         pm_game = Game.objects.filter(name__iexact="Pattern Memorization").first()
+        #pm_game = Game.objects.get(id=12)
         if pm_game is None:
             # Fallback: just pick the first game or raise a clear error
             pm_game = Game.objects.first()
@@ -83,13 +85,22 @@ def get_or_create_pattern_game(challenge_id: int, user) -> Dict[str, Any]:
         defaults={"rounds_completed": 0, "score": 0, "last_round_success": True}
     )
 
-    return {
+    result = {
+        "game_id": game_state.game.id,
         "game_state_id": game_state.id,
-        "pattern_sequence": game_state.pattern_sequence,  # front-end can read all or just current
+        "pattern_sequence": game_state.pattern_sequence,
         "current_round": game_state.current_round,
         "max_rounds": game_state.max_rounds,
         "is_multiplayer": is_multiplayer,
     }
+
+    # Debug 確認 payload
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning(f"[PatternCreate] returning {result}")
+
+    return result
+
 
 @sync_to_async
 @transaction.atomic
@@ -133,7 +144,7 @@ def validate_pattern_move(game_state_id: int, user, round_number: int, player_se
 
     # Full match check (strict policy: only full match scores).
     is_full_match = (norm_player == norm_expected)
-    round_full_score = len(norm_expected)  # full-match score equals round length
+    round_full_score = int(100 / game_state.max_rounds)  # full-match score equals round length
 
     # Load or create the player record.
     player_rec, _ = PatternMemorizationGamePlayer.objects.get_or_create(
@@ -145,15 +156,29 @@ def validate_pattern_move(game_state_id: int, user, round_number: int, player_se
     # Scoring: only the FIRST time a player fully matches this round will award points.
     #    Partial matches always yield 0 and do not change rounds_completed.
     if is_full_match and player_rec.rounds_completed < round_number:
+        base_score = 100 // game_state.max_rounds
+        round_full_score = base_score
+        if round_number == game_state.max_rounds:
+            remainder = 100 % game_state.max_rounds
+            round_full_score = base_score + remainder
+
+        print(
+            f"[DEBUG scoring] before save | user={player_rec.player.username} "
+            f"round={round_number}, awarded_so_far={player_rec.score}, "
+            f"base={base_score}, final_award={round_full_score}"
+        )
+        
         player_rec.score += round_full_score
         player_rec.rounds_completed = round_number
         player_rec.last_round_success = True
     else:
         # Either partial/incorrect, or a duplicate full submission for the same round.
         # In both cases, no score is added. We still record success/failure for UI feedback.
+        round_full_score = 0
         player_rec.last_round_success = bool(is_full_match)
 
     player_rec.save()
+    print(f"[DEBUG scoring] after save | total={player_rec.score}")
 
     # If someone fully matches the current round and it's not the last round, advance the global round.
     if is_full_match and game_state.current_round == round_number and round_number < game_state.max_rounds:

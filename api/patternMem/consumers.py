@@ -3,8 +3,9 @@ import asyncio
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
 from django.core.cache import cache
+from datetime import date
 
-from api.models import PatternMemorizationGameState, User, ChallengeMembership
+from api.models import PatternMemorizationGameState, User, ChallengeMembership, GamePerformance
 from api.patternMem.utils import validate_pattern_move
 
 # ---- Cache keys ----
@@ -20,6 +21,9 @@ def _conns_key(game_state_id: int) -> str:
 # NEW: global freeze key for 3-second countdown after a correct answer
 def _freeze_key(game_state_id: int) -> str:
     return f"pm_freeze_{game_state_id}"
+
+def _saved_key(game_state_id: int) -> str:
+    return f"pm_scores_saved_{game_state_id}"
 
 
 class PatternMemorizationConsumer(AsyncWebsocketConsumer):
@@ -158,12 +162,16 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
 
         # If final scores available, broadcast game over
         if result.get("is_complete"):
-            scores = result.get("scores")
-            if scores:
-                await self.channel_layer.group_send(self.group_name, {
-                    "type": "game.over",
-                    "scores": scores
-                })
+            scores = result.get("scores") or []
+            
+            print(f"[DEBUG consumer] Final scores ready to persist: {scores}")
+            await self._persist_scores_once(scores)
+
+            print(f"[DEBUG consumer] Scores persisted to GamePerformance (challenge={self.game_state_id})", flush=True)
+            await self.channel_layer.group_send(self.group_name, {
+                "type": "game.over",
+                "scores": scores
+            })
             return
 
         # If correct & not complete: freeze all players, do a 3-2-1 countdown, then start next round
@@ -174,7 +182,7 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
             is_first = cache.add(_freeze_key(self.game_state_id), True, timeout=3)
             if is_first:
                 # Broadcast in-game countdown
-                for t in [5, 4, 3, 2, 1]:
+                for t in [3, 2, 1]:
                     await self.channel_layer.group_send(self.group_name, {
                         "type": "round.countdown",  # handled by round_countdown()
                         "seconds": t,
@@ -243,3 +251,31 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
             n = ChallengeMembership.objects.filter(challengeID=gs.challenge).count()
             return max(1, n)
         return 1
+    
+    async def _persist_scores_once(self, scores: list[dict]):
+        if not cache.add(_saved_key(self.game_state_id), True, timeout=3600):
+            return
+        await sync_to_async(self._save_scores)(scores)
+
+    def _save_scores(self, scores: list[dict]):
+        gs = PatternMemorizationGameState.objects.select_related("challenge", "game").get(id=self.game_state_id)
+        play_date = date.today()
+
+        for row in scores:
+            username = row.get("username")
+            sc = int(row.get("score", 0))
+            if not username:
+                continue
+            try:
+                user = User.objects.get(username=username)
+            except User.DoesNotExist:
+                continue
+
+            GamePerformance.objects.update_or_create(
+                challenge=gs.challenge,
+                game=gs.game,
+                user=user,
+                date=play_date,
+                defaults={"score": sc},
+            )
+

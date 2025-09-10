@@ -233,12 +233,12 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
               }
               break;
             }
-            if (msg.is_complete) {
-              Alert.alert('🎉 Finished', 'Great job!', [
-                { text: 'OK', onPress: () => navigation.goBack() },
-              ]);
-              break;
-            }
+            // if (msg.is_complete) {
+            //   Alert.alert('🎉 Finished', 'Great job!', [
+            //     { text: 'OK', onPress: () => navigation.goBack() },
+            //   ]);
+            //   break;
+            // }
             if (msg.is_correct) {
               if (Platform.OS === 'android')  
               showToast('✅ Correct');
