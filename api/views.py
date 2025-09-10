@@ -50,6 +50,7 @@ def get_csrf_token(request):
 
 
 class SetAvailabilityView(APIView):
+    @transaction.atomic
     def post(self, request, user_id, chall_id):
         availability_data = request.data.get('availability', [])
 
@@ -82,6 +83,12 @@ class SetAvailabilityView(APIView):
             chall_id=chall_id,
             uID_id=user_id
         ).update(accepted=1)
+
+        # enroll in challenge if haven't already
+        ChallengeMembership.objects.get_or_create(
+            challengeID_id=chall_id,
+            uID_id=user_id,
+        )
 
         return Response({'status': 'availability toggled and invite accepted'})
     
@@ -240,8 +247,12 @@ class GroupDetailsView(APIView):
         
         enriched_challenges = []
         for chall in challenges:
-            game_schedules = GameSchedule.objects.filter(challenge=chall).values_list("dayOfWeek", flat=True).distinct()
-            days_of_week = sorted([numeric_to_label[day] for day in game_schedules if day in numeric_to_label])
+            alarm_schedules = AlarmSchedule.objects.filter(
+                challengealarmschedule__challenge=chall
+            ).values_list("dayOfWeek", flat=True).distinct()
+
+            days_of_week = sorted([numeric_to_label[day] for day in alarm_schedules if day in numeric_to_label])
+
             summary_data = next((item for item in serializer.data if item["id"] == chall.id), {})
             summary_data["daysOfWeek"] = days_of_week
             enriched_challenges.append(summary_data)
@@ -329,17 +340,19 @@ class ChallengeListView(APIView):
         # TODO: consider only fetching non-pending challenges
         if which_chall == 'Group':
             group_ids = GroupMembership.objects.filter(uID=user_id).values_list('groupID', flat=True)
-            challenges = Challenge.objects.filter(groupID__in=group_ids)
+            challenges = Challenge.objects.filter(groupID__in=group_ids, isPending=False)
         elif which_chall == 'Personal':
             challenges = Challenge.objects.filter(
                 id__in=ChallengeMembership.objects.filter(uID=user_id).values_list('challengeID', flat=True),
                 groupID=None,
-                isPublic=False
+                isPublic=False,
+                isPending=False
             )
         elif which_chall == 'Public':
             challenges = Challenge.objects.filter(
                 id__in=ChallengeMembership.objects.filter(uID=user_id).values_list('challengeID', flat=True),
-                isPublic=True
+                isPublic=True,
+                isPending=False
             )
 
         numeric_to_label = {1: "M", 2: "T", 3: "W", 4: "TH", 5: "F", 6: "S", 7: "SU"}
@@ -374,9 +387,14 @@ class ChallengeDetailView(APIView):
 
         serializer = ChallengeSummarySerializer(challenge, context={'user': request.user})
         
-        game_schedules = GameSchedule.objects.filter(challenge=challenge).values_list('dayOfWeek', flat=True).distinct()
+        # game_schedules = GameSchedule.objects.filter(challenge=challenge).values_list('dayOfWeek', flat=True).distinct()
         numeric_to_label = {1: "M", 2: "T", 3: "W", 4: "TH", 5: "F", 6: "S", 7: "SU"}
-        days_of_week = [numeric_to_label[d] for d in sorted(game_schedules)]
+        # days_of_week = [numeric_to_label[d] for d in sorted(game_schedules)]
+        alarm_schedules = AlarmSchedule.objects.filter(
+            challengealarmschedule__challenge=challenge
+        ).values_list("dayOfWeek", flat=True).distinct()
+
+        days_of_week = sorted([numeric_to_label[day] for day in alarm_schedules if day in numeric_to_label])
 
         return Response({
             **serializer.data,
@@ -388,28 +406,145 @@ class ChallengeDetailView(APIView):
         
 class ChallengeGameScheduleView(APIView):
     def get(self, request, chall_id):
-        schedules = GameSchedule.objects.filter(challenge_id=chall_id).order_by('dayOfWeek')
+        # Get all ChallengeAlarmSchedules linked to this challenge
+        challenge_alarm_schedules = (
+            ChallengeAlarmSchedule.objects
+            .filter(challenge_id=chall_id)
+            .select_related("alarm_schedule")
+            .order_by("alarm_schedule__dayOfWeek")
+        )
 
-        challenge_alarm_schedules = ChallengeAlarmSchedule.objects.filter(challenge_id=chall_id)
-        alarm_times = {
-            sched.alarm_schedule.dayOfWeek: sched.alarm_schedule.alarmTime.strftime("%H:%M")
-            for sched in challenge_alarm_schedules
-        }
         result = []
-        for schedule in schedules:
-            games = GameScheduleGameAssociation.objects.filter(game_schedule=schedule).order_by('game_order')
+        for cas in challenge_alarm_schedules:
+            alarm_schedule = cas.alarm_schedule
+
+            # Get games for this challenge & day if you still need them
+            games = (
+                GameScheduleGameAssociation.objects
+                .filter(game_schedule__challenge_id=chall_id,
+                        game_schedule__dayOfWeek=alarm_schedule.dayOfWeek)
+                .order_by("game_order")
+            )
 
             result.append({
-                'dayOfWeek': schedule.dayOfWeek,
-                'alarmTime': alarm_times.get(schedule.dayOfWeek),
-                'games': [{
-                    'name': g.game.name,
-                    'order': g.game_order
-                } for g in games]
+                "dayOfWeek": alarm_schedule.dayOfWeek,
+                "alarmTime": alarm_schedule.alarmTime.strftime("%H:%M"),
+                "games": [
+                    {
+                        "name": g.game.name,
+                        "order": g.game_order
+                    }
+                    for g in games
+                ]
             })
 
         return Response(result, status=status.HTTP_200_OK)
     
+
+
+
+class GetChallengeScheduleView(APIView):
+    def get(self, request, chall_id):
+        # Get the challenge
+        try:
+            challenge = Challenge.objects.get(id=chall_id)
+        except Challenge.DoesNotExist:
+            return Response({'error': 'Challenge not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Members
+        memberships = ChallengeMembership.objects.filter(challengeID=challenge)
+        members = [{'id': m.uID.id, 'name': m.uID.name} for m in memberships]
+
+        # Preload ChallengeAlarmSchedules, including the user
+        challenge_alarm_schedules = (
+            ChallengeAlarmSchedule.objects
+            .filter(challenge_id=chall_id)
+            .select_related("alarm_schedule__uID")
+            .order_by("alarm_schedule__dayOfWeek", "alarm_schedule__alarmTime")
+        )
+
+        # Collect games for the challenge, grouped by day
+        games_by_day = {}
+        games_qs = (
+            GameScheduleGameAssociation.objects
+            .filter(game_schedule__challenge_id=chall_id)
+            .select_related("game_schedule", "game")
+            .order_by("game_schedule__dayOfWeek", "game_order")
+        )
+        for g in games_qs:
+            day = g.game_schedule.dayOfWeek
+            games_by_day.setdefault(day, []).append({
+                "name": g.game.name,
+                "order": g.game_order
+            })
+
+        # Group alarms by day
+        alarms_by_day = {}
+        for cas in challenge_alarm_schedules:
+            sched = cas.alarm_schedule
+            day = sched.dayOfWeek
+            alarms_by_day.setdefault(day, []).append({
+                "userName": sched.uID.name,
+                "alarmTime": sched.alarmTime.strftime("%H:%M")
+            })
+
+        # Merge games + alarms into result
+        schedule = []
+        all_days = set(alarms_by_day.keys()) | set(games_by_day.keys())
+        for day in sorted(all_days):
+            schedule.append({
+                "dayOfWeek": day,
+                "alarms": alarms_by_day.get(day, []),
+                "games": games_by_day.get(day, [])
+            })
+
+        return Response({
+            "id": challenge.id,
+            "name": challenge.name,
+            "startDate": challenge.startDate,
+            "endDate": challenge.endDate,
+            "totalDays": (challenge.endDate - challenge.startDate).days + 1,
+            "members": members,
+            "schedule": schedule
+        }, status=status.HTTP_200_OK)
+
+
+
+
+class AddGameToScheduleView(APIView):
+    @transaction.atomic
+    def post(self, request):
+        data = request.data
+        try:
+            # Get the schedule for this challenge/day
+            game_schedule, created = GameSchedule.objects.get_or_create(
+                challenge_id=data['challengeId'],
+                dayOfWeek=data['dayOfWeek']
+            )
+
+            # Get the game
+            game = get_object_or_404(Game, id=data['gameId'])
+
+            # Create the association
+            association = GameScheduleGameAssociation.objects.create(
+                game_schedule=game_schedule,
+                game=game,
+                game_order=data['gameOrder']  # order passed from frontend
+            )
+
+            return Response({
+                'id': association.id,
+                'gameName': game.name,
+                'dayOfWeek': game_schedule.dayOfWeek,
+                'gameOrder': association.game_order
+            }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
 
 class CreateManualGroupChallengeView(APIView):
     @transaction.atomic
@@ -724,6 +859,24 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
                                 "time": alarm_time.strftime("%H:%M"),
                             }
                         )
+
+                # make the challenge no longer pending
+                scheduled_days = sorted(final_schedule.keys())  # e.g., [1, 2, 4]
+
+                today = date.today()
+                for i in range(7):
+                    candidate_date = today + timedelta(days=i)
+                    # Map Python weekday() 0-6 -> dayOfWeek 1-7
+                    candidate_day_of_week = candidate_date.weekday() + 1
+                    if candidate_day_of_week in scheduled_days:
+                        challenge.startDate = candidate_date
+                        break
+
+                challenge.isPending = False
+                challenge.save(update_fields=["isPending", "startDate"])
+
+                # delete all invites
+                GroupChallengeInvite.objects.filter(chall=challenge).delete()
 
             return Response(
                 {"message": "Challenge schedule finalized.", "schedule": created_schedules},

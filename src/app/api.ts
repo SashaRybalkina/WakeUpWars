@@ -1,4 +1,4 @@
-export const BASE_URL = 'https://c818d53ffd64.ngrok-free.app';
+export const BASE_URL = 'https://30ff259b5fe3.ngrok-free.app';
 
 
 export const endpoints = {
@@ -17,6 +17,7 @@ export const endpoints = {
   challengeDetail: (challId: number) => `${BASE_URL}/api/challenge-detail/${challId}/`,
   challengeList: (userId: number, whichChall: string) => `${BASE_URL}/api/challenges/${userId}/${whichChall}/`,
   challengeSchedule: (challId: number) => `${BASE_URL}/api/challenge-schedule/${challId}/`,
+  getChallengeSchedule: (challId: number) => `${BASE_URL}/api/get-challenge-schedule/${challId}/`,
   createManualGroupChallenge: `${BASE_URL}/api/create-manual-group-challenge/`,
   createPendingCollaborativeGroupChallenge: () => `${BASE_URL}/api/create-pending-collaborative-group-challenge/`,
   finalizeCollaborativeGroupChallengeSchedule: (challId: number) => `${BASE_URL}/api/finalize-collaborative-group-challenge-schedule/${challId}/`,
@@ -40,6 +41,7 @@ export const endpoints = {
   createPersonalChallenge: `${BASE_URL}/api/create-personal-challenge/`,
   leaderboard: (id: number) => `${BASE_URL}/api/challenge-leaderboard/${id}/`,
   submitGameScores: () => `${BASE_URL}/api/submit-game-scores/`,
+  addGameToSchedule: () => `${BASE_URL}/api/add-game-to-schedule/`,
   skillLevels: () => `${BASE_URL}/api/skill-levels/`,
   // Pattern (REST)
   patternCreate: `${BASE_URL}/api/pattern/create/`,

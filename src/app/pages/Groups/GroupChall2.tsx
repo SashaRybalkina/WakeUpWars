@@ -421,6 +421,8 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
                       onGameSelected: (game: { id: number; name: string }) => {
                         handleGameAdd(game)
                       },
+                      challId: null,
+                      challName: null
                     })
                   }}
                 >
