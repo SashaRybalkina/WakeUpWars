@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.db.models import Sum
 from django.utils import timezone
 from django.conf import settings
 
@@ -121,16 +122,34 @@ class Game(models.Model):
 # Challenges: Challenges, either personal or group challenges. might have to enforce that a user can’t have 2 challenges 
 # scheduled on the same day through code instead of the db, it gets weird with the personal and group challenge cases
 class Challenge(models.Model):
-    groupID = models.ForeignKey(Group, null=True, blank=True, on_delete=models.CASCADE) # null if personal or public challenge
-    initiator = models.ForeignKey(User, null=True, on_delete=models.CASCADE) # not null for collab group challenges
-    isPublic = models.BooleanField(default=False)
-    isPending = models.BooleanField(default=False)
-    startDate = models.DateField(null=True)
-    endDate = models.DateField()
-    name = models.CharField(max_length=255, default='Challenge')
+    # ──────── existing columns ───────────────────────────────────────────────
+    groupID     = models.ForeignKey(Group, null=True, blank=True, on_delete=models.CASCADE)
+    initiator   = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
+    isPublic    = models.BooleanField(default=False)
+    isPending   = models.BooleanField(default=False)  # waiting for invites / availability
+    startDate   = models.DateField(null=True)
+    endDate     = models.DateField()
+    name        = models.CharField(max_length=255, default='Challenge')
     isCompleted = models.BooleanField(default=False)
     daysCompleted = models.IntegerField(default=0)
-    # will be able to calculate total days from the start and end dates
+
+    # ──────── NEW convenience helpers ────────────────────────────────────────
+    members = models.ManyToManyField(         # lets you do  challenge.members.all()
+        User,
+        through='ChallengeMembership',
+        related_name='challenges'
+    )
+
+    winner = models.ForeignKey(               # optional denormalised reference
+        User,
+        null=True, blank=True,
+        related_name='challenges_won',
+        on_delete=models.SET_NULL
+    )
+
+    rewards_finalized = models.BooleanField(  # guard so we don’t double-create obligations
+        default=False
+    )
 
     class Meta:
         db_table = 'Challenges'
@@ -138,6 +157,75 @@ class Challenge(models.Model):
 
     def __str__(self):
         return self.name
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Determine the winner (simple “highest total points” example).
+    # ─────────────────────────────────────────────────────────────────────────
+    def get_winner_user(self):
+        """
+        Return User who has the most total points in this challenge.
+        Fallback to None if no participants.
+        """
+
+        qs = (
+            GamePerformance.objects
+            .filter(challenge=self)
+            .values('user')
+            .annotate(total=Sum('score'))
+            .order_by('-total')
+        )
+        top = qs.first()
+        if not top:
+            return None
+        return User.objects.get(id=top['user'])
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Convenience wrapper the API view can call instead of duplicating logic.
+    # Creates RewardSetting/Obligations ONLY once.
+    # ─────────────────────────────────────────────────────────────────────────
+    def finalize_and_create_obligations(self):
+        """
+        Mark the challenge complete, compute winner, create RewardSetting
+        (if it doesn’t exist) + Obligations for every non-winner.
+        """
+        from django.db import transaction
+        from django.utils import timezone
+        from .models import RewardSetting, Obligation, RewardType
+
+        if self.rewards_finalized:
+            return  # already done
+
+        winner = self.get_winner_user()
+        if not winner:
+            raise ValueError("No winner could be determined")
+
+        self.winner = winner
+        self.isCompleted = True
+        self.save(update_fields=['winner', 'isCompleted'])
+
+        rs, _ = RewardSetting.objects.get_or_create(
+            challenge=self,
+            defaults=dict(type=RewardType.MONEY, amount=5)
+        )
+
+        due_at = timezone.now() + timezone.timedelta(days=7)
+
+        with transaction.atomic():
+            for payer in self.members.exclude(id=winner.id):
+                Obligation.objects.get_or_create(
+                    challenge=self,
+                    payer=payer,
+                    payee=winner,
+                    defaults=dict(
+                        currency='USD',
+                        amount=rs.amount,
+                        due_at=due_at,
+                        points_penalty_per_day=5  # tune in settings
+                    )
+                )
+
+            self.rewards_finalized = True
+            self.save(update_fields=['rewards_finalized'])
 
 
 # representing Many-to-many relationship between users and challenges
