@@ -1,37 +1,47 @@
-import type React from "react"
-import { createContext, useState, useContext, type ReactNode } from "react"
+import React, { createContext, useState, useContext } from "react";
 
-type User = {
-  id: string | number
-  name: string
-  email: string
-  username: string
-} | null
-
-type UserContextType = {
-  user: User | null;
-  setUser: (user: User) => void;
-  csrfToken: string | null;
-  setCsrfToken: (token: string) => void;
+export type SkillLevel = {
+  category: { categoryName: string };
+  totalEarned: number;
+  totalPossible: number;
 };
 
-const UserContext = createContext<UserContextType | undefined>(undefined)
+type User = { id: string | number; name: string; email: string; username: string } | null;
+
+type UserCtx = {
+  user: User;
+  setUser: (u: User) => void;
+  csrfToken: string | null;
+  setCsrfToken: (t: string | null) => void;
+  skillLevels: SkillLevel[];
+  setSkillLevels: (l: SkillLevel[]) => void;
+};
+
+const UserContext = createContext<UserCtx | undefined>(undefined);
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User>(null);
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
+  const [skillLevels, setSkillLevels] = useState<SkillLevel[]>([]);
 
   return (
-    <UserContext.Provider value={{ user, setUser, csrfToken, setCsrfToken }}>
+    <UserContext.Provider
+      value={{
+        user,
+        setUser,
+        csrfToken,
+        setCsrfToken,
+        skillLevels,
+        setSkillLevels,
+      }}
+    >
       {children}
     </UserContext.Provider>
   );
 };
 
 export const useUser = () => {
-  const context = useContext(UserContext)
-  if (context === undefined) {
-    throw new Error("useUser must be used within a UserProvider")
-  }
-  return context
-}
+  const ctx = useContext(UserContext);
+  if (!ctx) throw new Error("useUser must be used within <UserProvider>");
+  return ctx;
+};
