@@ -42,6 +42,7 @@ def get_csrf_token(request):
 
 
 class SetAvailabilityView(APIView):
+    @transaction.atomic
     def post(self, request, user_id, chall_id):
         availability_data = request.data.get('availability', [])
 
@@ -74,6 +75,12 @@ class SetAvailabilityView(APIView):
             chall_id=chall_id,
             uID_id=user_id
         ).update(accepted=1)
+
+        # enroll in challenge if haven't already
+        ChallengeMembership.objects.get_or_create(
+            challengeID_id=chall_id,
+            uID_id=user_id,
+        )
 
         return Response({'status': 'availability toggled and invite accepted'})
     
@@ -500,8 +507,7 @@ class AddGameToScheduleView(APIView):
         data = request.data
         try:
             # Get the schedule for this challenge/day
-            game_schedule = get_object_or_404(
-                GameSchedule,
+            game_schedule, created = GameSchedule.objects.get_or_create(
                 challenge_id=data['challengeId'],
                 dayOfWeek=data['dayOfWeek']
             )
@@ -845,8 +851,19 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
                         )
 
                 # make the challenge no longer pending
+                scheduled_days = sorted(final_schedule.keys())  # e.g., [1, 2, 4]
+
+                today = date.today()
+                for i in range(7):
+                    candidate_date = today + timedelta(days=i)
+                    # Map Python weekday() 0-6 -> dayOfWeek 1-7
+                    candidate_day_of_week = candidate_date.weekday() + 1
+                    if candidate_day_of_week in scheduled_days:
+                        challenge.startDate = candidate_date
+                        break
+
                 challenge.isPending = False
-                challenge.save(update_fields=["isPending"])
+                challenge.save(update_fields=["isPending", "startDate"])
 
                 # delete all invites
                 GroupChallengeInvite.objects.filter(chall=challenge).delete()
