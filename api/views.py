@@ -6,20 +6,20 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, IsAdminUser
 from rest_framework import generics, permissions
-from rest_framework import status
 from django.db import transaction
 from collections import defaultdict
 from datetime import time
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import authenticate, get_user_model
-from .serializers import UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer, MessageSerializer, ChallengeSummarySerializer, CatSerializer, GameSerializer, FriendSerializer, FriendRequestSerializer, CreateGroupSerializer
+from .serializers import UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer, MessageSerializer, ChallengeSummarySerializer, CatSerializer, GameSerializer, FriendSerializer, FriendRequestSerializer, CreateGroupSerializer, SkillLevelSerializer
 from .models import Group, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule, AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest, SkillLevel, PendingGroupChallengeAvailability, GroupChallengeInvite
 from django.http import JsonResponse
 from typing     import Dict, List
 from rest_framework.exceptions import ValidationError
+
 
 #### Sudoku Game Imports ####
 from .models import SudokuGameState, Challenge, SudokuGamePlayer, User, Game, GamePerformance
@@ -32,6 +32,14 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.middleware.csrf import get_token
 from asgiref.sync import async_to_sync
 import traceback
+from api.services.skill import recompute_skill_for_user
+
+### Pattern Memorization###
+from api.patternMem.utils import get_or_create_pattern_game, validate_pattern_move
+from api.models import PatternMemorizationGameState
+
+import logging
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -111,11 +119,11 @@ class GetAvailabilitiesView(APIView):
 
 
 
-class LoginView(APIView):
-    def post(self, request):
-        print("Request data:", request.data)
-        username = request.data.get('username')
-        password = request.data.get('password')
+# class LoginView(APIView):
+#     def post(self, request):
+#         print("Request data:", request.data)
+#         username = request.data.get('username')
+#         password = request.data.get('password')
 class LoginView(APIView):
     def post(self, request):
         print("Request data:", request.data)
@@ -973,79 +981,6 @@ class CreateGroupView(APIView):
     
 ################### Sudoku Game ###################
 
-# """"
-# This view creates a new sudoku game for a challenge.
-
-# Takes challenge_id and game_id from frontend.
-
-# Generates puzzle + solution using sudoku library.
-
-# Saves puzzle/solution in DB with the given challenge.
-
-# Sends back puzzle and game_id so frontend can render it.
-# """
-# class CreateSudokuGameView(APIView):
-#     def post(self, request):
-#         challenge_id = request.data.get('challenge_id')  
-#         difficulty_level = request.data.get('difficulty', 'easy')  # default
-#         mode = request.data.get('mode', 'single')  # 'single' or 'multi'
-
-#         if not challenge_id :
-#             return Response({'error': 'Missing challenge_id or game_id'}, status=status.HTTP_400_BAD_REQUEST)
-
-#         try:
-#             challenge = Challenge.objects.get(id=challenge_id)
-#         except Challenge.DoesNotExist:
-#             return Response({'error': 'Challenge not found'}, status=status.HTTP_404_NOT_FOUND)
-        
-#         try:
-#             game = Game.objects.get(name="Sudoku")
-#         except Game.DoesNotExist:
-#             return Response({'error': 'Game "Sudoku" not found'}, status=500)
-
-#         # Difficulty setting based on mode
-#         if mode == 'multi':
-#             difficulty_level = 'medium'
-#             difficulty = 0.6  # fixed difficulty for multiplayer
-#             existing_game = SudokuGameState.objects.filter(challenge=challenge, game=game).first()
-#             if existing_game:
-#                 return Response({
-#                     'game_id': existing_game.id,
-#                     'puzzle': existing_game.puzzle,
-#                     'player_color' : "green",
-#                     'is_multiplayer': true,
-#                     'difficulty': difficulty_level,
-#                     'mode': mode,}, status=status.HTTP_200_OK)                
-#         else:
-#             difficulty_map = {
-#                 'easy': 0.05,
-#                 'medium': 0.6,
-#                 'hard': 0.75,
-#             }
-#             difficulty = difficulty_map.get(difficulty_level, 0.4)
-
-#         # Generate Sudoku puzzle and solution
-#         sudoku = Sudoku(3, 3, seed=int(time.time() * 1000)).difficulty(difficulty)
-#         puzzle = sudoku.board
-#         solution = sudoku.solve().board
-
-#         # Save game state
-#         game_state = SudokuGameState.objects.create(
-#             game=game,
-#             challenge=challenge,
-#             puzzle=puzzle,
-#             solution=solution
-#         )
-
-#         return Response({
-#             'game_id': game_state.id,
-#             'puzzle': puzzle,
-#             'difficulty': difficulty_level,
-#             'mode': mode,
-#         }, status=status.HTTP_201_CREATED)
-
-
-
 class CreateSudokuGameView(APIView):
     """
     Called when a player wants to start or join a Sudoku game for a challenge.
@@ -1084,81 +1019,6 @@ class CreateSudokuGameView(APIView):
 
         return Response(game_data, status=status.HTTP_200_OK)
 
-    
-
-# class ValidateSudokuMoveView(APIView):
-#     """
-#     ONly for single player mode.
-
-#         Frontend sends:
-#       - game_id: the id of the Sudoku game
-#       - index: a number from 0 to 80 representing the cell position
-#       - value: the number the user wants to input (as integer)
-
-#         Backend checks:
-#       - Looks up the correct solution from the database
-#       - If value matches the solution at that index:
-#           - Updates the puzzle (marks cell with value)
-#           - Returns "correct" and the new puzzle
-#       - If value is wrong:
-#           - Returns "incorrect" and does not change puzzle
-#     """
-#     def post(self, request):
-#         game_id = request.data.get('game_id')
-#         index = request.data.get('index')
-#         value = request.data.get('value')
-
-#         if game_id is None or index is None or value is None:
-#             return Response({'error': 'Missing parameters'}, status=status.HTTP_400_BAD_REQUEST)
-
-#         try:
-#             game_state = SudokuGameState.objects.get(id=game_id)
-#         except SudokuGameState.DoesNotExist:
-#             return Response({'error': 'Game not found'}, status=status.HTTP_404_NOT_FOUND)
-
-#         row, col = divmod(index, 9)
-
-#         correct_value = game_state.solution[row][col]
-
-#         print(f"[Backend] Checking cell ({row}, {col})")
-#         print(f"[Backend] Correct value: {correct_value}")
-#         print(f"[Backend] User input: {value}")
-
-#         # --- user answer correct or not ---
-#         is_correct = (correct_value == value)
-
-#         # --- update the answer status ---
-#         if request.user and request.user.is_authenticated:
-#             player_record, _ = SudokuGamePlayer.objects.get_or_create(
-#                 gameState=game_state,
-#                 player=request.user,
-#                 defaults={'accuracyCount': 0, 'inaccuracyCount': 0}
-#             )
-
-#             if is_correct:
-#                 player_record.accuracyCount += 1
-#             else:
-#                 player_record.inaccuracyCount += 1
-
-#             player_record.save()
-
-#         if is_correct:
-#             game_state.puzzle[row][col] = value
-#             game_state.save()
-
-#             is_complete = game_state.puzzle == game_state.solution
-#             # TODO: if is_complete, send scores and remove the SudokuGameState from SudokuGameStates (as well as remove the players 
-#             # from SudokuGamePlayers)
-
-#             return Response({
-#                 'success': True,
-#                 'result': 'correct',
-#                 'puzzle': game_state.puzzle,
-#                 'completed': is_complete  
-#             }, status=status.HTTP_200_OK)
-#         else:
-#             return Response({'success': False, 'result': 'incorrect', 'puzzle': game_state.puzzle}, status=status.HTTP_200_OK)
-
 
 class ValidateSudokuMoveView(APIView):
     def post(self, request):
@@ -1192,35 +1052,6 @@ class ValidateSudokuMoveView(APIView):
                 'puzzle': game_state.puzzle
             }, status=200)
 
-
-
-# class CompleteSudokuGameView(APIView):
-#     permission_classes = [IsAuthenticated]
-
-#     def post(self, request):
-#         game_id = request.data.get('game_id')
-
-#         if not game_id:
-#             return Response({'error': 'Missing game_id'}, status=status.HTTP_400_BAD_REQUEST)
-
-#         try:
-#             game_state = SudokuGameState.objects.get(id=game_id)
-#         except SudokuGameState.DoesNotExist:
-#             return Response({'error': 'Game not found'}, status=status.HTTP_404_NOT_FOUND)
-
-#         try:
-#             player_record = SudokuGamePlayer.objects.get(gameState=game_state, player=request.user)
-#         except SudokuGamePlayer.DoesNotExist:
-#             return Response({'error': 'Player not found for this game'}, status=status.HTTP_404_NOT_FOUND)
-
-#         if player_record.completed:
-#             return Response({'success': True, 'message': 'Already completed'})
-
-#         player_record.completed = True
-#         player_record.completed_at = timezone.now()
-#         player_record.save()
-
-#         return Response({'success': True})
 
 class CreatePersonalChallengeView(APIView):
     @transaction.atomic
@@ -1276,9 +1107,101 @@ class CreatePersonalChallengeView(APIView):
         except Exception as e:
             traceback.print_exc()
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+### Pattern Memorization ###
+class CreatePatternGameView(APIView):
+    def post(self, request):
+        """
+        Create (or reuse) a pattern game for a challenge, and ensure the user joins it.
+        Request:  { "challenge_id": <int> }
+        Response: { success, game_state_id, current_round, max_rounds, is_multiplayer, pattern_sequence? }
+        """
+        challenge_id = request.data.get('challenge_id')
+        user = request.user
+
+        if not challenge_id:
+            return Response({'success': False, 'error': 'Missing challenge_id'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            Challenge.objects.get(id=challenge_id)
+        except Challenge.DoesNotExist:
+            return Response({'success': False, 'error': 'Challenge not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            payload = get_or_create_pattern_game(int(challenge_id), user)
+            # utils returns: game_state_id, pattern_sequence, current_round, max_rounds, is_multiplayer
+            return Response({
+                "success": True,
+                "game_state_id": payload.get("game_state_id"),
+                "current_round": payload.get("current_round", 1),
+                "max_rounds": payload.get("max_rounds", 5),
+                "is_multiplayer": payload.get("is_multiplayer", True),
+                # expose for debug; 
+                "pattern_sequence": payload.get("pattern_sequence", []),
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'success': False, 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ValidatePatternMoveView(APIView):
+    ## AI was used to help generate this class
+    def post(self, request):
+        """
+        Validate a player's move. Strict global sync policy.
+        Request:  { "game_state_id": <int>, "round_number": <int>, "player_sequence": <list[str]> }
+        Response (correct):
+        { success: true,  result: "correct",   round_score, is_complete, scores?, current_round }
+        Response (incorrect):
+        { success: false, result: "incorrect", round_score, is_complete, current_round }
+        """
+        game_state_id = request.data.get('game_state_id')
+        round_number  = request.data.get('round_number')
+        player_seq    = request.data.get('player_sequence') or []
+        user = request.user
+
+        if game_state_id is None or round_number is None:
+            return Response({'success': False, 'error': 'Missing parameters'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            game_state_id = int(game_state_id)
+            round_number = int(round_number)
+        except ValueError:
+            return Response({'success': False, 'error': 'Invalid ID or round number format'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Run core validation (atomic inside utils)
+            result = async_to_sync(validate_pattern_move)(game_state_id, user, round_number, player_seq)
+        except Exception as e:
+            return Response({'success': False, 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # Map known error cases from utils
+        if result.get("error"):
+            return Response({'success': False, 'error': result["error"]}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Fetch latest current_round after the move (utils may advance it)
+        try:
+            gs = PatternMemorizationGameState.objects.get(id=game_state_id)
+            current_round = gs.current_round
+        except PatternMemorizationGameState.DoesNotExist:
+            current_round = None
+
+        # Build unified payload consistent with utils keys
+        payload = {
+            "round_score": result.get("round_score", 0),
+            "is_complete": result.get("is_complete", False),
+            "current_round": current_round,   # helpful for frontend flow
+        }
+        if "scores" in result and result["scores"] is not None:
+            payload["scores"] = result["scores"]
+
+        if result.get("is_correct"):
+            return Response({"success": True, "result": "correct", **payload}, status=status.HTTP_200_OK)
+        else:
+            return Response({"success": False, "result": "incorrect", **payload}, status=status.HTTP_200_OK)
+
 
 # AI was used to help generate this class
-
 
 class ChallengeLeaderboardView(APIView):
     """
@@ -1374,6 +1297,8 @@ class SubmitGameScoresView(APIView):
     """
     def post(self, request):
         data = request.data
+        logger.debug(f"[SubmitGameScores] incoming data={data}")
+
         challenge_id = data.get("challenge_id")
         game_id = data.get("game_id")
         game_name = data.get("game_name")
@@ -1381,18 +1306,22 @@ class SubmitGameScoresView(APIView):
         date_str = data.get("date")  # 'YYYY-MM-DD' or null
 
         if not challenge_id or not scores or not (game_id or game_name):
+            logger.warning("[SubmitGameScores] missing required fields")
             return Response({"detail": "Missing required fields."}, status=status.HTTP_400_BAD_REQUEST)
 
         challenge = get_object_or_404(Challenge, id=challenge_id)
 
         if game_id:
             game = get_object_or_404(Game, id=game_id)
+            logger.debug(f"[SubmitGameScores] resolved game via id={game_id}")
         else:
             qs = Game.objects.filter(name=game_name).order_by('id')
             if not qs.exists():
+                logger.warning(f"[SubmitGameScores] unknown game_name={game_name}")
                 return Response({"detail": "Unknown game_name"}, status=400)
             # pick the earliest (or latest) created row deterministically
             game = qs.first()
+            logger.debug(f"[SubmitGameScores] resolved game via name={game_name} to id={game.id}")
 
         play_date = date_cls.fromisoformat(date_str) if date_str else date_cls.today()
 
@@ -1405,6 +1334,7 @@ class SubmitGameScoresView(APIView):
                 elif "username" in row:
                     user = get_object_or_404(User, username=row["username"])
                 else:
+                    logger.error(f"[SubmitGameScores] score row missing user_id/username: {row}")
                     return Response({"detail": "Each score needs username or user_id."}, status=400)
 
                 sc = int(row.get("score", 0))
@@ -1418,7 +1348,13 @@ class SubmitGameScoresView(APIView):
                 # if created: obj.score = sc
                 # else: obj.score = F('score') + sc; obj.save(update_fields=['score'])
                 created_or_updated += 1
+                
+                logger.debug(
+                    f"[SubmitGameScores] upsert "
+                    f"user={user.username} score={sc} -> id={obj.id} created={created}"
+                )
 
+                
         return Response({"ok": True, "count": created_or_updated}, status=status.HTTP_200_OK)
 
 class ChallengeUpdateView(generics.UpdateAPIView):
@@ -1506,3 +1442,19 @@ class ChallengeDailyHistoryView(APIView):
             "history": history,
         }
         return Response(payload, status=status.HTTP_200_OK)
+
+class RecomputeUserSkills(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, user_id: int):
+        user = get_object_or_404(User, pk=user_id)
+        skills = recompute_skill_for_user(user)
+        return Response({"success": True, "skills": skills})
+
+class SkillLevelsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        qs = SkillLevel.objects.filter(user=request.user).select_related("category")
+        data = SkillLevelSerializer(qs, many=True).data
+        return Response(data)

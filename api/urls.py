@@ -1,12 +1,20 @@
 from django.urls import path
+
 from .views import (LoginView, RegisterView, GroupListView, HelloWorldView, UserProfileView, GetChallengeScheduleView, AddGameToScheduleView,
-                    UserMessagesView, GroupDetailsView, CatListView, GameListView, ChallengeListView, GetChallengeInitiatorView,
-                    ChallengeDetailView, ChallengeGameScheduleView, CreateManualGroupChallengeView, CreatePendingCollaborativeGroupChallengeView, FriendListView, 
-                    AddGroupMemberView, SendFriendRequestView, FriendRequestListView, RespondToFriendRequestView, FinalizeCollaborativeGroupChallengeScheduleView,
-                    SentFriendRequestListView, AllUsersView, CancelFriendRequestView, CreateGroupView, CreatePersonalChallengeView, GetChallengeInvitesView,
-                    GetAvailabilitiesView, SetAvailabilityView, DeclineChallengeInviteView, ChallengeLeaderboardView, SubmitGameScoresView, ChallengeDailyHistoryView)
+                    UserMessagesView, GroupDetailsView, CatListView, GameListView,
+                    ChallengeListView, GetChallengeInitiatorView,
+                    ChallengeDetailView, ChallengeGameScheduleView, CreateManualGroupChallengeView,
+                    CreatePendingCollaborativeGroupChallengeView, FriendListView,
+                    AddGroupMemberView, SendFriendRequestView, FriendRequestListView,
+                    RespondToFriendRequestView, FinalizeCollaborativeGroupChallengeScheduleView,
+                    SentFriendRequestListView, AllUsersView, CancelFriendRequestView,
+                    CreateGroupView, CreatePersonalChallengeView, GetChallengeInvitesView,
+                    GetAvailabilitiesView, SetAvailabilityView, DeclineChallengeInviteView,
+                    ChallengeLeaderboardView, SubmitGameScoresView, ChallengeDailyHistoryView,
+                    SkillLevelsView)
 
 from .views import CreateSudokuGameView, ValidateSudokuMoveView, get_csrf_token
+from .views import CreatePatternGameView, ValidatePatternMoveView
 
 urlpatterns = [
     path('login/', LoginView.as_view(), name='login'),
@@ -47,8 +55,11 @@ urlpatterns = [
     path('sudoku/validate/', ValidateSudokuMoveView.as_view(), name='validate-sudoku'),
     path('csrf-token/', get_csrf_token, name='get-csrf-token'),
     path("create-personal-challenge/", CreatePersonalChallengeView.as_view(), name="create_personal_challenge"),
+    path('pattern/create/',   CreatePatternGameView.as_view(),   name='pattern-create'),
+    path('pattern/validate/', ValidatePatternMoveView.as_view(), name='pattern-validate'),
     path('challenge-leaderboard/<int:chall_id>/', ChallengeLeaderboardView.as_view(), name='challenge-leaderboard'),
     path("challenge-leaderboard/<int:chall_id>/history/", ChallengeDailyHistoryView.as_view(), name="challenge-leaderboard-history"),
     path('submit-game-scores/', SubmitGameScoresView.as_view(), name='submit-game-scores'),
     path('add-game-to-schedule/', AddGameToScheduleView.as_view(), name='add-game-to-schedule'),
+    path('skill-levels/', SkillLevelsView.as_view(), name="skill-levels"),
 ]

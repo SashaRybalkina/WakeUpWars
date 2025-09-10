@@ -1,5 +1,5 @@
-
 export const BASE_URL = 'https://30ff259b5fe3.ngrok-free.app';
+
 
 export const endpoints = {
   // getToken
@@ -42,6 +42,11 @@ export const endpoints = {
   leaderboard: (id: number) => `${BASE_URL}/api/challenge-leaderboard/${id}/`,
   submitGameScores: () => `${BASE_URL}/api/submit-game-scores/`,
   addGameToSchedule: () => `${BASE_URL}/api/add-game-to-schedule/`,
+  skillLevels: () => `${BASE_URL}/api/skill-levels/`,
+  // Pattern (REST)
+  patternCreate: `${BASE_URL}/api/pattern/create/`,
+  patternValidate: `${BASE_URL}/api/pattern/validate/`,
+  csrfToken: `${BASE_URL}/api/csrf-token/`,
 };
 
 export const leaderboardHistory = (
@@ -54,3 +59,5 @@ export const leaderboardHistory = (
   if (end)   url.searchParams.set("end",   end);
   return url.toString();
 };
+
+

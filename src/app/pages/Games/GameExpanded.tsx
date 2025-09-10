@@ -8,13 +8,18 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NavigationProp, useRoute } from '@react-navigation/native';
+import { getGameMeta } from './NewGamesManagement';
 
 type Props = {
   navigation: NavigationProp<any>;
 };
 
+
+
 const GameExpanded: React.FC<Props> = ({ navigation }) => {
   const route = useRoute();
+  console.log("Route params:", route.params);
+
   const { catType, gameId, gameName, groupId, groupMembers, onGameSelected, challId, challName } = route.params as {
     catType: string;
     gameId: number;
@@ -25,6 +30,9 @@ const GameExpanded: React.FC<Props> = ({ navigation }) => {
     challId: number;
     challName: number;
   };
+
+  // Here we use our new mapping system to get the correct image and description.
+  const meta = getGameMeta(gameId, gameName);
 
   const selectPressed = () => {
     if (onGameSelected) {
@@ -62,11 +70,11 @@ const GameExpanded: React.FC<Props> = ({ navigation }) => {
       <View style={styles.container}>
         <Text style={styles.title}>{gameName}</Text>
         <ImageBackground
-          source={require('../../images/sudoku.png')}
+          source={meta.image}
           style={styles.gameImg}
           imageStyle={styles.gameImgStyle}
         />
-        <Text style={styles.desc}>A logic-based, combinatorial number-placement puzzle.</Text>
+        <Text style={styles.desc}>{meta.desc}</Text>
         <TouchableOpacity
           style={styles.selectButton}
           onPress={selectPressed}
@@ -105,7 +113,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#fff',
-    fontSize: 48,
+    fontSize: 40,
     fontWeight: '700',
     marginBottom: 40,
     textAlign: 'center',
@@ -114,8 +122,8 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   gameImg: {
-    width: 300,
-    height: 300,
+    width: 250,
+    height: 250,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,

@@ -237,6 +237,13 @@ class GamePerformance(models.Model):
     class Meta:
         db_table = 'GamePerformances'
         unique_together = ('challenge', 'game', 'user', 'date')
+        indexes = [
+            models.Index(fields=['user']),
+            models.Index(fields=['game']),
+            models.Index(fields=['date']),
+            models.Index(fields=['user', 'date']),
+            models.Index(fields=['game', 'date']),
+        ]
 
     def __str__(self):
         return f"Performance by {self.user.username} in {self.game.name} on {self.date}"
@@ -246,8 +253,8 @@ class GamePerformance(models.Model):
 class SkillLevel(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     category = models.ForeignKey(GameCategory, on_delete=models.CASCADE)
-    totalEarned = models.IntegerField()
-    totalPossible = models.IntegerField()
+    totalEarned = models.FloatField(default=0.0)    # was IntegerField
+    totalPossible = models.FloatField(default=0.0)  # was IntegerField
 
     class Meta:
         db_table = 'SkillLevels'
@@ -256,13 +263,13 @@ class SkillLevel(models.Model):
     def __str__(self):
         return f"Skill level of {self.user.username} in {self.category.categoryName}"
 
-
 # stores the states of currently running sudoku games (what the puzzle currently looks like, the solution, who's playing)
 class SudokuGameState(models.Model):
       game = models.ForeignKey(Game, on_delete=models.CASCADE)
       challenge = models.ForeignKey(Challenge, on_delete=models.CASCADE, related_name='games')
       puzzle = models.JSONField()
       solution = models.JSONField()
+      game_code = models.CharField(max_length=16, default="sudoku", editable=False)
 
       class Meta:
         db_table = 'SudokuGameStates'
@@ -294,4 +301,36 @@ class FriendRequest(models.Model):
 
     def __str__(self):
         return f"{self.sender.username} → {self.recipient.username}"
+
+# Pattern Memorization Game: stores the state of currently running Pattern Memorization games
+class PatternMemorizationGameState(models.Model):
+    game = models.ForeignKey('Game', on_delete=models.CASCADE)  # link to the general Game model
+    challenge = models.ForeignKey('Challenge', on_delete=models.CASCADE, related_name='pattern_games')  # optional, for challenges
+    max_rounds = models.IntegerField(default=5)  # total number of rounds in this Pattern Memorization game
+    current_round = models.IntegerField(default=1)  # tracks current round
+    pattern_sequence = models.JSONField(default=list)  # stores the sequence of elements/colors for the game
+    is_completed = models.BooleanField(default=False)  # whether the game has ended
+
+    class Meta:
+        db_table = 'PatternMemorizationGameStates'
+
+    def __str__(self):
+        return f"PatternMemorizationGameState for challenge {self.challenge.name} (Round {self.current_round}/{self.max_rounds})"
+
+
+# Pattern Memorization Game Player: representing many-to-many relationship between players and Pattern Memorization games
+class PatternMemorizationGamePlayer(models.Model):
+    game_state = models.ForeignKey('PatternMemorizationGameState', on_delete=models.CASCADE)  # link to PatternMemorizationGameState
+    player = models.ForeignKey('User', on_delete=models.CASCADE)  # player in the game
+    rounds_completed = models.IntegerField(default=0)  # how many rounds the player has completed
+    score = models.IntegerField(default=0)  # total score of the player
+    last_round_success = models.BooleanField(default=True)  # whether the player completed the last round successfully
+    color = models.CharField(max_length=30, blank=True, null=True)
+
+    class Meta:
+        db_table = 'PatternMemorizationPlayers'
+        unique_together = ('game_state', 'player')  # ensures each player has only one entry per game
+
+    def __str__(self):
+        return f"{self.player.username} in PatternMemorizationGame {self.game_state.id} (Score: {self.score})"
 

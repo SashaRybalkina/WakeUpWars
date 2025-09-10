@@ -195,13 +195,22 @@ const addGameToDay = async (game: { id: number; name: string }) => {
     )
   }
 
-  const handleGamePress = (game: { name: string; order: number }, index: number) => {
-    if (game.name === "Sudoku" || game.name === "Group Sudoku") {
-      navigation.navigate("Sudoku", { challengeId: challId })
-    } else {
-      removeGame(index)
+  const handleGamePress = (game: string[], index: number) => {
+    const name = (game[0] || "").trim().toLowerCase();
+
+
+    if (name.includes("sudoku")) { // If the sudoku exists and matches certain names
+      goToSudoku();
+    }
+    // If the pattern game exists and matches certain names
+    else if (name.includes("pattern")) {
+      goToPattern();
+    }
+    else {
+      // removeGame(index);
     }
   }
+
 
   const formatDate = (date: Date) => {
     const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]

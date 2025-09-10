@@ -15,10 +15,13 @@ import { NavigationProp, useRoute } from "@react-navigation/native"
 import { LinearGradient } from "expo-linear-gradient"
 import { BASE_URL, endpoints } from "../../api"
 import { Platform } from "react-native"
+import { getMetaFromTuple } from "../Games/NewGamesManagement"
 
 type Props = {
   navigation: NavigationProp<any>
 }
+
+
 
 const DAYS = ["M", "T", "W", "TH", "F", "S", "SU"]
 
@@ -282,6 +285,7 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
   
   }
 
+
   return (
     <ImageBackground source={require("../../images/cgpt.png")} style={styles.background} resizeMode="cover">
       <View style={styles.container}>
@@ -379,23 +383,33 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
             <View style={styles.formSection}>
               <Text style={styles.sectionTitle}>Games for {selectedDays[0]}</Text>
               <View style={styles.gamesContainer}>
-                {(selectedDays[0] && gamesByDay[selectedDays[0]] || []).map((game, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.gameCard}
-                    onPress={() => selectedDays[0] && handleGameRemove(selectedDays[0], index)}
-                  >
-                    <View style={styles.gameContent}>
-                      <Text style={styles.gameTitle}>{game[1]}</Text>
-                      <Ionicons name="close-circle" size={20} color="rgba(255,255,255,0.7)" style={styles.removeIcon} />
-                    </View>
-                    <ImageBackground
-                      source={require("../../images/sudoku.png")}
-                      style={styles.gameImage}
-                      resizeMode="contain"
-                    />
-                  </TouchableOpacity>
-                ))}
+                {(selectedDays[0] && gamesByDay[selectedDays[0]] || []).map((game, index) => {
+                  const { image } = getMetaFromTuple(game);
+
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.gameCard}
+                      onPress={() => selectedDays[0] && handleGameRemove(selectedDays[0], index)}
+                    >
+                      <View style={styles.gameContent}>
+                        <Text style={styles.gameTitle}>{game[1]}</Text>
+                        <Ionicons
+                          name="close-circle"
+                          size={20}
+                          color="rgba(255,255,255,0.7)"
+                          style={styles.removeIcon}
+                        />
+                      </View>
+
+                      <ImageBackground
+                        source={image}
+                        style={styles.gameImage}
+                        resizeMode="contain"
+                      />
+                    </TouchableOpacity>
+                  );
+                })}
 
                 <TouchableOpacity
                   style={styles.addGameButton}
