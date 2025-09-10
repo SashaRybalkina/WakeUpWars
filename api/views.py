@@ -332,17 +332,19 @@ class ChallengeListView(APIView):
         # TODO: consider only fetching non-pending challenges
         if which_chall == 'Group':
             group_ids = GroupMembership.objects.filter(uID=user_id).values_list('groupID', flat=True)
-            challenges = Challenge.objects.filter(groupID__in=group_ids)
+            challenges = Challenge.objects.filter(groupID__in=group_ids, isPending=False)
         elif which_chall == 'Personal':
             challenges = Challenge.objects.filter(
                 id__in=ChallengeMembership.objects.filter(uID=user_id).values_list('challengeID', flat=True),
                 groupID=None,
-                isPublic=False
+                isPublic=False,
+                isPending=False
             )
         elif which_chall == 'Public':
             challenges = Challenge.objects.filter(
                 id__in=ChallengeMembership.objects.filter(uID=user_id).values_list('challengeID', flat=True),
-                isPublic=True
+                isPublic=True,
+                isPending=False
             )
 
         numeric_to_label = {1: "M", 2: "T", 3: "W", 4: "TH", 5: "F", 6: "S", 7: "SU"}
