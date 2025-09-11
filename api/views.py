@@ -1429,6 +1429,21 @@ class ObligationViewSet(mixins.ListModelMixin,
             qs = qs.filter(payee=self.request.user)
         return qs
 
+    @action(detail=False, methods=['get'], url_path='me')
+    def me(self, request):
+        """
+        Return obligations relevant to the current user, grouped as
+        things they need to pay and things they should receive.
+        """
+        base = Obligation.objects.select_related('challenge', 'payer', 'payee').prefetch_related('payments')
+        to_pay = base.filter(payer=request.user)
+        to_receive = base.filter(payee=request.user)
+
+        return Response({
+            "to_pay": ObligationSerializer(to_pay, many=True).data,
+            "to_receive": ObligationSerializer(to_receive, many=True).data,
+        })
+
     @action(detail=True, methods=['post'])
     def accept_agreement(self, request, pk=None):
         ob = self.get_object()
@@ -1460,7 +1475,7 @@ class ObligationViewSet(mixins.ListModelMixin,
             ob.recompute_status()
         return Response(PaymentSerializer(p).data, status=201)
 
-    @action(detail=True, methods=['post'], url_path='pay-external')
+    @action(detail=True, methods=['post'], url_path='pay_external')
     def pay_external(self, request, pk=None):
         ob = self.get_object()
         if ob.payer != request.user:
