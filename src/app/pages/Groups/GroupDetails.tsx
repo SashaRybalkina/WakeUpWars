@@ -89,8 +89,6 @@ const GroupDetails: React.FC<Props> = ({ navigation }) => {
   
           setGroupData(data)
 
-
-
           // Check for pending invites
           const inviteResponse = await fetch(endpoints.getChallengeInvites(Number(user.id), groupId));
           const inviteData = await inviteResponse.json();
@@ -102,8 +100,6 @@ const GroupDetails: React.FC<Props> = ({ navigation }) => {
               accepted: item.accepted
             })
           );
-
-
           setPendingChallenges(formatted);
 
         } catch (error) {

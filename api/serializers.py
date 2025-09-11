@@ -51,7 +51,6 @@ class SkillLevelSerializer(serializers.ModelSerializer):
         model = SkillLevel
         fields = ['category', 'totalEarned', 'totalPossible']
 
-
 class ChallengeSummarySerializer(serializers.ModelSerializer):
     isGroupChallenge = serializers.SerializerMethodField()
     daysOfWeek = serializers.SerializerMethodField()
