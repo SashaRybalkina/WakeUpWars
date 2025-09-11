@@ -395,11 +395,27 @@ const CreatePublicChall2: React.FC<Props> = ({ navigation }) => {
                       <Text style={styles.gameTitle}>{game[1]}</Text>
                       <Ionicons name="close-circle" size={20} color="rgba(255,255,255,0.7)" style={styles.removeIcon} />
                     </View>
-                    <ImageBackground
-                      source={require("../../images/sudoku.png")}
+                    {((game[1] === "Sudoku") && (
+                      <ImageBackground
+                      source={require('../../images/sudoku.png')}
                       style={styles.gameImage}
                       resizeMode="contain"
                     />
+                    ))}
+                    {((game[1] === "Wordle" || game[1] === "Singleplayer Wordle") && (
+                      <ImageBackground
+                      source={require('../../images/wordle.png')}
+                      style={styles.gameImage}
+                      resizeMode="contain"
+                    />
+                    ))}
+                    {((game[1] === "Pattern" || game[1] === "Pattern Game") && (
+                      <ImageBackground
+                      source={require('../../images/patternGame.png')}
+                      style={styles.gameImage}
+                      resizeMode="contain"
+                    />
+                    ))}
                   </TouchableOpacity>
                 ))}
 

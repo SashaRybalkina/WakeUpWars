@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-
 import 'expo-router/entry';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
+import * as Notifications from 'expo-notifications';
 
-import { NavigationContainer } from '@react-navigation/native';
+import { Alarm } from './Alarm';
 
 import Challenges from './pages/Challenges';
 import Chall1 from './pages/Challenges/Chall1';
@@ -41,10 +42,32 @@ import StartScreen from './pages/StartScreen';
 import SudokuScreen from './pages/SudokuScreen';
 import CreateGroup from './pages/Groups/CreateGroup';
 import PatternGameScreen from './pages/PatternGame/PatternGameScreen';
+import WordleScreen from './pages/WordGame/WordleScreen';
 
 const Stack = createStackNavigator();
+export const navigationRef = createNavigationContainerRef();
 
 function App() {
+  React.useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener(
+      async (response) => {
+        const { screen, params } = response.notification.request.content.data as {
+          screen?: string;
+          params?: Record<string, any>;
+        };
+  
+        // stop any burst alarms when tapped
+        await Alarm.stopAll();
+  
+        if (screen && navigationRef.isReady()) {
+          navigationRef.navigate(screen as never, params as never);
+        }
+      }
+    );
+  
+    return () => subscription.remove();
+  }, []);
+
   return (
     <NavigationContainer>
       <Stack.Navigator
@@ -95,6 +118,11 @@ function App() {
         <Stack.Screen
           name="Sudoku"
           component={SudokuScreen}
+          options={{ animationEnabled: false }}
+        />
+        <Stack.Screen
+          name="Wordle"
+          component={WordleScreen}
           options={{ animationEnabled: false }}
         />
         <Stack.Screen
@@ -238,3 +266,12 @@ function App() {
 }
 
 export default App;
+
+//How to use alarm anywhere in the app
+// import { Alarm } from './Alarm';
+//Schedule for 1:30 PM, have it repeat for 20 seconds, and takes you to the sudoku game
+// Alarm.scheduleBurstNotification('WordleScreen', 11, 45, 20, {
+//   challengeId: 30,
+//   challName: 'Test Challenge',
+//   whichChall: 'wordle',
+// });

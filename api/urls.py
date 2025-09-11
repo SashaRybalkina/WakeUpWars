@@ -15,6 +15,7 @@ from .views import (LoginView, RegisterView, GroupListView, HelloWorldView, User
 
 from .views import CreateSudokuGameView, ValidateSudokuMoveView, get_csrf_token
 from .views import CreatePatternGameView, ValidatePatternMoveView
+from .views import CreateWordleGameView, ValidateWordleMoveView
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
@@ -78,6 +79,8 @@ urlpatterns = [
     path('create-group/', CreateGroupView.as_view(), name='create-group'),
     path('sudoku/create/', CreateSudokuGameView.as_view(), name='create-sudoku'),
     path('sudoku/validate/', ValidateSudokuMoveView.as_view(), name='validate-sudoku'),
+    path('create-wordle/', CreateWordleGameView.as_view(), name='create-wordle'),
+    path('wordle/validate/', ValidateWordleMoveView.as_view(), name='validate-wordle'),
     path('csrf-token/', get_csrf_token, name='get-csrf-token'),
     path("create-personal-challenge/", CreatePersonalChallengeView.as_view(), name="create_personal_challenge"),
     path('pattern/create/',   CreatePatternGameView.as_view(),   name='pattern-create'),

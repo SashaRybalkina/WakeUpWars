@@ -1,74 +1,88 @@
 import * as Notifications from 'expo-notifications';
 
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
 export class Alarm {
-  // Request permission for notifications (necessary for iOS)
+  // Request permissions (mainly for iOS)
   static async requestPermissions() {
     const { status } = await Notifications.requestPermissionsAsync();
-
-    // Handle the case where permission was not granted
     if (status !== 'granted') {
       throw new Error('Notification permission not granted!');
     }
-    console.log('Notification permission granted!');
+    console.log('✅ Notification permission granted!');
   }
 
-  // Function to schedule a notification at a specific time
-  static async scheduleNotification(
+  // Setup Android notification channel
+  static async setupAndroidChannel() {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'Default',
+      importance: Notifications.AndroidImportance.MAX,
+      sound: 'default',
+    });
+  }
+
+  static async scheduleBurstNotification(
     screenName: string,
     hour: number,
     minute: number,
+    durationInSeconds: number,
+    params: Record<string, any> = {}
   ) {
-    const now = new Date();
-
-    // Create a new Date object for the next scheduled time
-    let notificationTime = new Date();
-    notificationTime.setHours(hour, minute, 0, 0); // Set to the desired time
-
-    // If the time has already passed today, schedule for tomorrow
-    if (notificationTime <= now) {
-      notificationTime.setDate(notificationTime.getDate() + 1); // Schedule for tomorrow
-    }
-
-    // Calculate the delay in milliseconds until the next notification time
-    const delay = notificationTime.getTime() - now.getTime();
-
-    // Schedule the notification using setTimeout
-    setTimeout(async () => {
-      // First notification
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: '⏰ Alarm!',
-          body: 'This is your scheduled alarm notification!',
-          sound: 'default',
-          data: { screen: screenName },
-        },
-        trigger: null, // No trigger needed, we'll use setTimeout
-      });
-
-      console.log(
-        `First alarm triggered at: ${notificationTime.toLocaleTimeString()}`,
-      );
-
-      // Schedule the notification to repeat every 24 hours
-      setInterval(
-        async () => {
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title: '⏰ Time to do your challenge!',
-              body: 'Log in or you will begin losing points!',
-              sound: 'default',
+    try {
+      await Alarm.requestPermissions();
+      await Alarm.setupAndroidChannel();
+  
+      const now = new Date();
+  
+      // Create target time (today at hour:minute)
+      let startTime = new Date();
+      startTime.setHours(hour, minute, 0, 0);
+  
+      // If that time is in the past today, schedule for tomorrow
+      if (startTime <= now) {
+        startTime.setDate(startTime.getDate() + 1);
+      }
+  
+      // Schedule notifications every second after startTime
+      for (let i = 0; i < durationInSeconds; i++) {
+        const fireDate = new Date(startTime.getTime() + i * 1000);
+  
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: '⏰ Alarm!',
+            body: 'Tap to stop the alarm!',
+            sound: 'default',
+            data: {
+              screen: screenName,
+              params,
             },
-            trigger: null, // No trigger needed
-          });
+          },
+          trigger: {
+            type: 'date',
+            timestamp: fireDate.getTime(),
+          },
+        });
+      }
+  
+      console.log(
+        `✅ Burst notifications scheduled for ${durationInSeconds} seconds starting at ${hour}:${minute
+          .toString()
+          .padStart(2, '0')}`,
+      );
+    } catch (error) {
+      console.error('❌ Burst alarm setup failed:', error);
+    }
+  }  
 
-          console.log('Repeating alarm triggered!');
-        },
-        1 * 2 * 60 * 1000,
-      ); // Repeats every 2 minutes
-    }, delay); // Delay the first notification
-
-    console.log(
-      `First alarm scheduled for: ${notificationTime.toLocaleTimeString()}`,
-    );
+  // Cancel all scheduled notifications
+  static async stopAll() {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+    console.log('🛑 All scheduled notifications canceled');
   }
 }

@@ -203,6 +203,10 @@ const addGameToDay = async (game: { id: number; name: string }) => {
     navigation.navigate('Sudoku', { challengeId: challId });
   };
 
+  const goToWordle = () => {
+    navigation.navigate('Wordle', { challengeId: challId });
+  };
+
   const goToPattern = () => {
     navigation.navigate('PatternGame', { challengeId: challId});
   }
@@ -214,6 +218,9 @@ const addGameToDay = async (game: { id: number; name: string }) => {
 
     if (game.name.includes("sudoku")) { // If the sudoku exists and matches certain names
       goToSudoku();
+    }
+    else if (game.name.includes("wordle")) {
+      goToWordle();
     }
     // If the pattern game exists and matches certain names
     else if (game.name.includes("pattern")) {

@@ -533,3 +533,43 @@ class Payment(models.Model):
         self.status = PaymentStatus.REJECTED
         self.save(update_fields=['status'])
         self.obligation.recompute_status()
+
+
+# stores the states of currently running wordle games (what the puzzle currently looks like, the solution, who's playing)
+class WordleGameState(models.Model):
+      game = models.ForeignKey(Game, on_delete=models.CASCADE)
+      challenge = models.ForeignKey(Challenge, on_delete=models.CASCADE, related_name='wordle_games')
+      puzzle = models.JSONField()
+      solution = models.JSONField()
+      game_code = models.CharField(max_length=50, default="wordle")
+      answer = models.CharField(max_length=10, blank=True, null=True)  # the chosen word
+      created_at = models.DateTimeField(auto_now_add=True)
+
+      class Meta:
+        db_table = 'WordleGameStates'
+
+# representing m-m relationship between WordleGameStates and Users. Can use to keep track of player inaccuracies/accuracies
+class WordleGamePlayer(models.Model):
+      gameState = models.ForeignKey(WordleGameState, on_delete=models.CASCADE)
+      player = models.ForeignKey(User, on_delete=models.CASCADE)
+      accuracyCount = models.IntegerField()
+      inaccuracyCount = models.IntegerField()
+      color = models.CharField(max_length=30, blank=True, null=True)
+    
+      class Meta:
+          db_table = 'WordleGamePlayers'
+          unique_together = ('gameState', 'player')
+
+# keeps track of wordle moves
+class WordleMove(models.Model):
+    gameState = models.ForeignKey("WordleGameState", on_delete=models.CASCADE, related_name="moves")
+    player = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="wordle_moves")
+    row = models.IntegerField()     # attempt number (0–5)
+    guess = models.CharField(max_length=10)  # guessed word (usually 5 letters)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("gameState", "player", "row")
+
+    def __str__(self):
+        return f"{self.player.username} guessed {self.guess} in game {self.gameState.id} (row {self.row})"

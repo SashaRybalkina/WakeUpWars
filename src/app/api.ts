@@ -37,6 +37,9 @@ export const endpoints = {
   createGroup: `${BASE_URL}/api/create-group/`,
   createSudokuGame: `${BASE_URL}/api/sudoku/create/`,
   validateSudokuMove: `${BASE_URL}/api/sudoku/validate/`,
+  createWordleGame: `${BASE_URL}/api/create-wordle/`,
+  validateWordleMove: `${BASE_URL}/api/wordle/validate/`,
+  
   createPersonalChallenge: `${BASE_URL}/api/create-personal-challenge/`,
   leaderboard: (id: number) => `${BASE_URL}/api/challenge-leaderboard/${id}/`,
   submitGameScores: () => `${BASE_URL}/api/submit-game-scores/`,

@@ -1,5 +1,6 @@
 from datetime import timezone, datetime, date, timedelta
 from datetime import date as date_cls, timedelta
+import random
 from django.db.models import Sum, F
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -36,9 +37,10 @@ from rest_framework.exceptions import ValidationError
 
 
 #### Sudoku Game Imports ####
-from .models import (SudokuGameState, Challenge, SudokuGamePlayer, User, Game, GamePerformance, RewardSetting,
+from .models import (SudokuGameState, WordleGameState, Challenge, SudokuGamePlayer, WordleGamePlayer, User, Game, GamePerformance, RewardSetting,
                      ExternalHandle, Obligation, Payment, PaymentStatus, PaymentMethod, PaymentProvider, ObligationStatus, RewardType)
 from api.sudokuStuff.utils import validate_sudoku_move, get_or_create_game
+from api.wordleStuff.utils import validate_wordle_move, get_or_create_game_wordle
 from .serializers import ChallengeSummarySerializer
 from sudoku import Sudoku
 import time
@@ -53,10 +55,14 @@ from api.services.skill import recompute_skill_for_user
 from api.patternMem.utils import get_or_create_pattern_game, validate_pattern_move
 from api.models import PatternMemorizationGameState
 
+from .words_array import words
+
 import logging
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
+WORD_LIST = words
+
 
 @ensure_csrf_cookie
 def get_csrf_token(request):
@@ -1214,6 +1220,123 @@ class ValidatePatternMoveView(APIView):
             return Response({"success": True, "result": "correct", **payload}, status=status.HTTP_200_OK)
         else:
             return Response({"success": False, "result": "incorrect", **payload}, status=status.HTTP_200_OK)
+
+
+############ Wordle Game ##############
+
+class CreateWordleGameView(APIView):
+    """
+    Called when a player wants to start or join a Wordle game for a challenge.
+
+    Request:
+      - challenge_id: ID of the challenge (int)
+
+    Response:
+      - game_state_id: ID of the WordleGameState
+      - answer: chosen word (only sent to the creator; in multiplayer you may want to hide it)
+      - is_multiplayer: true if it's a multiplayer game
+    """
+
+    def post(self, request):
+        challenge_id = request.data.get("challenge_id")
+        user = request.user
+
+        if not challenge_id:
+            return Response({"error": "Missing challenge_id"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            Challenge.objects.get(id=challenge_id)
+        except Challenge.DoesNotExist:
+            return Response({"error": "Challenge not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # get_or_create_game should work for Wordle as well (if you extend it to handle WordleGameState)
+        game_data = get_or_create_game_wordle(challenge_id, user)
+
+        try:
+            state_id = game_data.get("game_state_id")
+            if state_id:
+                state = WordleGameState.objects.get(id=state_id)
+
+                state.answer = random.choice(WORD_LIST).upper()
+                state.save()
+
+                # Add info to response
+                game_data["game_id"] = state.game_id
+                game_data["answer"] = state.answer  # ⚠️ careful: in real multiplayer you may NOT want to send this to everyone
+        except WordleGameState.DoesNotExist:
+            pass
+
+        return Response(game_data, status=status.HTTP_200_OK)
+
+
+class ValidateSudokuMoveView(APIView):
+    def post(self, request):
+        game_id = request.data.get('game_state_id')
+        index = request.data.get('index')
+        value = request.data.get('value')
+        user = request.user
+
+        if game_id is None or index is None or value is None:
+            return Response({'error': 'Missing parameters'}, status=400)
+
+        try:
+            game_state = SudokuGameState.objects.get(id=game_id)
+        except SudokuGameState.DoesNotExist:
+            return Response({'error': 'Game not found'}, status=404)
+
+        # result = validate_sudoku_move(game_state, user, index, value)
+        result = async_to_sync(validate_sudoku_move)(game_state.id, user, index, value)
+
+        if result['is_correct']:
+            return Response({
+                'success': True,
+                'result': 'correct',
+                'puzzle': game_state.puzzle,
+                'completed': result.get('is_complete', False)
+            }, status=200)
+        else:
+            return Response({
+                'success': False,
+                'result': 'incorrect',
+                'puzzle': game_state.puzzle
+            }, status=200)
+
+
+class ValidateWordleMoveView(APIView):
+    def post(self, request):
+        game_id = request.data.get('game_state_id')
+        index = request.data.get('index')   # attempt row
+        value = request.data.get('value')   # guessed word
+        user = request.user
+
+        if game_id is None or index is None or value is None:
+            return Response({'error': 'Missing parameters'}, status=400)
+
+        try:
+            game_state = WordleGameState.objects.get(id=game_id)
+        except WordleGameState.DoesNotExist:
+            return Response({'error': 'Game not found'}, status=404)
+
+        # Store the move if you want multiplayer history / stats
+        WordleGamePlayer.objects.get_or_create(
+            gameState=game_state,
+            player=user,
+            defaults={'accuracyCount': 0, 'inaccuracyCount': 0}
+        )
+        
+        move, created = WordleMove.objects.update_or_create(
+            gameState=game_state,
+            player=user,
+            row=index,
+            defaults={"guess": value}
+        )
+
+        return Response({
+            'success': True,
+            'message': 'Move recorded',
+            'row': index,
+            'guess': value,
+        }, status=200)
 
 
 # AI was used to help generate this class

@@ -4,7 +4,7 @@
  * Defines the standard, internal keys we'll use to represent each unique game type.
  * This ensures type safety and consistency 
  * ***************/
-export type GameKey = 'sudoku' | 'pattern';
+export type GameKey = 'sudoku' | 'wordle' | 'pattern';
 
 /**
  * This is the single source of truth for all game-specific display information.
@@ -15,6 +15,10 @@ export const GAME_META: Record<GameKey, { image: any; desc: string }> = {
   sudoku: {
     image: require('../../images/sudoku.png'),
     desc: 'A logic-based, combinatorial number-placement puzzle.',
+  },
+  wordle: {
+    image: require('../../images/wordle.png'),
+    desc: 'A combinatorial word-guessing puzzle where players deduce a hidden five-letter word using limited attempts and feedback.',
   },
   pattern: {
     image: require('../../images/patternGame.png'),
@@ -31,6 +35,8 @@ export const GAME_ID_TO_KEY: Record<number, GameKey> = {
   10: 'sudoku',  // Group Sudoku
   11: 'pattern', // Personal Pattern
   12: 'pattern', // Group Pattern
+  13: 'wordle', // Personal Wordle
+  14: 'wordle' // Group Wordle
 };
 
 /**
@@ -42,6 +48,8 @@ export const GAME_NAME_ALIAS: Record<string, GameKey> = {
   'group sudoku': 'sudoku',
   'pattern memorization': 'pattern',
   'group pattern memorization': 'pattern',
+  'wordle': 'pattern',
+  'group wordle': 'pattern',
 };
 
 
