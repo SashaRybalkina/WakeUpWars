@@ -69,7 +69,7 @@ function App() {
   }, []);
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         initialRouteName="Login"
         //initialRouteName="PatternGame"
@@ -270,7 +270,7 @@ export default App;
 //How to use alarm anywhere in the app
 // import { Alarm } from './Alarm';
 //Schedule for 1:30 PM, have it repeat for 20 seconds, and takes you to the sudoku game
-Alarm.scheduleBurstNotification('Wordle', 16, 9, 20, {
+Alarm.scheduleBurstNotification('Wordle', 16, 45, 20, {
   challengeId: 30,
   challName: 'Test Challenge',
   whichChall: 'wordle',
