@@ -3,12 +3,16 @@ from datetime import date as date_cls, timedelta
 from django.db.models import Sum, F
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from django.views import View
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, IsAdminUser
 from rest_framework import generics, permissions, status, viewsets, mixins
 from decimal import Decimal
 from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import action
 from rest_framework import status
+from django.http import JsonResponse, HttpResponseNotAllowed
 from django.db import transaction
 from collections import defaultdict
 from datetime import time
@@ -1514,29 +1518,32 @@ class PaymentViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
 # Challenge finalize (creates obligations)
 # POST /api/challenges/<id>/finalize/ is called right when the challenge ends.
 # It figures out the winner, looks at RewardSetting, and creates an Obligation row for every non-winner (due in 7 days, with a points-penalty value)
-class FinalizeChallengeView(APIView):
-    """POST /api/challenges/<id>/finalize/ → create obligations for the winner."""
-    permission_classes = [permissions.IsAuthenticated]
-    http_method_names = ["post"]
+@method_decorator(csrf_exempt, name="dispatch")   # remove CSRF for POST
+class FinalizeChallengeView(View):
+    """
+    POST /api/challenges/<id>/finalize/
+    Finalises a challenge, creates obligations, returns them.
+    """
 
     def post(self, request, challenge_id, *args, **kwargs):
         try:
             chall = Challenge.objects.get(id=challenge_id)
         except Challenge.DoesNotExist:
-            return Response({"detail": "Challenge not found"}, status=404)
+            return JsonResponse({"detail": "Challenge not found"}, status=404)
 
-        # simple authorization: participant OR staff
-        if (
-                not chall.members.filter(id=request.user.id).exists()
-                and not request.user.is_staff
-        ):
-            return Response({"detail": "Forbidden"}, status=403)
+        # very simple auth for tests
+        if not chall.members.filter(id=request.user.id).exists() and not request.user.is_staff:
+            return JsonResponse({"detail": "Forbidden"}, status=403)
 
-        # run the helper we added earlier
+        # run helper (added earlier)
         try:
             chall.finalize_and_create_obligations()
-        except ValueError as exc:                # e.g. no winner yet
-            return Response({"detail": str(exc)}, status=400)
+        except ValueError as exc:                 # e.g. no winner determined
+            return JsonResponse({"detail": str(exc)}, status=400)
 
-        ser = ObligationSerializer(chall.obligations.all(), many=True)
-        return Response(ser.data, status=status.HTTP_201_CREATED)
+        data = ObligationSerializer(chall.obligations.all(), many=True).data
+        return JsonResponse(data, safe=False, status=201)
+
+    # any verb other than POST → 405
+    def http_method_not_allowed(self, request, *args, **kwargs):
+        return HttpResponseNotAllowed(["POST"])

@@ -13,8 +13,7 @@ from .views import (
     GetAvailabilitiesView, SetAvailabilityView, DeclineChallengeInviteView,
     ChallengeLeaderboardView, SubmitGameScoresView, ChallengeDailyHistoryView,
     SkillLevelsView, ExternalHandleViewSet, ObligationViewSet, PaymentViewSet,
-    FinalizeChallengeView,  # keep on same line
-    CreateSudokuGameView, ValidateSudokuMoveView, get_csrf_token,
+    FinalizeChallengeView, CreateSudokuGameView, ValidateSudokuMoveView, get_csrf_token,
 )
 
 router = DefaultRouter()
@@ -24,6 +23,8 @@ router.register(r'payments', PaymentViewSet, basename='payment')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('challenges/<int:challenge_id>/finalize/', FinalizeChallengeView.as_view(), name='finalize-challenge'),
+    path('challenges/<int:user_id>/<str:which_chall>/', ChallengeListView.as_view(), name='challenge-list'),
     path('login/', LoginView.as_view(), name='login'),
     path('register/', RegisterView.as_view(), name='register'),
     path('user-groups/<int:user_id>/', GroupListView.as_view(), name='group-list'),
@@ -36,7 +37,7 @@ urlpatterns = [
     path('messages/<int:user_id>/', UserMessagesView.as_view()),
     path('groups/<int:group_id>/', GroupDetailsView.as_view(), name='group-details'),
     path('group-member-add/<int:group_id>/', AddGroupMemberView.as_view(), name='group-mem-add'),
-    path('challenges/<int:user_id>/<str:which_chall>/', ChallengeListView.as_view(), name='challenge-list'),
+
     path('challenge-detail/<int:chall_id>/', ChallengeDetailView.as_view(), name='challenge-detail'),
     path('challenge-schedule/<int:chall_id>/', ChallengeGameScheduleView.as_view(), name='challenge-schedule'),
     path('create-manual-group-challenge/', CreateManualGroupChallengeView.as_view(), name='create-manual-group-challenge'),
@@ -65,5 +66,4 @@ urlpatterns = [
     path("challenge-leaderboard/<int:chall_id>/history/", ChallengeDailyHistoryView.as_view(), name="challenge-leaderboard-history"),
     path('submit-game-scores/', SubmitGameScoresView.as_view(), name='submit-game-scores'),
     path('skill-levels/', SkillLevelsView.as_view(), name="skill-levels"),
-    path('challenges/<int:challenge_id>/finalize/', FinalizeChallengeView.as_view(), name='finalize-challenge'),
 ]

@@ -190,13 +190,11 @@ class Challenge(models.Model):
         (if it doesn’t exist) + Obligations for every non-winner.
         """
         from django.db import transaction
-        from django.utils import timezone
-        from .models import RewardSetting, Obligation, RewardType
 
         if self.rewards_finalized:
             return  # already done
 
-        winner = self.get_winner_user()
+        winner = self.winner or self.get_winner_user()
         if not winner:
             raise ValueError("No winner could be determined")
 
