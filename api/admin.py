@@ -14,11 +14,12 @@ class EHAdmin(admin.ModelAdmin):
 
 @admin.register(Obligation)
 class ObligationAdmin(admin.ModelAdmin):
-    list_display = ('challenge','payer','payee','amount','status','due_at','agreement_accepted')
-    list_filter = ('status',)
+    list_display  = ('challenge', 'payer', 'payee', 'amount', 'status', 'due_at')
+    list_filter   = ('status',)
+    search_fields = ('challenge__name', 'payer__username', 'payee__username')
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ('obligation','method','provider','amount','status','payer_marked_at','winner_confirmed_at')
-    list_filter = ('status','provider','method')
-
+    list_display  = ('obligation', 'method', 'provider', 'amount', 'status')
+    list_filter   = ('status', 'provider', 'method')
+    search_fields = ('obligation__challenge__name', 'obligation__payer__username')

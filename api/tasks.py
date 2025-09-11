@@ -1,6 +1,7 @@
 from django.utils import timezone
 from celery import shared_task
-from .models import Obligation, Payment, PaymentStatus, ObligationStatus
+from django.db.models import F
+from .models import Obligation, Payment, PaymentStatus, ObligationStatus, ChallengeMembership
 
 @shared_task
 def apply_overdue_penalties():
@@ -9,14 +10,19 @@ def apply_overdue_penalties():
     for ob in qs:
         if ob.last_penalty_at and ob.last_penalty_at.date() >= today:
             continue
-        # TODO: subtract points from payer’s challenge points (hook into challenge scoring)
+        penalised = ChallengeMembership.objects.filter(
+            challengeID=ob.challenge,
+            uID=ob.payer
+        ).update(points=F('points') - ob.points_penalty_per_day)
+
         ob.last_penalty_at = timezone.now()
         ob.save(update_fields=['last_penalty_at'])
+
         # TODO: push notification
 
 @shared_task
-def auto_confirm_old_payments(hours=48):
+def auto_confirm_old_payments(hours=1):
     threshold = timezone.now() - timezone.timedelta(hours=hours)
-    for p in Payment.objects.filter(status=PaymentStatus.PENDING, payer_marked_at__lt=threshold):
-        # auto-confirm if winner didn’t dispute
+    for p in Payment.objects.filter(status=PaymentStatus.PENDING,
+                                    payer_marked_at__lt=threshold):
         p.confirm()

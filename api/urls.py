@@ -1,19 +1,21 @@
-from django.urls import path
+from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import (LoginView, RegisterView, GroupListView, HelloWorldView, UserProfileView,
-                    UserMessagesView, GroupDetailsView, CatListView, GameListView,
-                    ChallengeListView, GetChallengeInitiatorView,
-                    ChallengeDetailView, ChallengeGameScheduleView, CreateManualGroupChallengeView,
-                    CreatePendingCollaborativeGroupChallengeView, FriendListView,
-                    AddGroupMemberView, SendFriendRequestView, FriendRequestListView,
-                    RespondToFriendRequestView, FinalizeCollaborativeGroupChallengeScheduleView,
-                    SentFriendRequestListView, AllUsersView, CancelFriendRequestView,
-                    CreateGroupView, CreatePersonalChallengeView, GetChallengeInvitesView,
-                    GetAvailabilitiesView, SetAvailabilityView, DeclineChallengeInviteView,
-                    ChallengeLeaderboardView, SubmitGameScoresView, ChallengeDailyHistoryView,
-                    SkillLevelsView, ExternalHandleViewSet, ObligationViewSet, PaymentViewSet,
-                    FinalizeChallengeView)
-from .views import CreateSudokuGameView, ValidateSudokuMoveView, get_csrf_token
+from .views import (
+    LoginView, RegisterView, GroupListView, HelloWorldView, UserProfileView,
+    UserMessagesView, GroupDetailsView, CatListView, GameListView,
+    ChallengeListView, GetChallengeInitiatorView, ChallengeDetailView,
+    ChallengeGameScheduleView, CreateManualGroupChallengeView,
+    CreatePendingCollaborativeGroupChallengeView, FriendListView,
+    AddGroupMemberView, SendFriendRequestView, FriendRequestListView,
+    RespondToFriendRequestView, FinalizeCollaborativeGroupChallengeScheduleView,
+    SentFriendRequestListView, AllUsersView, CancelFriendRequestView,
+    CreateGroupView, CreatePersonalChallengeView, GetChallengeInvitesView,
+    GetAvailabilitiesView, SetAvailabilityView, DeclineChallengeInviteView,
+    ChallengeLeaderboardView, SubmitGameScoresView, ChallengeDailyHistoryView,
+    SkillLevelsView, ExternalHandleViewSet, ObligationViewSet, PaymentViewSet,
+    FinalizeChallengeView,  # keep on same line
+    CreateSudokuGameView, ValidateSudokuMoveView, get_csrf_token,
+)
 
 router = DefaultRouter()
 router.register(r'external-handles', ExternalHandleViewSet, basename='external-handle')
@@ -21,6 +23,7 @@ router.register(r'obligations', ObligationViewSet, basename='obligation')
 router.register(r'payments', PaymentViewSet, basename='payment')
 
 urlpatterns = [
+    path('', include(router.urls)),
     path('login/', LoginView.as_view(), name='login'),
     path('register/', RegisterView.as_view(), name='register'),
     path('user-groups/<int:user_id>/', GroupListView.as_view(), name='group-list'),

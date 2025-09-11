@@ -134,9 +134,10 @@ class Challenge(models.Model):
     daysCompleted = models.IntegerField(default=0)
 
     # ──────── NEW convenience helpers ────────────────────────────────────────
-    members = models.ManyToManyField(         # lets you do  challenge.members.all()
+    members = models.ManyToManyField(
         User,
         through='ChallengeMembership',
+        through_fields=('challengeID', 'uID'),
         related_name='challenges'
     )
 

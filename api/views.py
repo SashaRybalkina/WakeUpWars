@@ -1456,7 +1456,7 @@ class ObligationViewSet(mixins.ListModelMixin,
             ob.recompute_status()
         return Response(PaymentSerializer(p).data, status=201)
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], url_path='pay-external')
     def pay_external(self, request, pk=None):
         ob = self.get_object()
         if ob.payer != request.user:
@@ -1495,7 +1495,7 @@ class PaymentViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     serializer_class = PaymentSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], url_path='confirm')
     def confirm(self, request, pk=None):
         p = self.get_object()
         if p.obligation.payee != request.user and not request.user.is_staff:
@@ -1515,35 +1515,28 @@ class PaymentViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
 # POST /api/challenges/<id>/finalize/ is called right when the challenge ends.
 # It figures out the winner, looks at RewardSetting, and creates an Obligation row for every non-winner (due in 7 days, with a points-penalty value)
 class FinalizeChallengeView(APIView):
+    """POST /api/challenges/<id>/finalize/ → create obligations for the winner."""
     permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ["post"]
 
-    def post(self, request, challenge_id):
+    def post(self, request, challenge_id, *args, **kwargs):
         try:
-            ch = Challenge.objects.get(id=challenge_id)
+            chall = Challenge.objects.get(id=challenge_id)
         except Challenge.DoesNotExist:
-            return Response({'detail': 'Challenge not found'}, status=404)
-        if not request.user.is_staff and not ch.members.filter(id=request.user.id).exists():
-            return Response({'detail': 'Not allowed'}, status=403)
+            return Response({"detail": "Challenge not found"}, status=404)
 
-        # determine winner(s)
-        winner = ch.get_winner_user()  # implement on your Challenge model
+        # simple authorization: participant OR staff
+        if (
+                not chall.members.filter(id=request.user.id).exists()
+                and not request.user.is_staff
+        ):
+            return Response({"detail": "Forbidden"}, status=403)
 
-        rs = getattr(ch, 'reward_setting', None)
-        if not rs or rs.type != RewardType.MONEY or not rs.amount:
-            return Response({'detail': 'Reward setting not money/amount missing'}, status=400)
+        # run the helper we added earlier
+        try:
+            chall.finalize_and_create_obligations()
+        except ValueError as exc:                # e.g. no winner yet
+            return Response({"detail": str(exc)}, status=400)
 
-        due_at = timezone.now() + timezone.timedelta(days=7)
-        created = []
-        with transaction.atomic():
-            for payer in ch.members.exclude(id=winner.id):
-                ob, _ = Obligation.objects.get_or_create(
-                    challenge=ch, payer=payer, payee=winner,
-                    defaults={
-                        'currency': 'USD',
-                        'amount': rs.amount,
-                        'due_at': due_at,
-                        'points_penalty_per_day': 5,  # tune
-                    }
-                )
-                created.append(ob)
-        return Response(ObligationSerializer(created, many=True).data, status=201)
+        ser = ObligationSerializer(chall.obligations.all(), many=True)
+        return Response(ser.data, status=status.HTTP_201_CREATED)
