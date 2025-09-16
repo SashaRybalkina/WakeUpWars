@@ -1,12 +1,11 @@
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
-import { Slot, SplashScreen } from 'expo-router';
 import { UserProvider } from './context/UserContext';
 
 import { AppProvider } from '../providers/AppProvider';
 import { Alarm } from './Alarm'; // Import the Alarm class
 
-void SplashScreen.preventAutoHideAsync();
+// void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   // Simulate fetching alarm data from a "database"
@@ -39,13 +38,13 @@ export default function RootLayout() {
         // await Notifications.cancelAllScheduledNotificationsAsync();
 
         // Schedule each alarm from the fetched list
-        for (const alarm of alarmList) {
-          await Alarm.scheduleNotification(
-            alarm.screen,
-            alarm.hour,
-            alarm.minute,
-          );
-        }
+        // for (const alarm of alarmList) {
+        //   await Alarm.scheduleNotification(
+        //     alarm.screen,
+        //     alarm.hour,
+        //     alarm.minute,
+        //   );
+        // }
       } catch (err) {
         //console.error('Alarm setup failed:');
       }
@@ -64,11 +63,11 @@ export default function RootLayout() {
     return () => sub.remove();
   }, []);
 
-  return (
-    <AppProvider onInitialized={() => SplashScreen.hideAsync()}>
-      <UserProvider>
-        <Slot />
-      </UserProvider>
-    </AppProvider>
-  );
+  // return (
+  //   <AppProvider onInitialized={() => SplashScreen.hideAsync()}>
+  //     <UserProvider>
+  //       <Slot />
+  //     </UserProvider>
+  //   </AppProvider>
+  // );
 }

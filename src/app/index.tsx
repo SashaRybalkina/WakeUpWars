@@ -49,23 +49,23 @@ export const navigationRef = createNavigationContainerRef();
 
 function App() {
   React.useEffect(() => {
-    const subscription = Notifications.addNotificationResponseReceivedListener(
-      async (response) => {
-        const { screen, params } = response.notification.request.content.data as {
-          screen?: string;
-          params?: Record<string, any>;
-        };
+    // const subscription = Notifications.addNotificationResponseReceivedListener(
+    //   async (response) => {
+    //     const { screen, params } = response.notification.request.content.data as {
+    //       screen?: string;
+    //       params?: Record<string, any>;
+    //     };
   
-        // stop any burst alarms when tapped
-        await Alarm.stopAll();
+    //     // stop any burst alarms when tapped
+    //     await Alarm.stopAll();
   
-        if (screen && navigationRef.isReady()) {
-          navigationRef.navigate(screen as never, params as never);
-        }
-      }
-    );
+    //     if (screen && navigationRef.isReady()) {
+    //       navigationRef.navigate(screen as never, params as never);
+    //     }
+    //   }
+    // );
   
-    return () => subscription.remove();
+    // return () => subscription.remove();
   }, []);
 
   return (

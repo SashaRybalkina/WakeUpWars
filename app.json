@@ -35,7 +35,6 @@
       "package": "com.emilysashavickynatali.tastebuds"
     },
     "plugins": [
-      "expo-router",
       "expo-font",
       "expo-image-picker"
     ],
