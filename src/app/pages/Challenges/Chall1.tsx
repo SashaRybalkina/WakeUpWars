@@ -16,6 +16,7 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
   const route = useRoute()
   const { whichChall } = route.params as {
     whichChall: string
+    // whichCall will be "Personal", "Group", or "Public"
   }
   const { user } = useUser()
   const [challs, setChalls] = useState<
@@ -110,6 +111,15 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
             <View style={styles.decorativeLine} />
           </View>
         </View>
+
+        <TouchableOpacity
+          style={styles.addNewButton}
+          onPress={() => {
+            navigation.navigate("PublicChallSearch1");
+          }}
+        >
+          <Text style={styles.addNewButtonText}>Search for Public Challenge</Text>
+        </TouchableOpacity>
 
         {challs.length === 0 ? (
           <View style={styles.emptyStateContainer}>
