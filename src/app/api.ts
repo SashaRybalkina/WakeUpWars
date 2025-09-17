@@ -5,6 +5,7 @@ export const endpoints = {
   login: `${BASE_URL}/api/login/`,
   register: `${BASE_URL}/api/register/`,
   groups: (userId: number) => `${BASE_URL}/api/user-groups/${userId}/`,
+  getMatchingChallenges: (userId: number) => `${BASE_URL}/api/get-matching-challenges/${userId}/`,
   friends: (userId: number) => `${BASE_URL}/api/user-friends/${userId}/`,
   cats: () => `${BASE_URL}/api/cats/`,
   games: (catId: number, singOrMult: string) => `${BASE_URL}/api/games/${catId}/${singOrMult}/`,
@@ -31,7 +32,8 @@ export const endpoints = {
 
   // pendingChallenges: (groupId: number) => `${BASE_URL}/api/get-pending-challenges/${groupId}/`,
   getAvailabilities: (challId: number) => `${BASE_URL}/api/get-availabilities/${challId}/`,
-  setUserAvailability: (userId: number, challId: number) => `${BASE_URL}/api/set-availability/${userId}/${challId}/`,
+  setUserAvailability: (userId: number) => `${BASE_URL}/api/set-user-availability/${userId}/`,
+  setChallAvailability: (userId: number, challId: number) => `${BASE_URL}/api/set-chall-availability/${userId}/${challId}/`,
   declineChallengeInvite: (userId: number, challId: number) => `${BASE_URL}/api/decline-challenge-invite/${userId}/${challId}/`,
 
   sentFriendRequests: (userId: number) => `${BASE_URL}/api/friend-requests-sent/${userId}/`,

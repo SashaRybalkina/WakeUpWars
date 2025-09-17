@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NavigationProp, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import DateTimePicker from "@react-native-community/datetimepicker"
 import { useUser } from "../../context/UserContext"
 import {
@@ -39,22 +39,8 @@ const TIMES = Array.from({ length: 44 }, (_, i) => {
 
 type SelectedCell = { day: number; time: number }; // day: 0-6, time: 0-11 
 
-const PublicChallSearch1: React.FC<Props> = ({ navigation }) => { 
-  const route = useRoute() 
-//   const { groupId, groupMembers } = route.params as { 
-//     groupId: number 
-//     groupMembers: { id: number; name: string }[] }
-
+const VerifyAvailability: React.FC<Props> = ({ navigation }) => { 
   const { user } = useUser()
-
-//   const [name, setName] = useState("")
-//   const [selectedDate, setSelectedDate] = useState(new Date())
-//   const [showDatePicker, setShowDatePicker] = useState(false)
-
-  const [singOrMult, setSingOrMult] = useState<"singleplayer" | "multiplayer" | null>(null);
-  const [categories, setCategories] = useState<{ id: number; categoryName: string }[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<{ id: number; name: string } | null>();
-  const [miscSelected, setMiscSelected] = useState(false);
 
   const [selectedCells, setSelectedCells] = useState<SelectedCell[]>([]);
 
@@ -68,50 +54,6 @@ const PublicChallSearch1: React.FC<Props> = ({ navigation }) => {
     SU: 7,
   }
 
-
-    useEffect(() => {
-      if (singOrMult) {
-      const fetchCats = async () => {
-        try {
-          // TODO: fetch only the categories for multiplayer/singleplayer (whatever was selected)
-          const response = await fetch(endpoints.cats());
-          const data = await response.json();
-          setCategories(data);
-          console.log("Data2: " + JSON.stringify(data));
-        } catch (error) {
-          console.error('Failed to fetch categories:', error);
-        }
-      };
-    
-      fetchCats();
-      }
-    }, [singOrMult]);
-
-    
-
-//   const onDateChange = (event: any, date?: Date) => {
-//     if (event?.type === "dismissed") {
-//       setShowDatePicker(false)
-//       return
-//     }
-  
-//     if (date) {
-//       setSelectedDate(date)
-//       if (Platform.OS === "android") {
-//         setShowDatePicker(false)
-//       }
-//     }
-//   }
-
-//   const formatDate = (date: Date) => {
-//     const options: Intl.DateTimeFormatOptions = { 
-//       weekday: 'short', 
-//       year: 'numeric', 
-//       month: 'short', 
-//       day: 'numeric' 
-//     }
-//     return date.toLocaleDateString(undefined, options)
-//   }
 
   const toggleCell = (day: number, time: number) => {
     setSelectedCells(prev => {
@@ -150,20 +92,10 @@ const convertTo24Hour = (time12: string) => {
 
 
     const handleSubmit = async() => {
-        if (!singOrMult) {
-            Alert.alert("Error", "Please choose singleplayer or multiplayer")
-            return
-        }
-
-        if (!selectedCategory && !miscSelected) {
-            Alert.alert("Error", "Please choose a game category")
-            return
-        }
-
-        if (selectedCells.length === 0) {
-            Alert.alert("Error", "Please select at least one availability slot.")
-            return
-        }
+        // if (selectedCells.length === 0) {
+        //     Alert.alert("Error", "Please select at least one availability slot.")
+        //     return
+        // }
         
         const alarmSchedule = selectedCells.flatMap(({ day, time }) => {
           const dayStr = DAYS[day];
@@ -176,8 +108,6 @@ const convertTo24Hour = (time12: string) => {
         });
 
         const payload = {
-          category_id: selectedCategory?.id ?? null, // null if miscellaneous
-          sing_or_mult: singOrMult,
           alarm_schedule: alarmSchedule,
         };
 
@@ -193,7 +123,7 @@ const convertTo24Hour = (time12: string) => {
           console.log('csrfToken:', csrfToken);
 
 
-        const res = await fetch(endpoints.getMatchingChallenges(Number(user?.id)), {
+        const res = await fetch(endpoints.setUserAvailability(Number(user?.id)), {
             method: 'POST',
             credentials: 'include',                    
             headers: {
@@ -203,15 +133,15 @@ const convertTo24Hour = (time12: string) => {
             body: JSON.stringify(payload),
         });
 
-        // if (!res.ok) {
-        //     const error = await res.json();
-        //     throw new Error(error.message || 'Failed');
-        // }
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.message || 'Failed to save schedule');
+        }
 
-        // const data = await res.json();
-        // Alert.alert('Success', 'Schedule saved successfully', [
-        //     { text: 'OK', onPress: () => navigation.navigate('GroupDetails', { groupId, groupMembers, refresh: Date.now() }) },
-        // ]);
+        const data = await res.json();
+        Alert.alert('Success', 'Schedule verified', [
+            { text: 'OK', onPress: () => navigation.navigate('PublicChallSearch1') },
+        ]);
         } catch (err: any) {
             Alert.alert('Error', err.message);
         }
@@ -229,97 +159,9 @@ const convertTo24Hour = (time12: string) => {
             showsVerticalScrollIndicator={false}
           >
 
-        <Text style={styles.pageTitle}>Public Challenge Search</Text>
-
-        {/* Singleplayer / Multiplayer Choice */}
-          <View style={styles.formSection}>
-            <Text style={styles.sectionTitle}>Game Type</Text>
-            <View style={styles.choiceRow}>
-              {["singleplayer", "multiplayer"].map((type) => (
-                <TouchableOpacity
-                  key={type}
-                  style={[
-                    styles.choiceButton,
-                    singOrMult === type && styles.choiceButtonSelected,
-                  ]}
-                  onPress={() => {
-                    setSingOrMult(type as any);
-                    setSelectedCategory(null);
-                    setMiscSelected(false);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.choiceText,
-                      singOrMult === type && styles.choiceTextSelected,
-                    ]}
-                  >
-                    {type === "singleplayer" ? "Singleplayer" : "Multiplayer"}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Categories  */}
-          {singOrMult && (
-            <View style={styles.formSection}>
-              <Text style={styles.sectionTitle}>Category</Text>
-              <View style={styles.choiceRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.choiceButton,
-                    miscSelected && styles.choiceButtonSelected,
-                  ]}
-                  onPress={() => {
-                    setMiscSelected(true);
-                    setSelectedCategory(null);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.choiceText,
-                      miscSelected && styles.choiceTextSelected,
-                    ]}
-                  >
-                    Miscellaneous
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-                            <ScrollView
-                              horizontal
-                              showsHorizontalScrollIndicator={false}
-                              contentContainerStyle={styles.categoriesScroll}
-                            >
-                              {categories.map((cat) => (
-                                <TouchableOpacity
-                                  key={cat.id}
-                                  style={[
-                                    styles.choiceButton,
-                                    selectedCategory?.id === cat.id && styles.choiceButtonSelected,
-                                  ]}
-                                  onPress={() => {
-                                    setSelectedCategory({id: cat.id, name: cat.categoryName});
-                                    setMiscSelected(false);
-                                  }}
-                                >
-                                  <Text
-                                    style={[
-                                      styles.choiceText,
-                                      selectedCategory?.id === cat.id && styles.choiceTextSelected,
-                                    ]}
-                                  >
-                                    {cat.categoryName}
-                                  </Text>
-                                </TouchableOpacity>
-                              ))}
-                            </ScrollView>
-                          </View>
-                        )}
 
           <View style={styles.formSection}>
-            <Text style={styles.label}>Select Availability</Text>
+            <Text style={styles.label}>Edit Availability</Text>
             <ScrollView horizontal>
               <View>
                 <View style={styles.row}>
@@ -358,10 +200,9 @@ const convertTo24Hour = (time12: string) => {
               colors={['#FFD700', '#FFC107']}
               style={styles.createButtonGradient}
             >
-              <Text style={styles.createButtonText}>Search for Challenge</Text>
+              <Text style={styles.createButtonText}>Verify Schedule</Text>
             </LinearGradient>
           </TouchableOpacity>
-
 
       </ScrollView>
     </ImageBackground>
@@ -488,23 +329,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
   },
-  sectionTitle: { fontSize: 20, fontWeight: "600", color: "#FFF", marginBottom: 15 },
-  choiceRow: { flexDirection: "row", flexWrap: "wrap" },
-  choiceButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    marginRight: 10,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.2)",
-  },
-  choiceButtonSelected: { backgroundColor: "rgba(255, 215, 0, 0.3)", borderColor: "#FFD700" },
-  choiceText: { color: "#FFF", fontSize: 16, fontWeight: "600" },
-  choiceTextSelected: { color: "#FFD700" },
-  categoriesScroll: { paddingVertical: 5 },
 })
 
 
-export default PublicChallSearch1;
+export default VerifyAvailability;

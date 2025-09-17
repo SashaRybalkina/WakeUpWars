@@ -1,7 +1,7 @@
 from datetime import timezone, datetime, date, timedelta
 from datetime import date as date_cls, timedelta
 import random
-from django.db.models import Sum, F
+from django.db.models import Sum, F, Prefetch
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.views import View
@@ -30,7 +30,8 @@ from .serializers import (UserSerializer, RegisterSerializer, GroupSerializer, U
                           ExternalPaymentCreateSerializer, PaymentSerializer)
 from .models import (Group, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule,
                      AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest,
-                     SkillLevel, PendingGroupChallengeAvailability, GroupChallengeInvite, WordleMove, )
+                     SkillLevel, PendingGroupChallengeAvailability, GroupChallengeInvite, WordleMove, PublicChallengeConfiguration,
+                     UserAvailability)
 from django.http import JsonResponse
 from typing     import Dict, List
 from rest_framework.exceptions import ValidationError
@@ -70,7 +71,7 @@ def get_csrf_token(request):
     return JsonResponse({'csrfToken': token})
 
 
-class SetAvailabilityView(APIView):
+class SetChallAvailabilityView(APIView):
     @transaction.atomic
     def post(self, request, user_id, chall_id):
         availability_data = request.data.get('availability', [])
@@ -112,6 +113,38 @@ class SetAvailabilityView(APIView):
         )
 
         return Response({'status': 'availability toggled and invite accepted'})
+    
+
+
+class SetUserAvailabilityView(APIView):
+    @transaction.atomic
+    def post(self, request, user_id):
+        availability_data = request.data.get('availability', [])
+
+        for item in availability_data:
+            day = item['dayOfWeek']
+            time = item['alarmTime']
+
+            # Try to find existing availability
+            existing = UserAvailability.objects.filter(
+                uID_id=user_id,
+                dayOfWeek=day,
+                alarmTime=time
+            ).first()
+
+            if existing:
+                # If availability exists, remove it
+                existing.delete()
+            else:
+                # Otherwise, create it
+                UserAvailability.objects.create(
+                    uID_id=user_id,
+                    dayOfWeek=day,
+                    alarmTime=time
+                )
+
+        return Response({'status': 'availability toggled'})
+
     
 
 class GetChallengeInitiatorView(APIView):
@@ -393,6 +426,186 @@ class GetPendingPublicChallengesView(APIView):
             response_data.append(serialized)
 
         return Response(response_data)
+    
+
+
+
+class GetMatchingChallengesView(APIView):
+    """
+    POST payload (JSON):
+    {
+      "category_id": <int|null>,         # null => miscellaneous
+      "sing_or_mult": "singleplayer"|"multiplayer",
+      "alarm_schedule": [                # user's availability to match against
+         { "dayOfWeek": 1, "time": "07:15" }, ...
+      ]
+    }
+
+    Response: list of candidate challenges ordered by closeness of skill level:
+    [
+      {
+        "id": <challenge id>,
+        "name": "...",
+        "summary": { ... ChallengeSummarySerializer ... },
+        "distance": 0.12,   # abs(user_skill - challenge.averageSkillLevel)
+      }, ...
+    ]
+    """
+    def post(self, request, user_id):
+        data = request.data
+
+        # --- validate input ---
+        sing_or_mult = data.get("sing_or_mult")
+        if sing_or_mult not in ("singleplayer", "multiplayer"):
+            return Response({"error": "sing_or_mult must be 'singleplayer' or 'multiplayer'."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # category: either int id or None -> for None we treat as miscellaneous (category is null)
+        category_id = data.get("category_id", None)
+        # alarm_schedule: list of {dayOfWeek, time} where time is "HH:MM"
+        raw_alarm_schedule = data.get("alarm_schedule", [])
+        if not isinstance(raw_alarm_schedule, list):
+            return Response({"error": "alarm_schedule must be a list."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Build a mapping: day -> set of "HH:MM" strings for fast membership testing
+        user_avail_by_day = {}
+        try:
+            for entry in raw_alarm_schedule:
+                d = int(entry["dayOfWeek"])
+                t = str(entry["time"])[:5]  # "HH:MM" (defensive)
+                user_avail_by_day.setdefault(d, set()).add(t)
+        except Exception:
+            return Response({"error": "alarm_schedule entries must have dayOfWeek and time (HH:MM)."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # --- query candidate public pending challenges that match category & isMultiplayer ---
+        is_multiplayer_flag = True if sing_or_mult == "multiplayer" else False
+
+        q = PublicChallengeConfiguration.objects.filter(
+            isMultiplayer=is_multiplayer_flag,
+            challenge__isPublic=True,
+            challenge__isPending=True
+        ).select_related("challenge", "category")
+
+        # category filter
+        if category_id is None:
+            # misc: category IS NULL in configuration
+            q = q.filter(category__isnull=True)
+        else:
+            q = q.filter(category_id=category_id)
+
+        # Prefetch the ChallengeAlarmSchedule objects along with their AlarmSchedule and user
+        q = q.prefetch_related(
+            Prefetch(
+                "challenge__challengealarmschedule_set",
+                queryset=ChallengeAlarmSchedule.objects.select_related("alarm_schedule__uID")
+                .order_by("alarm_schedule__dayOfWeek", "alarm_schedule__alarmTime"),
+                to_attr="prefetched_cas"
+            )
+        )
+
+        candidates = list(q)
+
+        # Helper to compute user skill value (0-10). If exact category specified use category; otherwise average.
+        def compute_user_skill(userId, category_obj):
+            """
+            Return decimal value (0..10). If user or skill rows missing, return 0.0
+            If category_obj is None -> return average across user's categories (or 0)
+            """
+            if userId is None:
+                return Decimal("0.0")
+            try:
+                if category_obj is not None:
+                    sl = SkillLevel.objects.filter(user_id=userId, category=category_obj).first()
+                    if not sl or sl.totalPossible == 0:
+                        return Decimal("0.0")
+                    return (Decimal(sl.totalEarned) / Decimal(sl.totalPossible)) * Decimal(10)
+                else:
+                    # average across all skill rows for the user
+                    sl_qs = SkillLevel.objects.filter(user_id=userId).only("totalEarned", "totalPossible")
+                    total_earned = Decimal(0)
+                    total_possible = Decimal(0)
+                    for s in sl_qs:
+                        total_earned += Decimal(s.totalEarned)
+                        total_possible += Decimal(s.totalPossible)
+                    if total_possible == 0:
+                        return Decimal("0.0")
+                    return (total_earned / total_possible) * Decimal(10)
+            except Exception:
+                return Decimal("0.0")
+
+        user_skill_value = compute_user_skill(user_id, GameCategory.objects.filter(id=category_id).first() if category_id else None)
+
+        # Build results list
+        results = []
+        for cfg in candidates:
+            challenge = cfg.challenge
+
+            # collect alarm times per day for this challenge from prefetched CAS (set by prefetch)
+            # note: we used to_attr='prefetched_cas' on challenge
+            cas_list = getattr(challenge, "prefetched_cas", None)
+            if cas_list is None:
+                # fallback: query the DB (rare)
+                cas_qs = ChallengeAlarmSchedule.objects.filter(challenge=challenge).select_related("alarm_schedule__uID")
+            else:
+                cas_qs = cas_list
+
+            # Build map day -> set of times strings "HH:MM"
+            challenge_alarms_by_day = {}
+            for cas in cas_qs:
+                alarm = cas.alarm_schedule
+                day = alarm.dayOfWeek
+                # normalize time string to HH:MM
+                time_str = alarm.alarmTime.strftime("%H:%M")
+                challenge_alarms_by_day.setdefault(day, set()).add(time_str)
+
+            # If multiplayer, we require that for every day in challenge_alarms_by_day the user has at least one time matching
+            matched_days = []
+            required_days = sorted(challenge_alarms_by_day.keys())
+
+            if is_multiplayer_flag:
+                # For each required day, check intersection with user_avail_by_day[day]
+                all_days_match = True
+                for day in required_days:
+                    challenge_times = challenge_alarms_by_day.get(day, set())
+                    user_times = user_avail_by_day.get(day, set())
+                    if not user_times:
+                        all_days_match = False
+                        break
+                    if challenge_times.intersection(user_times):
+                        matched_days.append(day)
+                    else:
+                        all_days_match = False
+                        break
+
+                if not all_days_match:
+                    # skip this candidate
+                    continue
+
+
+            # compute distance to challenge skill (absolute difference)
+            try:
+                challenge_skill = Decimal(cfg.averageSkillLevel)
+            except Exception:
+                challenge_skill = Decimal("0.0")
+
+            distance = abs(user_skill_value - challenge_skill)
+
+            # serialize challenge summary (use serializer)
+            serialized = ChallengeSummarySerializer(challenge, context={"user": request.user}).data
+
+            results.append({
+                "id": challenge.id,
+                "name": challenge.name,
+                "summary": serialized,
+                "distance": float(distance),  # convert Decimal -> float for JSON
+                "averageSkillLevel": float(challenge_skill),
+            })
+
+        # sort by distance ascending (closest skill match first)
+        results.sort(key=lambda r: r["distance"])
+
+        return Response({"matches": results}, status=status.HTTP_200_OK)
 
 
         

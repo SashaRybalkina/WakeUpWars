@@ -35,7 +35,13 @@ const Games: React.FC<Props> = ({ navigation }) => {
     const fetchGames = async () => {
       try {
         // fetch the games in whatever category was selected
-        const response = await fetch(endpoints.games(catId, singOrMult));
+        let response;
+        if (catId) {
+          response = await fetch(endpoints.games(catId, singOrMult));
+        }
+        else {
+          response = await fetch(endpoints.singOrMultGames(singOrMult));
+        }
         const data = await response.json();
         setGames(data); 
       } catch (error) {

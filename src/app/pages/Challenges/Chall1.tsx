@@ -115,7 +115,7 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
         <TouchableOpacity
           style={styles.addNewButton}
           onPress={() => {
-            navigation.navigate("PublicChallSearch1");
+            navigation.navigate("VerifyAvailability");
           }}
         >
           <Text style={styles.addNewButtonText}>Search for Public Challenge</Text>

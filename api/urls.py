@@ -28,11 +28,12 @@ from .views import (
     RespondToFriendRequestView, FinalizeCollaborativeGroupChallengeScheduleView,
     SentFriendRequestListView, AllUsersView, CancelFriendRequestView,
     CreateGroupView, CreatePersonalChallengeView, GetChallengeInvitesView,
-    GetAvailabilitiesView, SetAvailabilityView, DeclineChallengeInviteView,
+    GetAvailabilitiesView, SetChallAvailabilityView, DeclineChallengeInviteView,
     ChallengeLeaderboardView, SubmitGameScoresView, ChallengeDailyHistoryView,
     SkillLevelsView, ExternalHandleViewSet, ObligationViewSet, PaymentViewSet,
     FinalizeChallengeView, CreateSudokuGameView, ValidateSudokuMoveView, 
     CreateWordleGameView, ValidateWordleMoveView, get_csrf_token, SingOrMultGameListView,
+    GetPendingPublicChallengesView, GetMatchingChallengesView, SetUserAvailabilityView,
 )
 
 router = DefaultRouter()
@@ -44,7 +45,8 @@ urlpatterns = [
     path('', include(router.urls)),
     path('challenges/<int:challenge_id>/finalize/', FinalizeChallengeView.as_view(), name='finalize-challenge'),
     path('challenges/<int:user_id>/<str:which_chall>/', ChallengeListView.as_view(), name='challenge-list'),
-    path('get-pending-public-challenges/<int:user_id>/', ChallengeListView.as_view(), name='get-pending-public-challenges'),
+    path('get-pending-public-challenges/<int:user_id>/', GetPendingPublicChallengesView.as_view(), name='get-pending-public-challenges'),
+    path('get-matching-challenges/<int:user_id>/', GetMatchingChallengesView.as_view(), name='get-matching-challenges'),
     path('login/', LoginView.as_view(), name='login'),
     path('register/', RegisterView.as_view(), name='register'),
     path('user-groups/<int:user_id>/', GroupListView.as_view(), name='group-list'),
@@ -75,7 +77,8 @@ urlpatterns = [
     
     # path('get-pending-challenges/<int:group_id>/', GetPendingChallengesView.as_view(), name='get-pending-challenges'),
     path('get-availabilities/<int:chall_id>/', GetAvailabilitiesView.as_view(), name='get-availabilities'),
-    path('set-availability/<int:user_id>/<int:chall_id>/', SetAvailabilityView.as_view(), name='set-availability'),
+    path('set-user-availability/<int:user_id>/', SetUserAvailabilityView.as_view(), name='set-user-availability'),
+    path('set-chall-availability/<int:user_id>/<int:chall_id>/', SetChallAvailabilityView.as_view(), name='set-chall-availability'),
     path('decline-challenge-invite/<int:user_id>/<int:chall_id>/', DeclineChallengeInviteView.as_view(), name='decline-challenge-invite'),
 
     path('profile/all/', AllUsersView.as_view(), name='all-users'),
