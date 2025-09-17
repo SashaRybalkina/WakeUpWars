@@ -36,6 +36,7 @@ const Categories: React.FC<Props> = ({ navigation }) => {
         const response = await fetch(endpoints.cats());
         const data = await response.json();
         setCats(data); 
+        console.log("Data: " + data);
       } catch (error) {
         console.error('Failed to fetch categories:', error);
       }

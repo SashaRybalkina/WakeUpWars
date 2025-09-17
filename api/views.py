@@ -364,7 +364,37 @@ class AddGroupMemberView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-      
+        
+
+
+class GetPendingPublicChallengesView(APIView):
+    def get(self, request, user_id, which_chall):
+        challenges = Challenge.objects.filter(
+            id__in=ChallengeMembership.objects.filter(uID=user_id).values_list('challengeID', flat=True),
+            isPublic=True,
+            isPending=True
+        )
+
+        numeric_to_label = {1: "M", 2: "T", 3: "W", 4: "TH", 5: "F", 6: "S", 7: "SU"}
+
+        response_data = []
+        for challenge in challenges:
+            game_days = (
+                GameSchedule.objects.filter(challenge=challenge)
+                .values_list('dayOfWeek', flat=True)
+                .distinct()
+            )
+            day_labels = [numeric_to_label[d] for d in sorted(game_days)]
+
+            serialized = ChallengeSummarySerializer(challenge, context={'user': request.user}).data
+            serialized['daysOfWeek'] = day_labels
+            # serialized['totalDays'] = (challenge.endDate - challenge.startDate).days + 1
+
+            response_data.append(serialized)
+
+        return Response(response_data)
+
+
         
 class ChallengeListView(APIView):
     def get(self, request, user_id, which_chall):
@@ -385,6 +415,14 @@ class ChallengeListView(APIView):
                 isPublic=True,
                 isPending=False
             )
+        elif which_chall == 'Personal&Public':
+            challenges = Challenge.objects.filter(
+                id__in=ChallengeMembership.objects.filter(uID=user_id)
+                    .values_list('challengeID', flat=True)
+            ).filter(
+                Q(groupID=None, isPublic=False, isPending=False) |
+                Q(groupID=None, isPublic=True, isPending=True)
+            )
 
         numeric_to_label = {1: "M", 2: "T", 3: "W", 4: "TH", 5: "F", 6: "S", 7: "SU"}
 
@@ -399,7 +437,11 @@ class ChallengeListView(APIView):
 
             serialized = ChallengeSummarySerializer(challenge, context={'user': request.user}).data
             serialized['daysOfWeek'] = day_labels
-            serialized['totalDays'] = (challenge.endDate - challenge.startDate).days + 1
+            if challenge.startDate is not None and challenge.endDate is not None:
+                serialized["totalDays"] = (challenge.endDate - challenge.startDate).days + 1
+            else:
+                serialized["totalDays"] = None
+
 
             response_data.append(serialized)
 

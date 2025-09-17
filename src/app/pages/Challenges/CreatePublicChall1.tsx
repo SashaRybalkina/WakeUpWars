@@ -19,7 +19,7 @@ type Props = {
 
 const CreatePublicChall: React.FC<Props> = ({ navigation }) => {
   const [singOrMult, setSingOrMult] = useState<"singleplayer" | "multiplayer" | null>(null);
-  const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
+  const [categories, setCategories] = useState<{ id: number; categoryName: string }[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<{ id: number; name: string } | null>();
   const [miscSelected, setMiscSelected] = useState(false);
 
@@ -27,10 +27,11 @@ const CreatePublicChall: React.FC<Props> = ({ navigation }) => {
     if (singOrMult) {
     const fetchCats = async () => {
       try {
-        // fetch the categories for multiplayer/singleplayer (whatever was selected)
+        // TODO: fetch only the categories for multiplayer/singleplayer (whatever was selected)
         const response = await fetch(endpoints.cats());
         const data = await response.json();
-        setCategories(data); 
+        setCategories(data);
+        console.log("Data2: " + JSON.stringify(data));
       } catch (error) {
         console.error('Failed to fetch categories:', error);
       }
@@ -141,7 +142,7 @@ const CreatePublicChall: React.FC<Props> = ({ navigation }) => {
                       selectedCategory?.id === cat.id && styles.choiceButtonSelected,
                     ]}
                     onPress={() => {
-                      setSelectedCategory({id: cat.id, name: cat.name});
+                      setSelectedCategory({id: cat.id, name: cat.categoryName});
                       setMiscSelected(false);
                     }}
                   >
@@ -151,7 +152,7 @@ const CreatePublicChall: React.FC<Props> = ({ navigation }) => {
                         selectedCategory?.id === cat.id && styles.choiceTextSelected,
                       ]}
                     >
-                      {cat.name}
+                      {cat.categoryName}
                     </Text>
                   </TouchableOpacity>
                 ))}

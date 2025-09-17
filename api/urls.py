@@ -44,6 +44,7 @@ urlpatterns = [
     path('', include(router.urls)),
     path('challenges/<int:challenge_id>/finalize/', FinalizeChallengeView.as_view(), name='finalize-challenge'),
     path('challenges/<int:user_id>/<str:which_chall>/', ChallengeListView.as_view(), name='challenge-list'),
+    path('get-pending-public-challenges/<int:user_id>/', ChallengeListView.as_view(), name='get-pending-public-challenges'),
     path('login/', LoginView.as_view(), name='login'),
     path('register/', RegisterView.as_view(), name='register'),
     path('user-groups/<int:user_id>/', GroupListView.as_view(), name='group-list'),

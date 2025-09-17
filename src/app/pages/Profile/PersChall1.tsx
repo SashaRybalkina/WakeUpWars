@@ -23,7 +23,9 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
     const fetchChallenges = async () => {
       try {
         setLoading(true)
-        const response = await axios.get(endpoints.challengeList(Number(user.id), "Personal"))
+        // TODO: see if this works:
+        const response = await axios.get(endpoints.challengeList(Number(user.id), "Personal&Public"))
+        // const res2 = await axios.get(endpoints.getPendingPublicChallenges(Number(user.id)))
         
         // Fetch alarm schedules for each challenge
         const challengesWithAlarms = await Promise.all(
@@ -45,7 +47,7 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
                 daysCompleted: c.daysCompleted || 0,
                 startDate: c.startDate,
                 endDate: c.endDate || null,
-                totalDays: c.totalDays ?? 30,
+                totalDays: c.totalDays,
                 daysOfWeek: c.daysOfWeek ?? [],
                 alarmSchedule: alarmSchedule, // Add the alarm schedule
                 isCompleted: c.endDate ? new Date(c.endDate) < new Date() : false,
@@ -59,7 +61,7 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
                 daysCompleted: c.daysCompleted || 0,
                 startDate: c.startDate,
                 endDate: c.endDate || null,
-                totalDays: c.totalDays ?? 30,
+                totalDays: c.totalDays,
                 daysOfWeek: c.daysOfWeek ?? [],
                 alarmSchedule: [], // Empty array if we couldn't fetch alarms
                 isCompleted: c.endDate ? new Date(c.endDate) < new Date() : false,
@@ -140,7 +142,7 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
                         title={challenge.name}
                         icon={require("../../images/school.png")}
                         daysComplete={challenge.daysCompleted}
-                        totalDays={challenge.totalDays}
+                        totalDays={challenge.totalDays === null ? "?" : challenge.totalDays}
                         daysOfWeek={challenge.daysOfWeek}
                       />
                     </TouchableOpacity>
@@ -183,7 +185,7 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
                         title={challenge.name}
                         icon={require("../../images/school.png")}
                         daysComplete={challenge.daysCompleted}
-                        totalDays={challenge.totalDays}
+                        totalDays={challenge.totalDays === null ? "?" : challenge.totalDays}
                         daysOfWeek={challenge.daysOfWeek}
                       />
                     </TouchableOpacity>
