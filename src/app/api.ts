@@ -58,6 +58,8 @@ export const endpoints = {
   payCash: (id: number) => `${BASE_URL}/api/obligations/${id}/pay_cash/`,
   confirmPayment: (id: number) => `${BASE_URL}/api/payments/${id}/confirm/`,
   rejectPayment: (id: number) => `${BASE_URL}/api/payments/${id}/reject/`,
+
+  shareChallenge: (challId: number) => `${BASE_URL}/api/share-challenge/${challId}/`,
 };
 
 export const leaderboardHistory = (

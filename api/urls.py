@@ -32,7 +32,7 @@ from .views import (
     ChallengeLeaderboardView, SubmitGameScoresView, ChallengeDailyHistoryView,
     SkillLevelsView, ExternalHandleViewSet, ObligationViewSet, PaymentViewSet,
     FinalizeChallengeView, CreateSudokuGameView, ValidateSudokuMoveView, 
-    CreateWordleGameView, ValidateWordleMoveView, get_csrf_token, SingOrMultGameListView,
+    CreateWordleGameView, ValidateWordleMoveView, get_csrf_token, SingOrMultGameListView, ShareChallengeView
 )
 
 router = DefaultRouter()
@@ -93,4 +93,8 @@ urlpatterns = [
     path('submit-game-scores/', SubmitGameScoresView.as_view(), name='submit-game-scores'),
     path('add-game-to-schedule/', AddGameToScheduleView.as_view(), name='add-game-to-schedule'),
     path('skill-levels/', SkillLevelsView.as_view(), name="skill-levels"),
+
+    # sending challenge to friends
+    path("share-challenge/<int:chall_id>/", ShareChallengeView.as_view()),
+
 ]

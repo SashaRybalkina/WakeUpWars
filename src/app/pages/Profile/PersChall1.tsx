@@ -1,6 +1,6 @@
 import type React from "react"
 import { useState, useEffect } from "react"
-import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View, StatusBar } from "react-native"
+import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View, StatusBar, Alert } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import type { NavigationProp } from "@react-navigation/native"
 import { useUser } from "../../context/UserContext"
@@ -153,9 +153,64 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
                        {/* Share Button */}
                        <TouchableOpacity
                         style={styles.shareButton}
-                        onPress={() => {
-                          console.log("Share", challenge.name);
-                          navigation.navigate("EditChallengeSharingFriends", { challenge });
+                        onPress={async () => {
+                          try {
+                            setLoading(true);
+                            console.log("[FRONTEND] Share button clicked for:", challenge.name);
+
+                            // Step 0: Get CSRF Token
+                            const csrfResp = await axios.get(endpoints.csrfToken, { withCredentials: true });
+                            const csrfToken = csrfResp.data.csrfToken;  // make sure this matches backend response
+                            console.log("[FRONTEND] Got CSRF token:", csrfToken);
+
+                            // Step 1: Prepare payload
+                            const payload = {
+                              startDate: challenge.startDate,
+                              endDate: challenge.endDate,
+                            };
+                            console.log("[FRONTEND] Payload:", payload);
+
+                            // Step 2: POST share challenge
+                            const shareResp = await axios.post(
+                              endpoints.shareChallenge(challenge.id),
+                              payload,
+                              {
+                                withCredentials: true,
+                                headers: { "X-CSRFToken": csrfToken },
+                              }
+                            );
+                            console.log("[FRONTEND] Share API response:", shareResp.data);
+
+                            const newId = shareResp.data.id;
+
+                            // Step 3: Get new challenge details + schedule in parallel
+                            const [detailResp, scheduleResp] = await Promise.all([
+                              axios.get(endpoints.challengeDetail(newId), { withCredentials: true }),
+                              axios.get(endpoints.challengeSchedule(newId), { withCredentials: true }),
+                            ]);
+
+                            console.log("[FRONTEND] New challenge detail:", detailResp.data);
+                            console.log("[FRONTEND] New challenge schedule:", scheduleResp.data);
+
+                            // Step 4: Combine into one object
+                            const fullChallenge = {
+                              ...detailResp.data,
+                              schedule: scheduleResp.data, // put games & alarms here
+                            };
+
+                            // Step 5: Navigate to edit page
+                            navigation.navigate("EditChallengeSharingFriends", {
+                              challenge: fullChallenge,
+                            });
+                          } catch (err: any) {
+                            console.error(
+                              "[FRONTEND] Error sharing challenge:",
+                              err.response?.data || err.message
+                            );
+                            Alert.alert("Error", "Failed to share challenge.");
+                          } finally {
+                            setLoading(false); 
+                          }
                         }}
                       >
                         <Ionicons name="share" size={20} color="#FFF" />

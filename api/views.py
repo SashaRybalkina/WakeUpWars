@@ -1808,3 +1808,66 @@ class FinalizeChallengeView(View):
     # any verb other than POST → 405
     def http_method_not_allowed(self, request, *args, **kwargs):
         return HttpResponseNotAllowed(["POST"])
+    
+# AI was used to help generate this class
+class ShareChallengeView(APIView):
+    @transaction.atomic
+    def post(self, request, chall_id):
+        print(f"[BACKEND] Incoming share request for challenge {chall_id}")
+        print(f"[BACKEND] Request data: {request.data}")
+        print(f"[BACKEND] User: {request.user}")
+
+        try:
+            original = get_object_or_404(Challenge, id=chall_id)
+            print(f"[BACKEND] Original challenge: {original.id}, {original.name}")
+
+            start_date = request.data.get("startDate")
+            end_date = request.data.get("endDate")
+            print(f"[BACKEND] New start={start_date}, end={end_date}")
+
+            new_challenge = Challenge.objects.create(
+                name=original.name,
+                groupID=original.groupID,
+                initiator_id=request.user.id,
+                startDate=start_date,
+                endDate=end_date,
+                isPublic=original.isPublic,
+                isPending=False
+            )
+            print(f"[BACKEND] New challenge created: {new_challenge.id}")
+
+            # copy members
+            for m in ChallengeMembership.objects.filter(challengeID=original):
+                ChallengeMembership.objects.create(challengeID=new_challenge, uID=m.uID)
+            print(f"[BACKEND] Members copied: {ChallengeMembership.objects.filter(challengeID=new_challenge).count()}")
+
+            # copy alarms
+            for cas in ChallengeAlarmSchedule.objects.filter(challenge=original):
+                alarm = cas.alarm_schedule
+                new_alarm = AlarmSchedule.objects.create(
+                    uID=alarm.uID,
+                    dayOfWeek=alarm.dayOfWeek,
+                    alarmTime=alarm.alarmTime
+                )
+                ChallengeAlarmSchedule.objects.create(challenge=new_challenge, alarm_schedule=new_alarm)
+            print(f"[BACKEND] Alarms copied: {ChallengeAlarmSchedule.objects.filter(challenge=new_challenge).count()}")
+
+            # copy games
+            for gs in GameSchedule.objects.filter(challenge=original):
+                new_gs = GameSchedule.objects.create(challenge=new_challenge, dayOfWeek=gs.dayOfWeek)
+                for assoc in GameScheduleGameAssociation.objects.filter(game_schedule=gs):
+                    GameScheduleGameAssociation.objects.create(
+                        game_schedule=new_gs,
+                        game=assoc.game,
+                        game_order=assoc.game_order
+                    )
+            print(f"[BACKEND] Games copied: {GameSchedule.objects.filter(challenge=new_challenge).count()}")
+
+            return Response(
+                {"message": "Challenge shared successfully", "id": new_challenge.id},
+                status=201
+            )
+
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=400)

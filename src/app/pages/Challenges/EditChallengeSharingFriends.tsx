@@ -1,12 +1,15 @@
 import React, { useState } from "react";
 import { 
   ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View, 
-  Platform, Alert 
+  Platform, Alert, Image 
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import type { NavigationProp, RouteProp } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
+import axios from "axios";
+import { endpoints } from "../../api";
+import { getGameMeta } from "../Games/NewGamesManagement";
 
 type Props = {
   navigation: NavigationProp<any>;
@@ -17,14 +20,17 @@ const DAYS = ["M", "T", "W", "TH", "F", "S", "SU"];
 
 const EditChallengeSharingFriends: React.FC<Props> = ({ navigation, route }) => {
   const { challenge } = route.params || {};
+  console.log("[FRONTEND] Entering EditChallengeSharingFriends");
+  console.log("[FRONTEND] Incoming challenge data:", challenge);
 
+  // Dates
   const [startDate, setStartDate] = useState(new Date(challenge.startDate));
   const [endDate, setEndDate] = useState(new Date(challenge.endDate));
 
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
 
-  // --- Android/iOS date handler ---
+  // --- Date picker handler ---
   const onDateChange = (
     picker: "start" | "end",
     event: any,
@@ -50,16 +56,32 @@ const EditChallengeSharingFriends: React.FC<Props> = ({ navigation, route }) => 
     });
   };
 
-  const handleSave = () => {
-    const payload = {
-      ...challenge,
-      startDate: startDate.toISOString().split("T")[0],
-      endDate: endDate.toISOString().split("T")[0],
-    };
+  // --- Save handler (create new copy with new dates) ---
+  const handleSave = async () => {
+    try {
+      const payload = {
+        startDate: startDate.toISOString().split("T")[0],
+        endDate: endDate.toISOString().split("T")[0],
+      };
 
-    console.log("Duplicated challenge payload:", payload);
-    Alert.alert("Saved", "Challenge duplicated successfully!");
-    navigation.goBack();
+      console.log("[FRONTEND] Payload to send:", payload);
+
+      const response = await axios.post(
+        endpoints.shareChallenge(challenge.id),
+        payload,
+        { withCredentials: true } 
+      );
+
+      console.log("[FRONTEND] Response from backend:", response.data);
+      Alert.alert("Saved", "Challenge shared successfully!");
+      navigation.goBack();
+    } catch (error: any) {
+      console.error(
+        "[FRONTEND] Error response:",
+        error.response?.data || error.message
+      );
+      Alert.alert("Error", "Failed to share challenge.");
+    }
   };
 
   return (
@@ -89,29 +111,53 @@ const EditChallengeSharingFriends: React.FC<Props> = ({ navigation, route }) => 
             <Text style={styles.readonlyText}>{challenge.name}</Text>
           </View>
 
+          {/* Days & Alarm */}
           <View style={styles.formSection}>
             <Text style={styles.sectionTitle}>Days & Alarm</Text>
             <View style={styles.daysContainer}>
-              {challenge.daysOfWeek.map((day: number, idx: number) => (
-                <View key={idx} style={styles.dayReadonly}>
-                  <Text style={styles.dayText}>{DAYS[day - 1]}</Text>
-                </View>
-              ))}
+              {challenge.daysOfWeek?.map((day: number | string, idx: number) => {
+                const label = typeof day === "number" ? DAYS[day - 1] : day;
+                return (
+                  <View key={idx} style={styles.dayReadonly}>
+                    <Text style={styles.dayText}>{label}</Text>
+                  </View>
+                );
+              })}
             </View>
-            {challenge.alarmSchedule?.map((alarm: any, idx: number) => (
-              <Text key={idx} style={styles.readonlyText}>
-                {`Day ${alarm.dayOfWeek}: ${alarm.alarmTime}`}
-              </Text>
-            ))}
+
+            {/* alarms come from schedule */}
+            {challenge.schedule?.map((s: any, idx: number) => {
+              const label = DAYS[s.dayOfWeek - 1] || s.dayOfWeek;
+              return (
+                <Text key={idx} style={styles.readonlyText}>
+                  {`${label}: ${s.alarmTime || "No alarm"}`}
+                </Text>
+              );
+            })}
           </View>
 
+          {/* Games */}
           <View style={styles.formSection}>
             <Text style={styles.sectionTitle}>Games</Text>
-            {challenge.games?.length > 0 ? (
-              challenge.games.map((g: any, idx: number) => (
-                <Text key={idx} style={styles.readonlyText}>
-                  {g.name}
-                </Text>
+            {challenge.schedule?.some((s: any) => s.games?.length > 0) ? (
+              challenge.schedule.map((s: any, idx: number) => (
+                <View key={idx} style={{ marginBottom: 15 }}>
+                  <Text style={[styles.readonlyText, { fontWeight: "700", marginBottom: 5 }]}>
+                    {DAYS[s.dayOfWeek - 1] || s.dayOfWeek}
+                  </Text>
+                  {s.games.map((g: any, gIdx: number) => {
+                    const meta = getGameMeta(g.id, g.name); 
+                    return (
+                      <View key={gIdx} style={styles.gameRow}>
+                        <Image source={meta.image} style={styles.gameIcon} resizeMode="contain" />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.gameName}>{g.name}</Text>
+                          <Text style={styles.gameDesc}>{meta.desc}</Text>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
               ))
             ) : (
               <Text style={styles.readonlyText}>No games</Text>
@@ -230,6 +276,30 @@ const styles = StyleSheet.create({
   createButton: { borderRadius: 12, overflow: "hidden", marginTop: 20, marginBottom: 30 },
   createButtonGradient: { paddingVertical: 15, alignItems: "center", justifyContent: "center" },
   createButtonText: { color: "#333", fontSize: 18, fontWeight: "700" },
+  gameRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  marginBottom: 10,
+  backgroundColor: "rgba(255,255,255,0.05)",
+  borderRadius: 12,
+  padding: 10,
+},
+gameIcon: {
+  width: 40,
+  height: 40,
+  marginRight: 12,
+},
+gameName: {
+  fontSize: 16,
+  fontWeight: "600",
+  color: "#FFF",
+},
+gameDesc: {
+  fontSize: 12,
+  color: "rgba(255,255,255,0.7)",
+  marginTop: 2,
+},
+
 });
 
 export default EditChallengeSharingFriends;
