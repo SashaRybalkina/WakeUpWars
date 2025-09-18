@@ -608,6 +608,16 @@ class CreateManualGroupChallengeView(APIView):
                 isPending=False
             )
 
+            # ─── Reward config ──────────────────────────────
+            reward_data = data.get('reward')
+            if reward_data:
+                serializer_rs = RewardSettingSerializer(data=reward_data)
+                serializer_rs.is_valid(raise_exception=True)
+                RewardSetting.objects.create(
+                    challenge=challenge,
+                    **serializer_rs.validated_data,
+                )
+
             # Add members
             for user_id in data['members']:
                 ChallengeMembership.objects.create(
@@ -668,6 +678,16 @@ class CreatePublicChallengeView(APIView):
                 isPublic=True,
                 isPending=True
             )
+
+            # ─── Reward config ──────────────────────────────
+            reward_data = data.get('reward')
+            if reward_data:
+                serializer_rs = RewardSettingSerializer(data=reward_data)
+                serializer_rs.is_valid(raise_exception=True)
+                RewardSetting.objects.create(
+                    challenge=challenge,
+                    **serializer_rs.validated_data,
+                )
 
             # Add membershio
             ChallengeMembership.objects.create(
@@ -746,6 +766,16 @@ class CreatePendingCollaborativeGroupChallengeView(APIView):
                 print("Failed to create Challenge:", e)
                 raise
 
+
+            # ─── Reward config ──────────────────────────────
+            reward_data = data.get('reward')
+            if reward_data:
+                serializer_rs = RewardSettingSerializer(data=reward_data)
+                serializer_rs.is_valid(raise_exception=True)
+                RewardSetting.objects.create(
+                    challenge=challenge,
+                    **serializer_rs.validated_data,
+                )
 
             print("here1")
             # Add inititor membership

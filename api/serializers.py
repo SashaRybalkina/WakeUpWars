@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import (Group, User, SkillLevel, GameCategory, Challenge, GamePerformance, GameSchedule, Message, ChallengeMembership, Game,
-                     FriendRequest,RewardSetting, ExternalHandle, Obligation, Payment, PaymentProvider, PaymentMethod)
+                     FriendRequest,RewardSetting, ExternalHandle, Obligation, Payment, PaymentProvider, PaymentMethod, RewardType)
 from django.contrib.auth.hashers import make_password
 import calendar
 from django.utils import timezone
@@ -140,6 +140,23 @@ class RewardSettingSerializer(serializers.ModelSerializer):
     class Meta:
         model = RewardSetting
         fields = ['type', 'amount', 'note']
+
+    # Ensure amount is supplied when required and normalise data
+    def validate(self, attrs):
+        # When updating, include original instance values as fall-back
+        reward_type = attrs.get('type') or (self.instance.type if self.instance else None)
+        amount = attrs.get('amount')
+
+        # For money or points rewards we REQUIRE an amount
+        if reward_type in [RewardType.MONEY, RewardType.POINTS]:
+            if amount is None:
+                raise serializers.ValidationError({
+                    'amount': 'Amount is required when reward type is money or points.'
+                })
+        else:
+            # Custom rewards ignore amount
+            attrs['amount'] = None
+        return attrs
 
 # shows one payment (cash or external)
 class PaymentSerializer(serializers.ModelSerializer):
