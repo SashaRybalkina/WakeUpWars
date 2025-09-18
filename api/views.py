@@ -119,15 +119,15 @@ class SetChallAvailabilityView(APIView):
 class SetUserAvailabilityView(APIView):
     @transaction.atomic
     def post(self, request, user_id):
-        availability_data = request.data.get('availability', [])
+        availability_data = request.data.get('alarm_schedule', [])
 
         for item in availability_data:
             day = item['dayOfWeek']
-            time = item['alarmTime']
+            time = item['time']
 
             # Try to find existing availability
             existing = UserAvailability.objects.filter(
-                uID_id=user_id,
+                user_id=user_id,
                 dayOfWeek=day,
                 alarmTime=time
             ).first()
@@ -138,7 +138,7 @@ class SetUserAvailabilityView(APIView):
             else:
                 # Otherwise, create it
                 UserAvailability.objects.create(
-                    uID_id=user_id,
+                    user_id=user_id,
                     dayOfWeek=day,
                     alarmTime=time
                 )

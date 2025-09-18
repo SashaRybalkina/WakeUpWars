@@ -9,7 +9,7 @@ from .views import (LoginView, RegisterView, GroupListView, HelloWorldView, User
                     RespondToFriendRequestView, FinalizeCollaborativeGroupChallengeScheduleView,
                     SentFriendRequestListView, AllUsersView, CancelFriendRequestView,
                     CreateGroupView, CreatePersonalChallengeView, GetChallengeInvitesView,
-                    GetAvailabilitiesView, SetAvailabilityView, DeclineChallengeInviteView,
+                    GetAvailabilitiesView, DeclineChallengeInviteView,
                     ChallengeLeaderboardView, SubmitGameScoresView, ChallengeDailyHistoryView,
                     SkillLevelsView, CreatePublicChallengeView)
 
@@ -34,6 +34,7 @@ from .views import (
     FinalizeChallengeView, CreateSudokuGameView, ValidateSudokuMoveView, 
     CreateWordleGameView, ValidateWordleMoveView, get_csrf_token, SingOrMultGameListView,
     GetPendingPublicChallengesView, GetMatchingChallengesView, SetUserAvailabilityView,
+    GetUserAvailabilityView,
 )
 
 router = DefaultRouter()
@@ -78,6 +79,7 @@ urlpatterns = [
     # path('get-pending-challenges/<int:group_id>/', GetPendingChallengesView.as_view(), name='get-pending-challenges'),
     path('get-availabilities/<int:chall_id>/', GetAvailabilitiesView.as_view(), name='get-availabilities'),
     path('set-user-availability/<int:user_id>/', SetUserAvailabilityView.as_view(), name='set-user-availability'),
+    path('get-user-availability/<int:user_id>/', GetUserAvailabilityView.as_view(), name='get-user-availability'),
     path('set-chall-availability/<int:user_id>/<int:chall_id>/', SetChallAvailabilityView.as_view(), name='set-chall-availability'),
     path('decline-challenge-invite/<int:user_id>/<int:chall_id>/', DeclineChallengeInviteView.as_view(), name='decline-challenge-invite'),
 

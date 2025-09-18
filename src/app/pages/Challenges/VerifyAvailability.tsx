@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NavigationProp, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import DateTimePicker from "@react-native-community/datetimepicker"
 import { useUser } from "../../context/UserContext"
 import {
@@ -91,6 +91,33 @@ const convertTo24Hour = (time12: string) => {
 
 
 
+useEffect(() => {
+  const fetchAvailability = async () => {
+    try {
+      const res = await fetch(endpoints.getUserAvailability(Number(user?.id)));
+      if (!res.ok) throw new Error("Failed to fetch availability");
+      const data: { dayOfWeek: number; alarmTime: string }[] = await res.json();
+
+      // Convert backend format into SelectedCell[]
+      const converted: SelectedCell[] = data.flatMap(({ dayOfWeek, alarmTime }) => {
+        // Convert "HH:MM" (24-hour) -> index in TIMES
+        const timeIdx = TIMES.findIndex(t => convertTo24Hour(t) === alarmTime);
+        if (timeIdx === -1) return [];
+        return [{ day: dayOfWeek - 1, time: timeIdx }]; // backend dayOfWeek 1-7 → our day 0-6
+      });
+
+      setSelectedCells(converted);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  fetchAvailability();
+}, [user?.id]);
+
+
+
+
     const handleSubmit = async() => {
         // if (selectedCells.length === 0) {
         //     Alert.alert("Error", "Please select at least one availability slot.")
@@ -122,7 +149,7 @@ const convertTo24Hour = (time12: string) => {
           const { csrfToken } = await csrfRes.json();     
           console.log('csrfToken:', csrfToken);
 
-
+        
         const res = await fetch(endpoints.setUserAvailability(Number(user?.id)), {
             method: 'POST',
             credentials: 'include',                    
