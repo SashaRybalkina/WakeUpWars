@@ -22,51 +22,15 @@ import {
 import { BASE_URL, endpoints } from '../../api';
 
 type Props = { navigation: NavigationProp<any> } 
-// Config 
-const DAYS = ["M", "T", "W", "TH", "F", "S", "SU"]
-// const TIMES = Array.from({ length: 12 }, (_, i) => `${i + 6}:00`); // 6am - 5pm 
-const TIMES = Array.from({ length: 44 }, (_, i) => {
-  const totalMinutes = 4 * 60 + i * 15; // start at 4:00
-  const hours24 = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
 
-  const period = hours24 >= 12 ? "PM" : "AM";
-  const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
-
-  return `${hours12}:${String(minutes).padStart(2, "0")} ${period}`;
-});
-
-
-type SelectedCell = { day: number; time: number }; // day: 0-6, time: 0-11 
 
 const PublicChallSearch1: React.FC<Props> = ({ navigation }) => { 
-  const route = useRoute() 
-//   const { groupId, groupMembers } = route.params as { 
-//     groupId: number 
-//     groupMembers: { id: number; name: string }[] }
-
   const { user } = useUser()
-
-//   const [name, setName] = useState("")
-//   const [selectedDate, setSelectedDate] = useState(new Date())
-//   const [showDatePicker, setShowDatePicker] = useState(false)
 
   const [singOrMult, setSingOrMult] = useState<"singleplayer" | "multiplayer" | null>(null);
   const [categories, setCategories] = useState<{ id: number; categoryName: string }[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<{ id: number; name: string } | null>();
   const [miscSelected, setMiscSelected] = useState(false);
-
-  const [selectedCells, setSelectedCells] = useState<SelectedCell[]>([]);
-
-  const dayToInt: Record<string, number> = {
-    M: 1,
-    T: 2,
-    W: 3,
-    TH: 4,
-    F: 5,
-    S: 6,
-    SU: 7,
-  }
 
 
     useEffect(() => {
@@ -87,66 +51,6 @@ const PublicChallSearch1: React.FC<Props> = ({ navigation }) => {
       }
     }, [singOrMult]);
 
-    
-
-//   const onDateChange = (event: any, date?: Date) => {
-//     if (event?.type === "dismissed") {
-//       setShowDatePicker(false)
-//       return
-//     }
-  
-//     if (date) {
-//       setSelectedDate(date)
-//       if (Platform.OS === "android") {
-//         setShowDatePicker(false)
-//       }
-//     }
-//   }
-
-//   const formatDate = (date: Date) => {
-//     const options: Intl.DateTimeFormatOptions = { 
-//       weekday: 'short', 
-//       year: 'numeric', 
-//       month: 'short', 
-//       day: 'numeric' 
-//     }
-//     return date.toLocaleDateString(undefined, options)
-//   }
-
-  const toggleCell = (day: number, time: number) => {
-    setSelectedCells(prev => {
-      const exists = prev.some(cell => cell.day === day && cell.time === time);
-      if (exists) {
-        return prev.filter(cell => !(cell.day === day && cell.time === time));
-      } else {
-        return [...prev, { day, time }];
-      }
-    });
-  };
-
-
-  const isCellSelected = (day: number, time: number) =>
-    selectedCells.some(cell => cell.day === day && cell.time === time);
-
-
-
-const convertTo24Hour = (time12: string) => {
-  // "4:15 AM" => "04:15", "3:00 PM" => "15:00"
-  const [time, modifier] = time12.split(" ");
-  if (!time || !modifier) throw new Error(`Invalid time format: ${time12}`);
-
-  const [hoursStr, minutesStr] = time.split(":");
-  if (!hoursStr || !minutesStr) throw new Error(`Invalid time format: ${time12}`);
-
-  let hours = Number(hoursStr);
-  const minutes = Number(minutesStr);
-
-  if (modifier === "AM" && hours === 12) hours = 0;
-  if (modifier === "PM" && hours !== 12) hours += 12;
-
-  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-};
-
 
 
     const handleSubmit = async() => {
@@ -160,25 +64,9 @@ const convertTo24Hour = (time12: string) => {
             return
         }
 
-        if (selectedCells.length === 0) {
-            Alert.alert("Error", "Please select at least one availability slot.")
-            return
-        }
-        
-        const alarmSchedule = selectedCells.flatMap(({ day, time }) => {
-          const dayStr = DAYS[day];
-          if (!dayStr) return [];
-
-          const dayOfWeek = dayToInt[dayStr as keyof typeof dayToInt];
-          if (!dayOfWeek) return [];
-          if (!TIMES[time]) return;
-          return [{ dayOfWeek, time: convertTo24Hour(TIMES[time]) }];
-        });
-
         const payload = {
           category_id: selectedCategory?.id ?? null, // null if miscellaneous
           sing_or_mult: singOrMult,
-          alarm_schedule: alarmSchedule,
         };
 
         console.log("Payload sent to backend:", payload);
@@ -318,40 +206,6 @@ const convertTo24Hour = (time12: string) => {
                           </View>
                         )}
 
-          <View style={styles.formSection}>
-            <Text style={styles.label}>Select Availability</Text>
-            <ScrollView horizontal>
-              <View>
-                <View style={styles.row}>
-                  <View style={styles.cell} />
-                  {DAYS.map((day, idx) => (
-                    <View key={idx} style={styles.cell}>
-                      <Text style={styles.cellText}>{day}</Text>
-                    </View>
-                  ))}
-                </View>
-
-                {TIMES.map((time, timeIdx) => (
-                  <View key={timeIdx} style={styles.row}>
-                    <View style={styles.cell}>
-                      <Text style={styles.cellText}>{time}</Text>
-                    </View>
-                    {DAYS.map((_, dayIdx) => (
-                      <TouchableOpacity
-                        key={`${dayIdx}-${timeIdx}`}
-                        onPress={() => toggleCell(dayIdx, timeIdx)}
-                        style={[
-                          styles.cell,
-                          styles.interactiveCell,
-                          isCellSelected(dayIdx, timeIdx) && styles.selectedCell,
-                        ]}
-                      />
-                    ))}
-                  </View>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
 
           <TouchableOpacity style={styles.createButton} onPress={handleSubmit}>
             <LinearGradient

@@ -84,6 +84,32 @@ class ChallengeSummarySerializer(serializers.ModelSerializer):
         if obj.endDate:
             return obj.endDate < timezone.now().date()
         return False
+    
+
+class PendingPublicChallengeSummarySerializer(serializers.ModelSerializer):
+    daysOfWeek = serializers.SerializerMethodField()
+    numParticipants = serializers.SerializerMethodField()  # new field
+
+    class Meta:
+        model = Challenge
+        fields = [
+            'id',
+            'name',
+            'endDate',  # TODO: think about setting a duration instead of endDate
+            'daysOfWeek',
+            'numParticipants',
+        ]
+
+    def get_daysOfWeek(self, obj):
+        day_numbers = obj.gameschedule_set.values_list('dayOfWeek', flat=True)
+        return [calendar.day_name[day][0] for day in day_numbers]
+
+    def get_numParticipants(self, obj):
+        # Count how many ChallengeMemberships exist for this challenge
+        return obj.challengemembership_set.count()
+
+
+    
 
 class UserProfileSerializer(serializers.ModelSerializer):
     skill_levels = SkillLevelSerializer(source='skilllevel_set', many=True)

@@ -27,7 +27,7 @@ from django.contrib.auth import authenticate, get_user_model
 from .serializers import (UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer, MessageSerializer, ChallengeSummarySerializer,
                           CatSerializer, GameSerializer, FriendSerializer, FriendRequestSerializer, CreateGroupSerializer, SkillLevelSerializer,
                           RewardSettingSerializer, ExternalHandleSerializer,ObligationSerializer, CashPaymentCreateSerializer,
-                          ExternalPaymentCreateSerializer, PaymentSerializer)
+                          ExternalPaymentCreateSerializer, PaymentSerializer, PendingPublicChallengeSummarySerializer)
 from .models import (Group, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule,
                      AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest,
                      SkillLevel, PendingGroupChallengeAvailability, GroupChallengeInvite, WordleMove, PublicChallengeConfiguration,
@@ -163,6 +163,23 @@ class GetAvailabilitiesView(APIView):
             {
                 "uID": entry.uID.id,
                 "name": entry.uID.name,
+                "dayOfWeek": entry.dayOfWeek,
+                "alarmTime": entry.alarmTime.strftime('%H:%M'),
+            }
+            for entry in availabilities
+        ]
+
+        return Response(data, status=status.HTTP_200_OK)
+    
+
+class GetUserAvailabilityView(APIView):
+    def get(self, request, user_id):
+        availabilities = UserAvailability.objects.filter(
+            user_id=user_id
+        )
+
+        data = [
+            {
                 "dayOfWeek": entry.dayOfWeek,
                 "alarmTime": entry.alarmTime.strftime('%H:%M'),
             }
@@ -462,21 +479,12 @@ class GetMatchingChallengesView(APIView):
 
         # category: either int id or None -> for None we treat as miscellaneous (category is null)
         category_id = data.get("category_id", None)
-        # alarm_schedule: list of {dayOfWeek, time} where time is "HH:MM"
-        raw_alarm_schedule = data.get("alarm_schedule", [])
-        if not isinstance(raw_alarm_schedule, list):
-            return Response({"error": "alarm_schedule must be a list."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Build a mapping: day -> set of "HH:MM" strings for fast membership testing
+        user_availabilities = UserAvailability.objects.filter(user_id=user_id)
         user_avail_by_day = {}
-        try:
-            for entry in raw_alarm_schedule:
-                d = int(entry["dayOfWeek"])
-                t = str(entry["time"])[:5]  # "HH:MM" (defensive)
-                user_avail_by_day.setdefault(d, set()).add(t)
-        except Exception:
-            return Response({"error": "alarm_schedule entries must have dayOfWeek and time (HH:MM)."},
-                            status=status.HTTP_400_BAD_REQUEST)
+        for ua in user_availabilities:
+            user_avail_by_day.setdefault(ua.dayOfWeek, set()).add(ua.alarmTime)
+
 
         # --- query candidate public pending challenges that match category & isMultiplayer ---
         is_multiplayer_flag = True if sing_or_mult == "multiplayer" else False
@@ -592,7 +600,7 @@ class GetMatchingChallengesView(APIView):
             distance = abs(user_skill_value - challenge_skill)
 
             # serialize challenge summary (use serializer)
-            serialized = ChallengeSummarySerializer(challenge, context={"user": request.user}).data
+            serialized = PendingPublicChallengeSummarySerializer(challenge, context={"user": request.user}).data
 
             results.append({
                 "id": challenge.id,

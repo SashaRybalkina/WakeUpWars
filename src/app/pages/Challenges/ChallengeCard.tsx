@@ -29,7 +29,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
   daysComplete, 
   totalDays, 
   daysOfWeek,
-  alarmSchedule = [] // Default to empty array if not provided
+  // alarmSchedule = [] // Default to empty array if not provided
 }) => {
   
   const dayMap = orderedDayLabels();
@@ -48,10 +48,10 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
           <View style={styles.daysContainer}>
             {dayMap.map((day, index) => {
               const isActive = daysOfWeek.includes(day);
-              const alarmItem = alarmSchedule.find(
-                (item) => DayOfWeekLabels[item.dayOfWeek as DayOfWeek] === day
-              );
-              const hasAlarm = isActive && alarmItem?.alarmTime;
+              // const alarmItem = alarmSchedule.find(
+              //   (item) => DayOfWeekLabels[item.dayOfWeek as DayOfWeek] === day
+              // );
+              // const hasAlarm = isActive && alarmItem?.alarmTime;
               
               return (
                 <View key={index} style={styles.dayWrapper}>
@@ -68,7 +68,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
                   </View>
                   
                   {/* Show alarm indicator if this day has an alarm */}
-                  {hasAlarm && (
+                  {isActive && (
                     <View style={styles.alarmIndicator}>
                       <Ionicons name="alarm" size={10} color="#FFD700" />
                     </View>
