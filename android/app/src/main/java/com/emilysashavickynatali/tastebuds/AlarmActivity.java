@@ -5,6 +5,7 @@ import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.content.Intent;
 
 public class AlarmActivity extends Activity {
 
@@ -32,8 +33,24 @@ public class AlarmActivity extends Activity {
         Button dismissButton = findViewById(R.id.dismissButton);
         dismissButton.setOnClickListener(v -> {
             mediaPlayer.stop();
+        
+            Intent i = new Intent(AlarmActivity.this, MainActivity.class);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        
+            // Forward screen + params to RN
+            String screen = getIntent().getStringExtra("screen");
+            Bundle params = getIntent().getBundleExtra("params");
+        
+            if (screen != null) {
+                i.putExtra("screen", screen);
+            }
+            if (params != null) {
+                i.putExtra("params", params);
+            }
+        
+            startActivity(i);
             finish();
-        });
+        });        
     }
 
     @Override

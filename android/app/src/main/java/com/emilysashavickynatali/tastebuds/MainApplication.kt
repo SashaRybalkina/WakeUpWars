@@ -23,8 +23,8 @@ class MainApplication : Application(), ReactApplication {
     object : DefaultReactNativeHost(this) {
       override fun getPackages(): List<ReactPackage> {
         val packages = PackageList(this).packages.toMutableList()
-        // 👇 Add your AlarmPackage here
         packages.add(AlarmPackage())
+        packages.add(IntentPackage())
         return packages
       }
 

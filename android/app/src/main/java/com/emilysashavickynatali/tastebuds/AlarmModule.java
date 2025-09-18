@@ -16,6 +16,7 @@ import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.ReadableMap;
 
 public class AlarmModule extends ReactContextBaseJavaModule {
     private final ReactApplicationContext reactContext;
@@ -33,14 +34,10 @@ public class AlarmModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void setAlarm(double timestamp, Promise promise) {
+    public void setAlarm(double timestamp, String screen, ReadableMap params, Promise promise) {
         try {
             AlarmManager alarmManager = (AlarmManager) reactContext.getSystemService(Context.ALARM_SERVICE);
 
-            boolean canSchedule = alarmManager.canScheduleExactAlarms();
-            Log.d("AlarmModule", "Can schedule exact alarms: " + canSchedule);
-
-            // ✅ Check permission on Android 12+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 if (!alarmManager.canScheduleExactAlarms()) {
                     Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
@@ -53,13 +50,17 @@ public class AlarmModule extends ReactContextBaseJavaModule {
                 }
             }
 
+            // Pass data to the receiver
             Intent intent = new Intent(reactContext, AlarmReceiver.class);
+            intent.putExtra("screen", screen);
+            intent.putExtra("params", params.toHashMap());
+
             PendingIntent pendingIntent = PendingIntent.getBroadcast(
                     reactContext,
                     0,
                     intent,
-                    PendingIntent.FLAG_UPDATE_CURRENT | 
-                    (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? PendingIntent.FLAG_MUTABLE : 0)
+                    PendingIntent.FLAG_UPDATE_CURRENT |
+                            (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? PendingIntent.FLAG_MUTABLE : 0)
             );
 
             long triggerAtMillis = (long) timestamp;

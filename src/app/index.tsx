@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useState } from 'react';
-import { Alert, NativeModules } from 'react-native';
+import { Alert, NativeEventEmitter, NativeModules } from 'react-native';
 import {
   createNavigationContainerRef,
   NavigationContainer,
@@ -48,37 +48,74 @@ import SudokuScreen from './pages/SudokuScreen';
 import WordleScreen from './pages/WordGame/WordleScreen';
 
 const { AlarmModule } = NativeModules;
+const { IntentModule } = NativeModules;
 
 const Stack = createStackNavigator();
 export const navigationRef = createNavigationContainerRef();
+let pendingNavigation: { screen: string; params?: any } | null = null;
+
+function navigate(screen: string, params?: any) {
+  if (navigationRef.isReady()) {
+    navigationRef.navigate(screen as never, params as never);
+  } else {
+    pendingNavigation = { screen, params };
+  }
+}
+
+function flushPendingNavigation() {
+  if (pendingNavigation && navigationRef.isReady()) {
+    navigationRef.navigate(
+      pendingNavigation.screen as never,
+      pendingNavigation.params as never,
+    );
+    pendingNavigation = null;
+  }
+}
 
 function App() {
   React.useEffect(() => {
-    // const subscription = Notifications.addNotificationResponseReceivedListener(
-    //   async (response) => {
-    //     const { screen, params } = response.notification.request.content.data as {
-    //       screen?: string;
-    //       params?: Record<string, any>;
-    //     };
-    //     // stop any burst alarms when tapped
-    //     await Alarm.stopAll();
-    //     if (screen && navigationRef.isReady()) {
-    //       navigationRef.navigate(screen as never, params as never);
-    //     }
-    //   }
-    // );
-    // return () => subscription.remove();
+    let subscription: any;
+
+    // 1) cold-start intent
+    IntentModule.getInitialIntent()
+      .then((data: any) => {
+        console.log('getInitialIntent =>', data);
+        if (data?.screen) {
+          navigate(data.screen, data);
+        }
+      })
+      .catch((e: any) => {
+        console.warn('getInitialIntent error', e);
+      });
+
+    // 2) warm-start intents: subscribe to native event emitter
+    const emitter = new NativeEventEmitter(IntentModule);
+    subscription = emitter.addListener('NewIntent', (data: any) => {
+      console.log('NewIntent event =>', data);
+      if (data?.screen) {
+        navigate(data.screen, data);
+      }
+    });
+
+    return () => {
+      if (subscription && subscription.remove) subscription.remove();
+      else if (subscription) subscription.remove(); // defensive
+    };
   }, []);
 
   const [seconds, setSeconds] = useState<string>('5');
   const timestamp = Date.now() + parseInt(seconds, 10) * 1000;
 
-  AlarmModule.setAlarm(timestamp)
+  AlarmModule.setAlarm(timestamp, 'Wordle', {
+    challengeId: 30,
+    challName: 'Test Challenge',
+    whichChall: 'wordle',
+  })
     .then((msg: string) => Alert.alert('Success', msg))
     .catch((err: any) => Alert.alert('Error', err.message || err));
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} onReady={flushPendingNavigation}>
       <Stack.Navigator
         initialRouteName="Login"
         //initialRouteName="PatternGame"
