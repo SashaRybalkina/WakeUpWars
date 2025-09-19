@@ -116,13 +116,13 @@ function App() {
   const [seconds, setSeconds] = useState<string>('5');
   const timestamp = Date.now() + parseInt(seconds, 10) * 1000;
 
-  AlarmModule.setAlarm(timestamp, 'Wordle', {
-    challengeId: 30,
-    challName: 'Test Challenge',
-    whichChall: 'wordle',
-  })
-    .then((msg: string) => Alert.alert('Success', msg))
-    .catch((err: any) => Alert.alert('Error', err.message || err));
+  // AlarmModule.setAlarm(timestamp, 'Wordle', {
+  //   challengeId: 30,
+  //   challName: 'Test Challenge',
+  //   whichChall: 'wordle',
+  // })
+  //   .then((msg: string) => Alert.alert('Success', msg))
+  //   .catch((err: any) => Alert.alert('Error', err.message || err));
 
   return (
     <NavigationContainer ref={navigationRef} onReady={flushPendingNavigation}>
