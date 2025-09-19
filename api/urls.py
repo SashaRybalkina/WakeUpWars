@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import (LoginView, RegisterView, GroupListView, HelloWorldView, UserProfileView, GetChallengeScheduleView, AddGameToScheduleView,
+from .views import (AcceptPersonalChallenge, DeclinePersonalChallenge, GetPersonalChallengeInvites, LoginView, RegisterView, GroupListView, HelloWorldView, UserProfileView, GetChallengeScheduleView, AddGameToScheduleView,
                     UserMessagesView, GroupDetailsView, CatListView, GameListView,
                     ChallengeListView, GetChallengeInitiatorView,
                     ChallengeDetailView, ChallengeGameScheduleView, CreateManualGroupChallengeView,
@@ -96,5 +96,8 @@ urlpatterns = [
 
     # sending challenge to friends
     path("share-challenge/<int:chall_id>/", ShareChallengeView.as_view()),
+    path('get-personal-challenge-invites/<int:user_id>/', GetPersonalChallengeInvites.as_view()),
+    path('accept-personal-challenge/<int:user_id>/<int:chall_id>/', AcceptPersonalChallenge.as_view()),
+    path('decline-personal-challenge/<int:user_id>/<int:chall_id>/', DeclinePersonalChallenge.as_view()),
 
 ]

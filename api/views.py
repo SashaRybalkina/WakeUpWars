@@ -28,7 +28,7 @@ from .serializers import (UserSerializer, RegisterSerializer, GroupSerializer, U
                           CatSerializer, GameSerializer, FriendSerializer, FriendRequestSerializer, CreateGroupSerializer, SkillLevelSerializer,
                           RewardSettingSerializer, ExternalHandleSerializer,ObligationSerializer, CashPaymentCreateSerializer,
                           ExternalPaymentCreateSerializer, PaymentSerializer)
-from .models import (Group, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule,
+from .models import (Group, PersonalChallengeInvite, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule,
                      AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest,
                      SkillLevel, PendingGroupChallengeAvailability, GroupChallengeInvite, WordleMove, )
 from django.http import JsonResponse
@@ -1840,7 +1840,7 @@ class ShareChallengeView(APIView):
                 startDate=start_date,
                 endDate=end_date,
                 isPublic=original.isPublic,
-                isPending=False
+                isPending=True
             )
             print(f"[BACKEND] New challenge created for friend {friend.id}: {new_challenge.id}")
 
@@ -1867,6 +1867,11 @@ class ShareChallengeView(APIView):
                         game_order=assoc.game_order
                     )
 
+            # create the invite record (sender can see the statement)
+            PersonalChallengeInvite.objects.create(
+                chall=new_challenge, sender=request.user, recipient=friend, status=2
+            )
+
             return Response(
                 {"message": "Challenge shared successfully", "id": new_challenge.id},
                 status=201
@@ -1874,4 +1879,56 @@ class ShareChallengeView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=400)
+        
+
+class GetPersonalChallengeInvites(APIView):
+    def get(self, request, user_id):
+       
+        invites = (PersonalChallengeInvite.objects
+                   .filter(recipient_id=user_id, status=2)
+                   .select_related('chall'))
+        data = [
+            {
+                "id": inv.chall.id,
+                "name": inv.chall.name,
+                "endDate": inv.chall.endDate,
+                "inviteId": inv.id,
+                "status": inv.status,  # 2
+            }
+            for inv in invites
+        ]
+        return Response(data, status=200)
+
+
+class AcceptPersonalChallenge(APIView):
+    @transaction.atomic
+    def post(self, request, user_id, chall_id):
+        inv = get_object_or_404(PersonalChallengeInvite,
+                                recipient_id=user_id,
+                                chall_id=chall_id,
+                                status=2)
+        chall = inv.chall
+        chall.isPending = False
+        chall.save(update_fields=['isPending'])
+
+        inv.status = 1  # accepted
+        inv.save(update_fields=['status'])
+        return Response({"ok": True}, status=200)
+
+
+# only one challenge per invite, so deleting the challenge is fine
+class DeclinePersonalChallenge(APIView):
+    @transaction.atomic
+    def post(self, request, user_id, chall_id):
+        inv = get_object_or_404(PersonalChallengeInvite,
+                                recipient_id=user_id,
+                                chall_id=chall_id,
+                                status=2)
+       
+        inv.status = 0  # declined
+        inv.save(update_fields=['status'])
+
+        inv.chall.delete()
+        return Response({"ok": True}, status=200)
+
 

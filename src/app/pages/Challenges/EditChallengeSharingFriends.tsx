@@ -82,7 +82,7 @@ const EditChallengeSharingFriends: React.FC<Props> = ({ navigation, route }) => 
   const [selectedFriends, setSelectedFriends] = useState<number[]>([]);
   const [loadingFriends, setLoadingFriends] = useState(true);
 
-  // --- 抓取 detail + schedule 並合併 ---
+  
   useEffect(() => {
     if (!challId) return;
 
