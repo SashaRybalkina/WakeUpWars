@@ -460,7 +460,8 @@ class GetMatchingChallengesView(APIView):
         print(user_availabilities)
         user_avail_by_day = {}
         for ua in user_availabilities:
-            user_avail_by_day.setdefault(ua.dayOfWeek, set()).add(ua.alarmTime)
+            user_avail_by_day.setdefault(ua.dayOfWeek, set()).add(ua.alarmTime.strftime("%H:%M"))
+            # user_avail_by_day.setdefault(ua.dayOfWeek, set()).add(ua.alarmTime)
         print(user_avail_by_day)
 
 
@@ -494,6 +495,28 @@ class GetMatchingChallengesView(APIView):
         )
 
         candidates = list(q)
+
+        for c in candidates:
+            alarms = []
+            if hasattr(c.challenge, "prefetched_cas"):
+                alarms = [
+                    {
+                        "user": cas.alarm_schedule.uID.username,
+                        "day": cas.alarm_schedule.dayOfWeek,
+                        "time": cas.alarm_schedule.alarmTime.strftime("%H:%M"),
+                    }
+                    for cas in c.challenge.prefetched_cas
+                ]
+            
+            print({
+                "challenge_id": c.challenge.id,
+                "challenge_name": c.challenge.name,
+                "category": c.category.categoryName if c.category else "Miscellaneous",
+                "isMultiplayer": c.isMultiplayer,
+                "averageSkillLevel": str(c.averageSkillLevel),
+                "alarms": alarms,
+            })
+
 
         # Helper to compute user skill value (0-10). If exact category specified use category; otherwise average.
         def compute_user_skill(userId, category_obj):

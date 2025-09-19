@@ -52,10 +52,13 @@ const CreatePublicChall: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
+    console.log("navigating with:")
+    console.log(singOrMult)
+    console.log(selectedCategory)
     navigation.navigate("CreatePublicChall2", {
       singOrMult: singOrMult,
       category: selectedCategory, // can be null
-      isMiscellaneous: miscSelected,
+      // isMiscellaneous: miscSelected,
     });
   };
 

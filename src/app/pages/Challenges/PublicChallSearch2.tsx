@@ -26,8 +26,9 @@ const PublicChallSearch2: React.FC<Props> = ({ navigation }) => {
 
   return (
     <ScrollView style={{ padding: 10 }}>
-      {matches.map((m: any) => (
+      {matches.map((m, idx) => (
         <TouchableOpacity
+            key={idx}
             onPress={() =>
             navigation.navigate("ChallSchedule", {
                 challId: m.summary.id,

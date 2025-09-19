@@ -26,11 +26,12 @@ const DAYS = ["M", "T", "W", "TH", "F", "S", "SU"]
 
 const CreatePublicChall2: React.FC<Props> = ({ navigation }) => {
   const route = useRoute()
-  const { singOrMult, category, isMiscellaneous } = route.params as {
+  const { singOrMult, category } = route.params as {
     singOrMult: string
-    category: { id: number; name: string }
-    isMiscellaneous: boolean
+    category: { id: number; name: string } | null
+    // isMiscellaneous: boolean
   }
+  console.log(category)
 
   const { user } = useUser();
 
@@ -449,8 +450,7 @@ const CreatePublicChall2: React.FC<Props> = ({ navigation }) => {
                   onPress={() => {
                     navigation.navigate("Games", {
                       catType: "Public",
-                      catId: category ? category.id : null,
-                      catName: category ? category.name : null,
+                      category: category,
                       singOrMult: singOrMult,
                       groupId : null,
                       groupMembers : null,

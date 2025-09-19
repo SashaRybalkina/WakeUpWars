@@ -17,10 +17,11 @@ type Props = {
 
 const Games: React.FC<Props> = ({ navigation }) => {
   const route = useRoute();
-  const { catType, catId, catName, groupId, singOrMult, groupMembers, onGameSelected, challId, challName } = route.params as {
+  const { catType, catId, catName, category, groupId, singOrMult, groupMembers, onGameSelected, challId, challName } = route.params as {
     catType: string
     catId: number;
     catName: string;
+    category: { id: number; name: string } | null;
     singOrMult: string;
     groupId: number;
     groupMembers: { id: number; name: string }[];
@@ -36,8 +37,8 @@ const Games: React.FC<Props> = ({ navigation }) => {
       try {
         // fetch the games in whatever category was selected
         let response;
-        if (catId) {
-          response = await fetch(endpoints.games(catId, singOrMult));
+        if (category) {
+          response = await fetch(endpoints.games(category.id, singOrMult));
         }
         else {
           response = await fetch(endpoints.singOrMultGames(singOrMult));
@@ -88,6 +89,10 @@ const Games: React.FC<Props> = ({ navigation }) => {
               style={styles.gameButton}
               onPress={() => navigation.navigate('GameExpanded', { 
                 catType, 
+                catId,
+                catName, 
+                category,
+                singOrMult,
                 gameId: game.id, 
                 gameName: game.name, 
                 groupId, 

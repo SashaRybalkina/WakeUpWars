@@ -65,6 +65,8 @@ const PublicChallSearch1: React.FC<Props> = ({ navigation }) => {
         }
 
         try {
+            console.log(selectedCategory)
+            console.log(singOrMult)
         const res = await fetch(endpoints.getMatchingChallenges(Number(user?.id), selectedCategory?.id ?? undefined, singOrMult === "singleplayer" ? "Singleplayer" : "Multiplayer"));
 
         const data = await res.json();
