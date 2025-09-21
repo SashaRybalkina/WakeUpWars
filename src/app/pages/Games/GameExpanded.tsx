@@ -7,7 +7,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { NavigationProp, useRoute } from '@react-navigation/native';
+import { NavigationProp, StackActions, useRoute } from '@react-navigation/native';
 import { getGameMeta } from './NewGamesManagement';
 
 type Props = {
@@ -45,10 +45,11 @@ const GameExpanded: React.FC<Props> = ({ navigation }) => {
     if (catType == 'Personal') navigation.navigate('PersChall2');
     else if (catType == 'Group') navigation.navigate('GroupChall2', { groupId, groupMembers });
     else if (catType === 'Public') {
-      navigation.navigate('CreatePublicChall2', { 
-        singOrMult: singOrMult,
-        categories: categories,
-      });
+      // navigation.navigate('CreatePublicChall2', { 
+      //   singOrMult: singOrMult,
+      //   categories: categories,
+      // });
+      navigation.dispatch(StackActions.pop(3));
     }
     else if (catType == 'Schedule') navigation.navigate('ChallSchedule', { challId, challName });
   };

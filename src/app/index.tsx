@@ -16,6 +16,7 @@ import PublicChallSearch1 from './pages/Challenges/PublicChallSearch1';
 import PublicChallSearch2 from './pages/Challenges/PublicChallSearch2';
 import PublicChallenges from './pages/Challenges/PublicChallenges';
 import Categories from './pages/Games/Categories';
+import SomeCategories from './pages/Games/SomeCategories';
 import GameExpanded from './pages/Games/GameExpanded';
 import Games from './pages/Games/Games';
 import GroupScreen from './pages/Groups';
@@ -56,6 +57,11 @@ function App() {
         <Stack.Screen
           name="Categories"
           component={Categories}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="SomeCategories"
+          component={SomeCategories}
           options={{ headerShown: false }}
         />
         <Stack.Screen

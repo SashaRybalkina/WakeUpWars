@@ -496,9 +496,11 @@ class GetMatchingChallengesView(APIView):
         print(q.count())
 
         # Only include challenges where every category association is in category_ids
-        q = q.filter(
-            publicchallengecategoryassociation__category_id__in=category_ids
-        ).distinct()
+        # q = q.filter(
+        #     publicchallengecategoryassociation__category_id__in=category_ids
+        # ).distinct()
+        q = q.filter(challenge__publicchallengecategoryassociation__category_id__in=category_ids).distinct()
+
         print(q.count())
 
         # Prefetch the ChallengeAlarmSchedule objects along with their AlarmSchedule and user
@@ -525,10 +527,14 @@ class GetMatchingChallengesView(APIView):
                     for cas in c.challenge.prefetched_cas
                 ]
             
+            categories = GameCategory.objects.filter(
+                publicchallengecategoryassociation__challenge=c.challenge
+            )
+
             print({
                 "challenge_id": c.challenge.id,
                 "challenge_name": c.challenge.name,
-                "category": c.category.categoryName if c.category else "Miscellaneous",
+                "categories": [cat.categoryName for cat in categories],
                 "isMultiplayer": c.isMultiplayer,
                 "averageSkillLevel": str(c.averageSkillLevel),
                 "alarms": alarms,
