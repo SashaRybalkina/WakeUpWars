@@ -454,7 +454,7 @@ class GetPendingPublicChallengesView(APIView):
             day_labels = [numeric_to_label[d] for d in sorted(game_days)]
 
             serialized = PendingPublicChallengeSummarySerializer(challenge, context={'user': request.user}).data
-            serialized['daysOfWeek'] = day_labels
+            # serialized['daysOfWeek'] = day_labels
             # serialized['totalDays'] = (challenge.endDate - challenge.startDate).days + 1
 
             response_data.append(serialized)
@@ -614,7 +614,7 @@ class GetMatchingChallengesView(APIView):
                 # "totalDays": challenge.totalDays,    # already included in serialized
                 "summary": serialized,
                 "distance": float(distance),  # convert Decimal -> float for JSON
-                "averageSkillLevel": float(challenge_skill),
+                # "averageSkillLevel": float(challenge_skill),
             })
 
         # sort by distance ascending (closest skill match first)
@@ -803,12 +803,17 @@ class GetChallengeScheduleView(APIView):
                 "games": games_by_day.get(day, [])
             })
 
+        # TODO: fix this once update db
+        if (challenge.startDate and challenge.endDate):
+            totDays = (challenge.endDate - challenge.startDate).days + 1
+        else:
+            totDays = challenge.totalDays
         return Response({
             "id": challenge.id,
             "name": challenge.name,
             "startDate": challenge.startDate,
             "endDate": challenge.endDate,
-            "totalDays": (challenge.endDate - challenge.startDate).days + 1,
+            "totalDays": totDays,
             "members": members,
             "schedule": schedule
         }, status=status.HTTP_200_OK)

@@ -10,6 +10,7 @@ import PendingPublicChallengeCard from "./PendingPublicChallengeCard"
 import { useFocusEffect } from "@react-navigation/native"
 import { ActivityIndicator } from "react-native"
 import { useUser } from "../../context/UserContext"
+import Categories from "../Games/Categories"
 
 type Props = {
   navigation: NavigationProp<any>
@@ -32,24 +33,12 @@ type PendingPublicChallenge = {
   totalDays: number
   numParticipants: number
   daysOfWeek: string[]
+  categories: string[],
+  averageSkillLevel: number,
 }
 
-// type InviteStatus = {
-//   id: number;
-//   accepted: number;
-// };
-
-// type GroupData = {
-//   id: number
-//   name: string
-//   challenges: Challenge[]
-//   members: { id: number; name: string }[]
-// }
 
 const PublicChallenges: React.FC<Props> = ({ navigation }) => {
-//   const route = useRoute()
-//   const { groupId } = route.params as { groupId: number }
-  
   const { user } = useUser()
 
   const [isLoading, setIsLoading] = useState(true)
@@ -83,15 +72,19 @@ const PublicChallenges: React.FC<Props> = ({ navigation }) => {
         //     'totalDays',
         //     'daysOfWeek',
         //     'numParticipants',  
+        //     'categories',
+        //     'averageSkillLevel'
         //   ]
-
+        console.log(data)
         const formattedData = data.map(
             (item: PendingPublicChallenge) => ({
                 id: item.id,
                 name: item.name,
                 totalDays: item.totalDays,
                 numParticipants: item.numParticipants,
-                daysOfWeek: item.daysOfWeek
+                daysOfWeek: item.daysOfWeek,
+                categories: item.categories,
+                averageSkillLevel: item.averageSkillLevel,
             })
         )
   
@@ -192,14 +185,6 @@ console.log("CHALLENGE LIST URL:", url);
                     <TouchableOpacity
                       key={challenge.id}
                       style={styles.challengeCardWrapper}
-                    //   onPress={() =>
-                    //     navigation.navigate("EditAvailability", {
-                    //       pendingChallengeId: challenge.id,
-                    //       pendingChallengeName: challenge.name,
-                    //       pendingChallengeEndDate: challenge.endDate,
-                    //       accepted: challenge.accepted
-                    //     })
-                    //   }
                     >
                       <PendingPublicChallengeCard
                         title={challenge.name}
@@ -207,6 +192,8 @@ console.log("CHALLENGE LIST URL:", url);
                         numEnrolledMembers={challenge.numParticipants}
                         totalDays={challenge.totalDays}
                         daysOfWeek={challenge.daysOfWeek}
+                        categories={challenge.categories}
+                        averageSkillLevel={challenge.averageSkillLevel}
                       />
                       {/* const PendingPublicChallengeCard: React.FC<PendingPublicChallengeCardProps> = ({ 
                         title, 

@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import (Group, User, SkillLevel, GameCategory, Challenge, GamePerformance, GameSchedule, Message, ChallengeMembership, Game,
-                     FriendRequest,RewardSetting, ExternalHandle, Obligation, Payment, PaymentProvider, PaymentMethod)
+                     FriendRequest,RewardSetting, ExternalHandle, Obligation, Payment, PaymentProvider, PaymentMethod, PublicChallengeCategoryAssociation,
+                     PublicChallengeConfiguration, )
 from django.contrib.auth.hashers import make_password
 import calendar
 from django.utils import timezone
@@ -88,7 +89,9 @@ class ChallengeSummarySerializer(serializers.ModelSerializer):
 
 class PendingPublicChallengeSummarySerializer(serializers.ModelSerializer):
     daysOfWeek = serializers.SerializerMethodField()
-    numParticipants = serializers.SerializerMethodField()  # new field
+    numParticipants = serializers.SerializerMethodField()
+    categories = serializers.SerializerMethodField()
+    averageSkillLevel = serializers.SerializerMethodField()
 
     class Meta:
         model = Challenge
@@ -97,16 +100,48 @@ class PendingPublicChallengeSummarySerializer(serializers.ModelSerializer):
             'name', 
             'totalDays',
             'daysOfWeek',
-            'numParticipants',  
+            'numParticipants',
+            'categories',
+            'averageSkillLevel'  
         ]
 
+    # def get_daysOfWeek(self, obj):
+    #     day_numbers = obj.gameschedule_set.values_list('dayOfWeek', flat=True)
+    #     return [calendar.day_name[day][0] for day in day_numbers]
+
     def get_daysOfWeek(self, obj):
-        day_numbers = obj.gameschedule_set.values_list('dayOfWeek', flat=True)
-        return [calendar.day_name[day][0] for day in day_numbers]
+        # Pull dayOfWeek values through ChallengeAlarmSchedule → AlarmSchedule
+        day_numbers = (
+            obj.challengealarmschedule_set
+            .values_list("alarm_schedule__dayOfWeek", flat=True)
+            .distinct()
+        )
+
+        print(list(day_numbers))
+
+        numeric_to_label = {1: "M", 2: "T", 3: "W", 4: "TH", 5: "F", 6: "S", 7: "SU"}
+
+        day_labels = [numeric_to_label[d] for d in sorted(day_numbers)]
+        return list(day_labels)
 
     def get_numParticipants(self, obj):
         # Count how many ChallengeMemberships exist for this challenge
         return obj.challengemembership_set.count()
+    
+    def get_categories(self, obj):
+        # Grab all associated category names
+        categories = (
+            PublicChallengeCategoryAssociation.objects
+            .filter(challenge=obj)
+            .select_related("category")
+        )
+        # Return a list of category names
+        return [c.category.categoryName for c in categories if c.category]
+
+    def get_averageSkillLevel(self, obj):
+        # There should be only one PublicChallengeConfiguration per challenge
+        config = PublicChallengeConfiguration.objects.filter(challenge=obj).first()
+        return float(config.averageSkillLevel) if config else None
 
 
     

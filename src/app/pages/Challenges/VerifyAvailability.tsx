@@ -42,7 +42,13 @@ type SelectedCell = { day: number; time: number }; // day: 0-6, time: 0-11
 const VerifyAvailability: React.FC<Props> = ({ navigation }) => { 
   const { user } = useUser()
 
+  // const [selectedCells, setSelectedCells] = useState<SelectedCell[]>([]);
+
+    // state for current selections
   const [selectedCells, setSelectedCells] = useState<SelectedCell[]>([]);
+  // state for initial fetched availability
+  const [initialCells, setInitialCells] = useState<SelectedCell[]>([]);
+
 
   const dayToInt: Record<string, number> = {
     M: 1,
@@ -55,6 +61,7 @@ const VerifyAvailability: React.FC<Props> = ({ navigation }) => {
   }
 
 
+
   const toggleCell = (day: number, time: number) => {
     setSelectedCells(prev => {
       const exists = prev.some(cell => cell.day === day && cell.time === time);
@@ -65,7 +72,6 @@ const VerifyAvailability: React.FC<Props> = ({ navigation }) => {
       }
     });
   };
-
 
   const isCellSelected = (day: number, time: number) =>
     selectedCells.some(cell => cell.day === day && cell.time === time);
@@ -91,54 +97,48 @@ const convertTo24Hour = (time12: string) => {
 
 
 
-useEffect(() => {
-  const fetchAvailability = async () => {
-    try {
-      const res = await fetch(endpoints.getUserAvailability(Number(user?.id)));
-      if (!res.ok) throw new Error("Failed to fetch availability");
-      const data: { dayOfWeek: number; alarmTime: string }[] = await res.json();
+  useEffect(() => {
+    const fetchAvailability = async () => {
+      try {
+        const res = await fetch(endpoints.getUserAvailability(Number(user?.id)));
+        if (!res.ok) throw new Error("Failed to fetch availability");
+        const data: { dayOfWeek: number; alarmTime: string }[] = await res.json();
 
-      // Convert backend format into SelectedCell[]
-      const converted: SelectedCell[] = data.flatMap(({ dayOfWeek, alarmTime }) => {
-        // Convert "HH:MM" (24-hour) -> index in TIMES
-        const timeIdx = TIMES.findIndex(t => convertTo24Hour(t) === alarmTime);
-        if (timeIdx === -1) return [];
-        return [{ day: dayOfWeek - 1, time: timeIdx }]; // backend dayOfWeek 1-7 → our day 0-6
-      });
-
-      setSelectedCells(converted);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  fetchAvailability();
-}, [user?.id]);
-
-
-
-
-    const handleSubmit = async() => {
-        // if (selectedCells.length === 0) {
-        //     Alert.alert("Error", "Please select at least one availability slot.")
-        //     return
-        // }
-        
-        const alarmSchedule = selectedCells.flatMap(({ day, time }) => {
-          const dayStr = DAYS[day];
-          if (!dayStr) return [];
-
-          const dayOfWeek = dayToInt[dayStr as keyof typeof dayToInt];
-          if (!dayOfWeek) return [];
-          if (!TIMES[time]) return;
-          return [{ dayOfWeek, time: convertTo24Hour(TIMES[time]) }];
+        // convert backend format to SelectedCell[]
+        const converted: SelectedCell[] = data.flatMap(({ dayOfWeek, alarmTime }) => {
+          const timeIdx = TIMES.findIndex(t => convertTo24Hour(t) === alarmTime);
+          if (timeIdx === -1) return [];
+          return [{ day: dayOfWeek - 1, time: timeIdx }]; // backend 1-7 → front 0-6
         });
 
-        const payload = {
-          alarm_schedule: alarmSchedule,
-        };
+        setSelectedCells(converted);
+        setInitialCells(converted); // save initial state
+      } catch (err) {
+        console.error(err);
+      }
+    };
 
-        console.log("Payload sent to backend:", payload);
+    fetchAvailability();
+  }, [user?.id]);
+
+  const handleSubmit = async () => {
+    // Find cells that are different from initial
+    const toggledCells = selectedCells.filter(
+      cell => !initialCells.some(init => init.day === cell.day && init.time === cell.time)
+    ).concat(
+      initialCells.filter(
+        cell => !selectedCells.some(sel => sel.day === cell.day && sel.time === cell.time)
+      )
+    );
+
+    const newlyToggledCells = toggledCells.map(cell => {
+      const timeStr = TIMES[cell.time];
+      if (!timeStr) throw new Error("Invalid time index");
+      return { dayOfWeek: cell.day + 1, time: convertTo24Hour(timeStr) };
+    });
+
+    const payload = { alarm_schedule: newlyToggledCells }; 
+    console.log("Payload sent to backend:", payload);
 
 
         try {
