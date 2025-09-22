@@ -166,6 +166,8 @@ class PaymentSerializer(serializers.ModelSerializer):
 
 # shows what each payer owes the winner, embeds all payments, adds computed amount_paid & remaining
 class ObligationSerializer(serializers.ModelSerializer):
+    reward_type = serializers.CharField(source='challenge.reward_setting.type', read_only=True)
+    reward_note = serializers.CharField(source='challenge.reward_setting.note', read_only=True)
     payments = PaymentSerializer(many=True, read_only=True)
     amount_paid = serializers.DecimalField(max_digits=8, decimal_places=2, read_only=True)
     remaining = serializers.DecimalField(max_digits=8, decimal_places=2, read_only=True)
@@ -178,7 +180,7 @@ class ObligationSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'challenge', 'payer', 'payer_name', 'payee', 'payee_name',
             'currency', 'amount', 'amount_paid', 'remaining', 'status',
-            'due_at', 'points_penalty_per_day', 'agreement_accepted', 'payments'
+            'due_at', 'points_penalty_per_day', 'agreement_accepted', 'payments', 'reward_type', 'reward_note'
         ]
 
     def _display_name(self, u):

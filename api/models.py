@@ -205,8 +205,19 @@ class Challenge(models.Model):
 
         rs, _ = RewardSetting.objects.get_or_create(
             challenge=self,
-            defaults=dict(type=RewardType.MONEY, amount=5)
+            defaults=dict(type=RewardType.MONEY, amount=Decimal('5'))
         )
+
+        # Determine amount owed per payer depending on reward type
+        if rs.type == RewardType.MONEY:
+            reward_amount = rs.amount or Decimal('0')
+            currency_code = 'USD'
+        elif rs.type == RewardType.POINTS:
+            reward_amount = rs.amount or Decimal('0')
+            currency_code = 'PTS'  # imaginary points currency label
+        else:  # custom reward – use zero-amount and let UI handle narrative
+            reward_amount = Decimal('0')
+            currency_code = 'CST'  # custom symbolic code
 
         due_at = timezone.now() + timezone.timedelta(days=7)
 
@@ -217,8 +228,8 @@ class Challenge(models.Model):
                     payer=payer,
                     payee=winner,
                     defaults=dict(
-                        currency='USD',
-                        amount=rs.amount or Decimal('0'),
+                        currency=currency_code,
+                        amount=reward_amount,
                         due_at=due_at,
                         points_penalty_per_day=5  # tune in settings
                     )
@@ -441,6 +452,7 @@ class ObligationStatus(models.TextChoices):
 class PaymentMethod(models.TextChoices):
     CASH = 'cash', 'Cash'
     EXTERNAL = 'external', 'External'
+    CUSTOM = 'custom', 'Custom'
 
 # Enum for external providers we link out to (e.g., Venmo/PayPal).
 class PaymentProvider(models.TextChoices):
