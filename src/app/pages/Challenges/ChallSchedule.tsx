@@ -310,11 +310,11 @@ const addGameToDay = async (game: { id: number; name: string }) => {
   
           if (!res.ok) {
               const error = await res.json();
-              throw new Error(error.message || 'Failed to join challenge');
+              throw new Error(error.message || 'Failed to finalize challenge');
           }
   
           const data = await res.json();
-          Alert.alert('Success', 'Joined Challenge', [
+          Alert.alert('Success', 'Finalized Challenge', [
               { text: 'OK', onPress: () => navigation.navigate('PublicChallenges') },
           ]);
           } catch (err: any) {

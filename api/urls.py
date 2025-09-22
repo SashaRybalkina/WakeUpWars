@@ -35,6 +35,7 @@ from .views import (
     CreateWordleGameView, ValidateWordleMoveView, get_csrf_token, SingOrMultGameListView,
     GetPendingPublicChallengesView, GetMatchingChallengesView, SetUserAvailabilityView,
     GetUserAvailabilityView, SomeCatsListView, JoinPublicChallengeView, FinalizePublicChallengeView,
+    GetPublicChallengesView,
 )
 
 router = DefaultRouter()
@@ -47,6 +48,7 @@ urlpatterns = [
     path('challenges/<int:challenge_id>/finalize/', FinalizeChallengeView.as_view(), name='finalize-challenge'),
     path('challenges/<int:user_id>/<str:which_chall>/', ChallengeListView.as_view(), name='challenge-list'),
     path('get-pending-public-challenges/<int:user_id>/', GetPendingPublicChallengesView.as_view(), name='get-pending-public-challenges'),
+    path('get-public-challenges/<int:user_id>/', GetPublicChallengesView.as_view(), name='get-public-challenges'),
     path(
     'get-matching-challenges/<int:user_id>/<str:category_ids>/<str:sing_or_mult>/',
     GetMatchingChallengesView.as_view(),
@@ -67,7 +69,7 @@ urlpatterns = [
     path('groups/<int:group_id>/', GroupDetailsView.as_view(), name='group-details'),
     path('group-member-add/<int:group_id>/', AddGroupMemberView.as_view(), name='group-mem-add'),
     path('join-public-challenge/<int:user_id>/', JoinPublicChallengeView.as_view(), name='join-public-challenge'),
-    path('finalize-public-challenge/<int:user_id>/', FinalizePublicChallengeView.as_view(), name='finalize-public-challenge'),
+    path('finalize-public-challenge/', FinalizePublicChallengeView.as_view(), name='finalize-public-challenge'),
     path('challenge-detail/<int:chall_id>/', ChallengeDetailView.as_view(), name='challenge-detail'),
     path('challenge-schedule/<int:chall_id>/', ChallengeGameScheduleView.as_view(), name='challenge-schedule'),
     path('get-challenge-schedule/<int:chall_id>/', GetChallengeScheduleView.as_view(), name='get-challenge-schedule'),

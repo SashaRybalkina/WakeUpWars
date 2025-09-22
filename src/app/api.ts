@@ -21,6 +21,7 @@ export const endpoints = {
   challengeDetail: (challId: number) => `${BASE_URL}/api/challenge-detail/${challId}/`,
   challengeList: (userId: number, whichChall: string) => `${BASE_URL}/api/challenges/${userId}/${whichChall}/`,
   getPendingPublicChallenges: (userId: number) => `${BASE_URL}/api/get-pending-public-challenges/${userId}/`,
+  getPublicChallenges: (userId: number) => `${BASE_URL}/api/get-public-challenges/${userId}/`,
   joinPublicChallenge: (userId: number) => `${BASE_URL}/api/join-public-challenge/${userId}/`,
   finalizePublicChallenge: () => `${BASE_URL}/api/finalize-public-challenge/`,
   // getCurrentPublicChallenges: (userId: number) => `${BASE_URL}/api/challenges/${userId}/`,

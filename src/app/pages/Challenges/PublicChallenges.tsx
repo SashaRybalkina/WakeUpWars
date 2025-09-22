@@ -12,6 +12,8 @@ import { ActivityIndicator } from "react-native"
 import { useUser } from "../../context/UserContext"
 import Categories from "../Games/Categories"
 import { INTERNAL_CALLSITES_REGEX } from "expo/metro-config"
+import PublicChallengeCard from "./PublicChallengeCard"
+import { CheckboxStyledContext } from "tamagui"
 
 type Props = {
   navigation: NavigationProp<any>
@@ -255,12 +257,17 @@ const PublicChallenges: React.FC<Props> = ({ navigation }) => {
                     //     })
                     //   }
                     >
-                      <ChallengeCard
+                      <PublicChallengeCard
                         title={challenge.name}
                         icon={require("../../images/school.png")}
-                        daysComplete={challenge.daysCompleted}
-                        totalDays={challenge.totalDays || 30}
+                        startDate={challenge.startDate}
+                        endDate={challenge.endDate}
                         daysOfWeek={challenge.daysOfWeek}
+                        daysCompleted={challenge.daysCompleted}
+                        totalDays={challenge.totalDays || 30}
+                        isCompleted={challenge.isCompleted}
+                        categories={challenge.categories}
+                        averageSkillLevel={challenge.averageSkillLevel}
                       />
                     </TouchableOpacity>
                   ))}
@@ -300,12 +307,17 @@ const PublicChallenges: React.FC<Props> = ({ navigation }) => {
                     //     })
                     //   }
                     >
-                      <ChallengeCard
+                      <PublicChallengeCard
                         title={challenge.name}
                         icon={require("../../images/school.png")}
-                        daysComplete={challenge.daysCompleted}
-                        totalDays={challenge.totalDays || 30}
+                        startDate={challenge.startDate}
+                        endDate={challenge.endDate}
                         daysOfWeek={challenge.daysOfWeek}
+                        daysCompleted={challenge.daysCompleted}
+                        totalDays={challenge.totalDays || 30}
+                        isCompleted={challenge.isCompleted}
+                        categories={challenge.categories}
+                        averageSkillLevel={challenge.averageSkillLevel}
                       />
                     </TouchableOpacity>
                   ))}
