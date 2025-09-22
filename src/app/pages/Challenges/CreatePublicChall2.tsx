@@ -306,7 +306,7 @@ const CreatePublicChall2: React.FC<Props> = ({ navigation }) => {
       const data = await res.json();
       console.log('Challenge created:', data);
       Alert.alert('Success', 'Challenge created successfully', [
-        { text: 'OK', onPress: () => navigation.navigate('Chall1', { whichChall: "Public" }) },
+        { text: 'OK', onPress: () => navigation.navigate('PublicChallenges') },
       ]);
     } catch (err: any) {
       Alert.alert('Error', err.message);

@@ -392,6 +392,7 @@ class SudokuGameState(models.Model):
       challenge = models.ForeignKey(Challenge, on_delete=models.CASCADE, related_name='games')
       puzzle = models.JSONField()
       solution = models.JSONField()
+      game_code = models.CharField(max_length=16, default="sudoku", editable=False)
 
       class Meta:
         db_table = 'SudokuGameStates'

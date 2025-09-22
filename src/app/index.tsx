@@ -15,6 +15,8 @@ import VerifyAvailability from './pages/Challenges/VerifyAvailability';
 import PublicChallSearch1 from './pages/Challenges/PublicChallSearch1';
 import PublicChallSearch2 from './pages/Challenges/PublicChallSearch2';
 import PublicChallenges from './pages/Challenges/PublicChallenges';
+import LeaderboardDetails from './pages/Challenges/LeaderboardDetails';
+import Wordle from './pages/WordGame/Wordle';
 import Categories from './pages/Games/Categories';
 import SomeCategories from './pages/Games/SomeCategories';
 import GameExpanded from './pages/Games/GameExpanded';
@@ -242,6 +244,16 @@ function App() {
         <Stack.Screen
           name="PublicChallenges"
           component={PublicChallenges}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="LeaderboardDetails"
+          component={LeaderboardDetails}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Wordle"
+          component={Wordle}
           options={{ headerShown: false }}
         />
         <Stack.Screen
