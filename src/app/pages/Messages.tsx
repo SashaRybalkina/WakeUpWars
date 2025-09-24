@@ -101,6 +101,11 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     }).start()
   }, [selected])
 
+  const openConversation = (message: any) => {
+    const otherUserId = message.sender.id === user?.id ? message.recipient.id : message.sender.id;
+    navigation.navigate("Conversation", { otherUserId });
+  }  
+
   const goToMessages = () => {
     navigation.navigate("Messages")
   }
@@ -122,24 +127,30 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     if (!user?.id || !composeText || !composeRecipientId) return
     setSending(true)
     try {
-      const payload = {
-        sender_id: user.id,
+      const response = await axios.post(`${BASE_URL}/api/messages/send/${composeRecipientId}/`,
+      {
         recipient_id: composeRecipientId,
         message: composeText,
-      }
-      
-      await axios.post(
-        `${BASE_URL}/api/messages/send/${composeRecipientId}/`,
-        payload,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": csrfToken, // ✅ include CSRF token
-          },
-          withCredentials: true, // ✅ send cookies
-        }
-      )
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+        },
+        withCredentials: true,
+      })
 
+      const newMessage = response.data;
+  
+      setFriendMessages(prev => [
+        ...prev,
+        {
+          ...newMessage,
+          sender: { id: user.id, username: user.username, name: user.name },
+          recipient: { id: composeRecipientId },
+        }
+      ])
+  
       setComposeText("")
       setComposeRecipientId("")
       setComposeVisible(false)
@@ -148,15 +159,20 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     } finally {
       setSending(false)
     }
-  }
+  }  
 
-  const MessageItem: React.FC<{ name: string; text: string; index: number; timestamp?: string }> = ({
+  const MessageItem: React.FC<{ name: string; text: string; index: number; timestamp?: string; onPress?: () => void }> = ({
     name,
     text,
     index,
     timestamp = "now",
+    onPress,
   }) => (
-    <TouchableOpacity style={[styles.messageCard, { marginTop: index === 0 ? 0 : 12 }]} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={[styles.messageCard, { marginTop: index === 0 ? 0 : 12 }]}
+      activeOpacity={0.7}
+      onPress={onPress}
+    >
       <View style={styles.messageAvatarContainer}>
         <View style={styles.messageAvatar}>
           <Text style={styles.avatarText}>{name.charAt(0).toUpperCase()}</Text>
@@ -172,7 +188,7 @@ const Messages: React.FC<Props> = ({ navigation }) => {
         </Text>
       </View>
     </TouchableOpacity>
-  )
+  )  
 
   const NotificationItem: React.FC<{ notification: any; index: number }> = ({ notification, index }) => (
     <TouchableOpacity style={[styles.messageCard, { marginTop: index === 0 ? 0 : 12 }]} activeOpacity={0.7}>
@@ -247,6 +263,7 @@ const Messages: React.FC<Props> = ({ navigation }) => {
                   text={message.message}
                   index={index}
                   timestamp={message.timestamp}
+                  onPress={() => openConversation(message)}
                 />
               ))
             ) : (

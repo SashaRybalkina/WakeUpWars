@@ -16,6 +16,7 @@ export const endpoints = {
   singOrMultGames: (singOrMult: string) =>
     `${BASE_URL}/api/games/${singOrMult}/`,
   messages: (userId: number) => `${BASE_URL}/api/messages/${userId}/`,
+  conversation: (userId: number, recipientId: number) => `${BASE_URL}/api/conversation/${userId}/${recipientId}/`,
   profile: (userId: number) => `${BASE_URL}/api/profile/${userId}/`,
   getInitiator: (challId: number) =>
     `${BASE_URL}/api/get-initiator/${challId}/`,

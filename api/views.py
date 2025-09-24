@@ -2516,3 +2516,11 @@ class SendMessageView(APIView):
             message=message_text,
         )
         return Response({"success": True, "id": message.id})
+    
+class ConversationView(APIView):
+    def get(self, request, user_id, recipient_id):
+        messages = Message.objects.filter(
+            Q(sender_id=user_id, recipient_id=recipient_id) | Q(sender_id=recipient_id, recipient_id=user_id)
+        ).order_by('id')
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data)
