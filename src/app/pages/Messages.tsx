@@ -1,6 +1,6 @@
 import type React from "react"
 import { useState, useEffect } from "react"
-import { endpoints } from "../api"
+import { BASE_URL, endpoints } from "../api"
 import { useUser } from "../context/UserContext"
 import {
   ImageBackground,
@@ -16,6 +16,7 @@ import {
 import { Ionicons } from "@expo/vector-icons"
 import type { NavigationProp } from "@react-navigation/native"
 import { LinearGradient } from "expo-linear-gradient"
+import axios from "axios"
 
 type Props = {
   navigation: NavigationProp<any>
@@ -29,7 +30,29 @@ const Messages: React.FC<Props> = ({ navigation }) => {
   const { user } = useUser()
   const [friendMessages, setFriendMessages] = useState<any[]>([])
   const [groupMessages, setGroupMessages] = useState<any[]>([])
+  const [notifications, setNotifications] = useState<any[]>([])
   const [indicatorPosition] = useState(new Animated.Value(0))
+  const [composeVisible, setComposeVisible] = useState(false)
+  const [composeText, setComposeText] = useState("")
+  const [composeRecipientId, setComposeRecipientId] = useState("")
+  const [sending, setSending] = useState(false)
+  const [csrfToken, setCsrfToken] = useState<string>("")
+
+  useEffect(() => {
+    const fetchCsrf = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/api/csrf-token/`, {
+          credentials: "include", // ✅ include cookies if backend sets them
+        })
+        const data = await res.json()
+        setCsrfToken(data.csrfToken)
+        console.log("Fetched CSRF token:", data.csrfToken)
+      } catch (err) {
+        console.error("Failed to fetch CSRF token:", err)
+      }
+    }
+    fetchCsrf()
+  }, [])
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -52,9 +75,26 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     fetchMessages()
   }, [user])
 
+  // useEffect(() => {
+  //   const fetchNotifications = async () => {
+  //     if (!user?.id) return
+
+  //     try {
+  //       const response = await fetch(endpoints.notifications(Number(user.id)))
+  //       const data = await response.json()
+
+  //       setNotifications(data)
+  //     } catch (error) {
+  //       console.error("Failed to fetch notifications:", error)
+  //     }
+  //   }
+
+  //   fetchNotifications()
+  // }, [user])
+
   useEffect(() => {
     Animated.spring(indicatorPosition, {
-      toValue: selected === "Friends" ? 0 : 1,
+      toValue: selected === "Friends" ? 0 : selected === "Groups" ? 1 : 2,
       useNativeDriver: false,
       friction: 8,
       tension: 50,
@@ -70,12 +110,44 @@ const Messages: React.FC<Props> = ({ navigation }) => {
   const goToProfile = () => navigation.navigate("Profile")
 
   const translateX = indicatorPosition.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, width * 0.425],
+    inputRange: [0, 1, 2],
+    outputRange: [0, width * 0.425, width * 0.85],
   })
 
   const getTimeAgo = (timestamp: string) => {
     return "2m ago"
+  }
+
+  const sendMessage = async () => {
+    if (!user?.id || !composeText || !composeRecipientId) return
+    setSending(true)
+    try {
+      const payload = {
+        sender_id: user.id,
+        recipient_id: composeRecipientId,
+        message: composeText,
+      }
+      
+      await axios.post(
+        `${BASE_URL}/api/messages/send/${composeRecipientId}/`,
+        payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken, // ✅ include CSRF token
+          },
+          withCredentials: true, // ✅ send cookies
+        }
+      )
+
+      setComposeText("")
+      setComposeRecipientId("")
+      setComposeVisible(false)
+    } catch (error) {
+      console.error("Failed to send message:", error)
+    } finally {
+      setSending(false)
+    }
   }
 
   const MessageItem: React.FC<{ name: string; text: string; index: number; timestamp?: string }> = ({
@@ -97,6 +169,25 @@ const Messages: React.FC<Props> = ({ navigation }) => {
         </View>
         <Text style={styles.messageText} numberOfLines={1}>
           {text}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  )
+
+  const NotificationItem: React.FC<{ notification: any; index: number }> = ({ notification, index }) => (
+    <TouchableOpacity style={[styles.messageCard, { marginTop: index === 0 ? 0 : 12 }]} activeOpacity={0.7}>
+      <View style={styles.messageAvatarContainer}>
+        <View style={styles.messageAvatar}>
+          <Ionicons name="notifications" size={24} color="#FFD700" />
+        </View>
+      </View>
+      <View style={styles.messageContent}>
+        <View style={styles.messageHeader}>
+          <Text style={styles.messageName}>Notification</Text>
+          <Text style={styles.messageTime}>{getTimeAgo(notification.timestamp)}</Text>
+        </View>
+        <Text style={styles.messageText} numberOfLines={2}>
+          {notification.message?.message || notification.message || ""}
         </Text>
       </View>
     </TouchableOpacity>
@@ -128,10 +219,14 @@ const Messages: React.FC<Props> = ({ navigation }) => {
           <TouchableOpacity style={styles.tabButton} onPress={() => setSelected("Groups")} activeOpacity={0.7}>
             <Text style={[styles.tabText, selected === "Groups" && styles.activeTabText]}>Groups</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.tabButton} onPress={() => setSelected("Notifications")} activeOpacity={0.7}>
+            <Text style={[styles.tabText, selected === "Notifications" && styles.activeTabText]}>Notifications</Text>
+          </TouchableOpacity>
           <Animated.View
             style={[
               styles.tabIndicator,
               {
+                width: "33.3%",
                 transform: [{ translateX }],
               },
             ]}
@@ -143,22 +238,46 @@ const Messages: React.FC<Props> = ({ navigation }) => {
           contentContainerStyle={styles.scrollViewContent}
           showsVerticalScrollIndicator={false}
         >
-          {(selected === "Friends" ? friendMessages : groupMessages).length > 0 ? (
-            (selected === "Friends" ? friendMessages : groupMessages).map((message, index) => (
-              <MessageItem
-                key={index}
-                name={message.sender.name || message.sender.username}
-                text={message.message}
-                index={index}
-                timestamp={message.timestamp}
-              />
-            ))
+          {selected === "Friends" ? (
+            friendMessages.length > 0 ? (
+              friendMessages.map((message, index) => (
+                <MessageItem
+                  key={index}
+                  name={message.sender.name || message.sender.username}
+                  text={message.message}
+                  index={index}
+                  timestamp={message.timestamp}
+                />
+              ))
+            ) : (
+              <EmptyState />
+            )
+          ) : selected === "Groups" ? (
+            groupMessages.length > 0 ? (
+              groupMessages.map((message, index) => (
+                <MessageItem
+                  key={index}
+                  name={message.sender.name || message.sender.username}
+                  text={message.message}
+                  index={index}
+                  timestamp={message.timestamp}
+                />
+              ))
+            ) : (
+              <EmptyState />
+            )
           ) : (
-            <EmptyState />
+            notifications.length > 0 ? (
+              notifications.map((notification, index) => (
+                <NotificationItem key={index} notification={notification} index={index} />
+              ))
+            ) : (
+              <EmptyState />
+            )
           )}
         </ScrollView>
 
-        <TouchableOpacity style={styles.newConversationButton} activeOpacity={0.8}>
+        <TouchableOpacity style={styles.newConversationButton} activeOpacity={0.8} onPress={() => setComposeVisible(true)}>
           <LinearGradient
             colors={["#FFD700", "#FFA500"]}
             start={{ x: 0, y: 0 }}
@@ -169,6 +288,34 @@ const Messages: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.newConversationText}>Start New Conversation</Text>
           </LinearGradient>
         </TouchableOpacity>
+
+        {composeVisible && (
+          <View style={{ position: "absolute", top: 100, left: 20, right: 20, backgroundColor: "#222", borderRadius: 16, padding: 20, zIndex: 10 }}>
+            <Text style={{ color: "#FFD700", fontSize: 18, fontWeight: "700", marginBottom: 10 }}>New Message</Text>
+            <TextInput
+              style={{ backgroundColor: "#fff", borderRadius: 8, padding: 10, marginBottom: 10, color: "#333" }}
+              placeholder="Recipient ID"
+              value={composeRecipientId}
+              onChangeText={setComposeRecipientId}
+              keyboardType="numeric"
+            />
+            <TextInput
+              style={{ backgroundColor: "#fff", borderRadius: 8, padding: 10, marginBottom: 10, color: "#333" }}
+              placeholder="Type your message..."
+              value={composeText}
+              onChangeText={setComposeText}
+              multiline
+            />
+            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+              <TouchableOpacity onPress={() => setComposeVisible(false)} style={{ padding: 10 }}>
+                <Text style={{ color: "#999" }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={sendMessage} style={{ padding: 10 }} disabled={sending}>
+                <Text style={{ color: sending ? "#ccc" : "#FFD700", fontWeight: "700" }}>Send</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </View>
 
       <View style={styles.navBar}>

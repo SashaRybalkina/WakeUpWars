@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Dimensions,
@@ -31,8 +31,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { setUser, setCsrfToken } = useUser();
+  const { user, setUser, setCsrfToken } = useUser();
   const route = useRoute();
+
+  useEffect(() => {
+    if (user?.id) {
+      console.log("Logged in user ID:", user.id)
+    }
+  }, [user])  
 
   const goToSignUp = () => {
     navigation.navigate('SignUp');

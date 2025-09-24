@@ -1,4 +1,4 @@
-export const BASE_URL = 'https://77bd6e941337.ngrok-free.app';
+export const BASE_URL = 'https://c84dcee53aab.ngrok-free.app';
 
 export const endpoints = {
   // getToken
@@ -98,8 +98,7 @@ export const endpoints = {
   challId
     ? `${BASE_URL}/api/share-challenge/${challId}/` // copy模式
     : `${BASE_URL}/api/share-challenge/`,          // new模式
-
-
+  notifications: (userId: number) => `${BASE_URL}/api/notifications/${userId}/`,
 };
 
 export const leaderboardHistory = (

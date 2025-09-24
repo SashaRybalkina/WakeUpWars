@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import (AcceptPersonalChallenge, DeclinePersonalChallenge, GetPersonalChallengeInvites, LoginView, RegisterView, GroupListView, HelloWorldView, UserProfileView, GetChallengeScheduleView, AddGameToScheduleView,
+from .views import (AcceptPersonalChallenge, DeclinePersonalChallenge, ExternalHandleViewSet, FinalizeChallengeView, FinalizePublicChallengeView, GetMatchingChallengesView, GetPendingPublicChallengesView, GetPersonalChallengeInvites, GetPublicChallengesView, GetUserAvailabilityView, JoinPublicChallengeView, LoginView, ObligationViewSet, PaymentViewSet, RegisterView, GroupListView, HelloWorldView, SendMessageView, SetChallAvailabilityView, SetUserAvailabilityView, ShareChallengeView, SingOrMultGameListView, SomeCatsListView, UserProfileView, GetChallengeScheduleView, AddGameToScheduleView,
                     UserMessagesView, GroupDetailsView, CatListView, GameListView,
                     ChallengeListView, GetChallengeInitiatorView,
                     ChallengeDetailView, ChallengeGameScheduleView, CreateManualGroupChallengeView,
@@ -18,25 +18,6 @@ from .views import CreatePatternGameView, ValidatePatternMoveView
 from .views import CreateWordleGameView, ValidateWordleMoveView
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import (
-    LoginView, RegisterView, GroupListView, HelloWorldView, UserProfileView,
-    UserMessagesView, GroupDetailsView, CatListView, GameListView,
-    ChallengeListView, GetChallengeInitiatorView, ChallengeDetailView,
-    ChallengeGameScheduleView, CreateManualGroupChallengeView,
-    CreatePendingCollaborativeGroupChallengeView, FriendListView,
-    AddGroupMemberView, SendFriendRequestView, FriendRequestListView,
-    RespondToFriendRequestView, FinalizeCollaborativeGroupChallengeScheduleView,
-    SentFriendRequestListView, AllUsersView, CancelFriendRequestView,
-    CreateGroupView, CreatePersonalChallengeView, GetChallengeInvitesView,
-    GetAvailabilitiesView, SetChallAvailabilityView, DeclineChallengeInviteView,
-    ChallengeLeaderboardView, SubmitGameScoresView, ChallengeDailyHistoryView,
-    SkillLevelsView, ExternalHandleViewSet, ObligationViewSet, PaymentViewSet,
-    FinalizeChallengeView, CreateSudokuGameView, ValidateSudokuMoveView, 
-    CreateWordleGameView, ValidateWordleMoveView, get_csrf_token, SingOrMultGameListView, ShareChallengeView
-    GetPendingPublicChallengesView, GetMatchingChallengesView, SetUserAvailabilityView,
-    GetUserAvailabilityView, SomeCatsListView, JoinPublicChallengeView, FinalizePublicChallengeView,
-    GetPublicChallengesView,
-)
 
 router = DefaultRouter()
 router.register(r'external-handles', ExternalHandleViewSet, basename='external-handle')
@@ -91,7 +72,7 @@ urlpatterns = [
     path('get-user-availability/<int:user_id>/', GetUserAvailabilityView.as_view(), name='get-user-availability'),
     path('set-chall-availability/<int:user_id>/<int:chall_id>/', SetChallAvailabilityView.as_view(), name='set-chall-availability'),
     path('decline-challenge-invite/<int:user_id>/<int:chall_id>/', DeclineChallengeInviteView.as_view(), name='decline-challenge-invite'),
-
+    path('messages/send/<int:user_id>/', SendMessageView.as_view(), name='send-message'),
     path('profile/all/', AllUsersView.as_view(), name='all-users'),
     path('friend-request/delete/<int:request_id>/', CancelFriendRequestView.as_view(), name='cancel-friend-request'),
     path('create-group/', CreateGroupView.as_view(), name='create-group'),

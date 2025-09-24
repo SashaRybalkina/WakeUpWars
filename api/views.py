@@ -28,7 +28,7 @@ from .serializers import (UserSerializer, RegisterSerializer, GroupSerializer, U
                           CatSerializer, GameSerializer, FriendSerializer, FriendRequestSerializer, CreateGroupSerializer, SkillLevelSerializer,
                           RewardSettingSerializer, ExternalHandleSerializer,ObligationSerializer, CashPaymentCreateSerializer,
                           ExternalPaymentCreateSerializer, PaymentSerializer, PendingPublicChallengeSummarySerializer, PublicChallengeSummarySerializer)
-from .models import (Group, PersonalChallengeInvite, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule,
+from .models import (Group, Notification, PersonalChallengeInvite, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule,
                      AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest,
                      SkillLevel, PendingGroupChallengeAvailability, GroupChallengeInvite, WordleMove, PublicChallengeConfiguration,
                      UserAvailability, PublicChallengeCategoryAssociation)
@@ -2504,3 +2504,15 @@ class DeclinePersonalChallenge(APIView):
         return Response({"ok": True}, status=200)
 
 
+class SendMessageView(APIView):
+    def post(self, request, user_id):
+        sender = request.user
+        recipient = get_object_or_404(User, id=user_id)
+        message_text = request.data.get("message")
+
+        message = Message.objects.create(
+            sender=sender,
+            recipient=recipient,
+            message=message_text,
+        )
+        return Response({"success": True, "id": message.id})

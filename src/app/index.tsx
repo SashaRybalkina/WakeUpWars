@@ -91,24 +91,24 @@ function App() {
     let subscription: any;
     let notificationListener: any;
 
-    // 1) cold-start intent
-    IntentModule.getInitialIntent()
-      .then((data: any) => {
-        console.log('getInitialIntent =>', data);
-        if (data?.screen) {
-          if (!user) {
-            navigate('Login', {
-              redirectTo: data.screen,
-              redirectParams: data,
-            });
-          } else {
-            navigate(data.screen, data.params);
-          }
-        }
-      })
-      .catch((e: any) => {
-        console.warn('getInitialIntent error', e);
-      });
+    // // 1) cold-start intent
+    // IntentModule.getInitialIntent()
+    //   .then((data: any) => {
+    //     console.log('getInitialIntent =>', data);
+    //     if (data?.screen) {
+    //       if (!user) {
+    //         navigate('Login', {
+    //           redirectTo: data.screen,
+    //           redirectParams: data,
+    //         });
+    //       } else {
+    //         navigate(data.screen, data.params);
+    //       }
+    //     }
+    //   })
+    //   .catch((e: any) => {
+    //     console.warn('getInitialIntent error', e);
+    //   });
 
     // 2) warm-start intents: subscribe to native event emitter
     const emitter = new NativeEventEmitter(IntentModule);
@@ -355,16 +355,6 @@ function App() {
         <Stack.Screen
           name="mainPage"
           component={InputOutput}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="EditChallengeSharingFriends"
-          component={EditChallengeSharingFriends}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="CreateChallengeForFriend"
-          component={CreateChallengeForFriend}
           options={{ headerShown: false }}
         />
         <Stack.Screen
