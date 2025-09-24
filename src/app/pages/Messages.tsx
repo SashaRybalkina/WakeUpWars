@@ -101,6 +101,60 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     }).start()
   }, [selected])
 
+  const getConversations = (messages: any[]) => {
+    const conversations: Record<string, any> = {}
+
+    messages.forEach((msg) => {
+      const otherUser =
+        msg.sender.id === user?.id ? msg.recipient : msg.sender
+
+      if (!otherUser) return
+
+      const conversationId = otherUser.id
+
+      if (
+        !conversations[conversationId] ||
+        new Date(msg.timestamp) > new Date(conversations[conversationId].timestamp)
+      ) {
+        conversations[conversationId] = {
+          otherUser,
+          lastMessage: msg,
+        }
+      }
+    })
+
+    return Object.values(conversations).sort(
+      (a: any, b: any) =>
+        new Date(b.lastMessage.timestamp).getTime() -
+        new Date(a.lastMessage.timestamp).getTime()
+    )
+  }
+
+  const getGroupConversations = (messages: any[]) => {
+    const conversations: Record<string, any> = {}
+  
+    messages.forEach((msg) => {
+      if (!msg.groupID) return
+      const groupId = msg.groupID
+  
+      if (
+        !conversations[groupId] ||
+        new Date(msg.timestamp) > new Date(conversations[groupId].lastMessage.timestamp)
+      ) {
+        conversations[groupId] = {
+          groupId,
+          lastMessage: msg,
+        }
+      }
+    })
+  
+    return Object.values(conversations).sort(
+      (a: any, b: any) =>
+        new Date(b.lastMessage.timestamp).getTime() -
+        new Date(a.lastMessage.timestamp).getTime()
+    )
+  }
+
   const openConversation = (message: any) => {
     const otherUserId = message.sender.id === user?.id ? message.recipient.id : message.sender.id;
     navigation.navigate("Conversation", { otherUserId });
@@ -256,30 +310,41 @@ const Messages: React.FC<Props> = ({ navigation }) => {
         >
           {selected === "Friends" ? (
             friendMessages.length > 0 ? (
-              friendMessages.map((message, index) => (
-                <MessageItem
-                  key={index}
-                  name={message.sender.name || message.sender.username}
-                  text={message.message}
-                  index={index}
-                  timestamp={message.timestamp}
-                  onPress={() => openConversation(message)}
-                />
-              ))
+              getConversations(friendMessages).map((conv: any, index: number) => {
+                const { otherUser, lastMessage } = conv
+                const isMine = lastMessage.sender.id === user?.id
+
+                return (
+                  <MessageItem
+                    key={otherUser.id}
+                    name={otherUser.name || otherUser.username}
+                    text={`${isMine ? "You" : otherUser.name}: ${lastMessage.message}`}
+                    index={index}
+                    timestamp={lastMessage.timestamp}
+                    onPress={() => openConversation(lastMessage)}
+                  />
+                )
+              })
             ) : (
               <EmptyState />
             )
           ) : selected === "Groups" ? (
             groupMessages.length > 0 ? (
-              groupMessages.map((message, index) => (
-                <MessageItem
-                  key={index}
-                  name={message.sender.name || message.sender.username}
-                  text={message.message}
-                  index={index}
-                  timestamp={message.timestamp}
-                />
-              ))
+              getGroupConversations(groupMessages).map((conv: any, index: number) => {
+                const { lastMessage, groupId } = conv
+                const isMine = lastMessage.sender.id === user?.id
+                const senderName = isMine ? "You" : lastMessage.sender.name || lastMessage.sender.username
+          
+                return (
+                  <MessageItem
+                    key={groupId}
+                    name={`Group ${groupId}`}
+                    text={`${senderName}: ${lastMessage.message}`}
+                    index={index}
+                    timestamp={lastMessage.timestamp}
+                  />
+                )
+              })
             ) : (
               <EmptyState />
             )
