@@ -26,6 +26,7 @@ export async function scheduleAlarms(
         alarm.screen,
         alarm.data,
       );
+      console.log('NativeModules keys:', Object.keys(NativeModules));
       // Optionally, handle success (e.g., log or show a toast)
       // Alert.alert('Alarm Set', msg);
     } catch (err: any) {
@@ -35,15 +36,15 @@ export async function scheduleAlarms(
 }
 
 // Example usage (remove or comment out in production):
-// scheduleAlarms([
-//   {
-//     time: new Date('2024-06-10T08:30:00'),
-//     screen: 'Wordle',
-//     data: { challengeId: 30, challName: 'Test Challenge', whichChall: 'wordle' },
-//   },
-//   {
-//     time: '2024-06-10T09:00:00',
-//     screen: 'Sudoku',
-//     data: { challengeId: 31, challName: 'Sudoku Challenge', whichChall: 'sudoku' },
-//   },
-// ]);
+scheduleAlarms([
+  {
+    time: new Date('2025-09-24T18:07:00'),
+    screen: 'Sudoku',
+    data: { challengeId: 170, challName: 'wooho', whichChall: 'sudoku' },
+  },
+  // {
+  //   time: '2025-09-24T18:07:00',
+  //   screen: 'Sudoku',
+  //   data: { challengeId: 31, challName: 'Sudoku Challenge', whichChall: 'sudoku' },
+  // },
+]);
