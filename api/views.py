@@ -2503,7 +2503,6 @@ class DeclinePersonalChallenge(APIView):
         inv.chall.delete()
         return Response({"ok": True}, status=200)
 
-
 class SendMessageView(APIView):
     def post(self, request, user_id):
         sender = request.user
@@ -2522,5 +2521,33 @@ class ConversationView(APIView):
         messages = Message.objects.filter(
             Q(sender_id=user_id, recipient_id=recipient_id) | Q(sender_id=recipient_id, recipient_id=user_id)
         ).order_by('id')
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data)
+    
+class SendMessageGroupView(APIView):
+    def post(self, request, group_id):
+        sender = request.user
+        group = get_object_or_404(Group, id=group_id)
+        message_text = request.data.get("message")
+
+        if not message_text:
+            return Response({"success": False, "error": "Message cannot be empty"}, status=400)
+
+        message = Message.objects.create(
+            sender=sender,
+            groupID=group,
+            message=message_text,
+        )
+
+        return Response({"success": True, "id": message.id})
+
+class GroupConversationView(APIView):
+    def get(self, request, group_id):
+        # Ensure the group exists
+        group = get_object_or_404(Group, id=group_id)
+
+        # Fetch all messages for this group
+        messages = Message.objects.filter(groupID=group).order_by('id')
+
         serializer = MessageSerializer(messages, many=True)
         return Response(serializer.data)

@@ -35,6 +35,7 @@ const Messages: React.FC<Props> = ({ navigation }) => {
   const [composeVisible, setComposeVisible] = useState(false)
   const [composeText, setComposeText] = useState("")
   const [composeRecipientId, setComposeRecipientId] = useState("")
+  const [composeGroupId, setComposeGroupId] = useState("")
   const [sending, setSending] = useState(false)
   const [csrfToken, setCsrfToken] = useState<string>("")
 
@@ -178,35 +179,60 @@ const Messages: React.FC<Props> = ({ navigation }) => {
   }
 
   const sendMessage = async () => {
-    if (!user?.id || !composeText || !composeRecipientId) return
+    if (!user?.id || !composeText) return
     setSending(true)
-    try {
-      const response = await axios.post(`${BASE_URL}/api/messages/send/${composeRecipientId}/`,
-      {
-        recipient_id: composeRecipientId,
-        message: composeText,
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': csrfToken,
-        },
-        withCredentials: true,
-      })
-
-      const newMessage = response.data;
   
-      setFriendMessages(prev => [
-        ...prev,
-        {
+    try {
+      if (composeRecipientId) {
+        // ✅ Send direct message
+        const response = await axios.post(
+          `${BASE_URL}/api/messages/send/${composeRecipientId}/`,
+          {
+            recipient_id: composeRecipientId,
+            message: composeText,
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken,
+            },
+            withCredentials: true,
+          }
+        )
+  
+        const newMessage = response.data
+        setFriendMessages(prev => [...prev, {
           ...newMessage,
           sender: { id: user.id, username: user.username, name: user.name },
           recipient: { id: composeRecipientId },
-        }
-      ])
+        }])
+      } else if (composeGroupId) {
+        const response = await axios.post(
+          `${BASE_URL}/api/messages/send/group/${composeGroupId}/`,
+          {
+            group_id: composeGroupId,
+            message: composeText,
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken,
+            },
+            withCredentials: true,
+          }
+        )        
+  
+        const newMessage = response.data
+        setGroupMessages(prev => [...prev, {
+          ...newMessage,
+          sender: { id: user.id, username: user.username, name: user.name },
+          groupID: composeGroupId,
+        }])
+      }
   
       setComposeText("")
       setComposeRecipientId("")
+      setComposeGroupId("")
       setComposeVisible(false)
     } catch (error) {
       console.error("Failed to send message:", error)
@@ -334,11 +360,12 @@ const Messages: React.FC<Props> = ({ navigation }) => {
                 const { lastMessage, groupId } = conv
                 const isMine = lastMessage.sender.id === user?.id
                 const senderName = isMine ? "You" : lastMessage.sender.name || lastMessage.sender.username
+                const groupName = lastMessage.group?.name || `Group ${groupId}`;
           
                 return (
                   <MessageItem
                     key={groupId}
-                    name={`Group ${groupId}`}
+                    name={groupName}
                     text={`${senderName}: ${lastMessage.message}`}
                     index={index}
                     timestamp={lastMessage.timestamp}
@@ -375,10 +402,22 @@ const Messages: React.FC<Props> = ({ navigation }) => {
           <View style={{ position: "absolute", top: 100, left: 20, right: 20, backgroundColor: "#222", borderRadius: 16, padding: 20, zIndex: 10 }}>
             <Text style={{ color: "#FFD700", fontSize: 18, fontWeight: "700", marginBottom: 10 }}>New Message</Text>
             <TextInput
-              style={{ backgroundColor: "#fff", borderRadius: 8, padding: 10, marginBottom: 10, color: "#333" }}
-              placeholder="Recipient ID"
+              placeholder="Recipient ID (leave blank if sending to a group)"
               value={composeRecipientId}
               onChangeText={setComposeRecipientId}
+            />
+            <TextInput 
+              style={{ backgroundColor: "#fff", borderRadius: 8, padding: 10, marginBottom: 10, color: "#333" }} 
+              placeholder="Recipient ID (leave blank if sending to a group)" 
+              value={composeRecipientId} 
+              onChangeText={setComposeRecipientId} 
+              keyboardType="numeric" 
+            />
+            <TextInput
+              style={{ backgroundColor: "#fff", borderRadius: 8, padding: 10, marginBottom: 10, color: "#333" }} 
+              placeholder="Group ID (leave blank if sending to a friend)"
+              value={composeGroupId}
+              onChangeText={setComposeGroupId}
               keyboardType="numeric"
             />
             <TextInput
