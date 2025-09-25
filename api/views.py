@@ -805,26 +805,26 @@ class ChallengeListView(APIView):
             )
 
 
-        numeric_to_label = {1: "M", 2: "T", 3: "W", 4: "TH", 5: "F", 6: "S", 7: "SU"}
+        # numeric_to_label = {1: "M", 2: "T", 3: "W", 4: "TH", 5: "F", 6: "S", 7: "SU"}
 
         response_data = []
         for challenge in challenges:
-            game_days = (
-                GameSchedule.objects.filter(challenge=challenge)
-                .values_list('dayOfWeek', flat=True)
-                .distinct()
-            )
-            day_labels = [numeric_to_label[d] for d in sorted(game_days)]
+            # game_days = (
+            #     GameSchedule.objects.filter(challenge=challenge)
+            #     .values_list('dayOfWeek', flat=True)
+            #     .distinct()
+            # )
+            # day_labels = [numeric_to_label[d] for d in sorted(game_days)]
 
             serialized = ChallengeSummarySerializer(challenge, context={'user': request.user}).data
-            serialized['daysOfWeek'] = day_labels
+            # serialized['daysOfWeek'] = day_labels
             # TODO: fix this
-            if challenge.startDate is not None and challenge.endDate is not None:
-                serialized["totalDays"] = (challenge.endDate - challenge.startDate).days + 1
-            # elif challenge.startDate is None and challenge.endDate is None: # public pending
-            #     serialized["totalDays"] = challenge.totalDays
-            else:
-                serialized["totalDays"] = None # just end date is pending collab, update later
+            # if challenge.startDate is not None and challenge.endDate is not None:
+            #     serialized["totalDays"] = (challenge.endDate - challenge.startDate).days + 1
+            # # elif challenge.startDate is None and challenge.endDate is None: # public pending
+            # #     serialized["totalDays"] = challenge.totalDays
+            # else:
+            #     serialized["totalDays"] = None # just end date is pending collab, update later
 
 
             response_data.append(serialized)
@@ -1039,6 +1039,7 @@ class CreateManualGroupChallengeView(APIView):
                 initiator_id=None,
                 startDate=data['start_date'],
                 endDate=data['end_date'],
+                totalDays=data['total_days'],
                 isPublic=False,
                 isPending=False
             )
@@ -1230,19 +1231,17 @@ class CreatePendingCollaborativeGroupChallengeView(APIView):
             #     }, status=status.HTTP_400_BAD_REQUEST)
 
             # if No conflicts, continue to create challenge
-            print(data['name'])
-            print(data['group_id'])
-            print(data['initiator_id'])
-            print(data['end_date'])
+
             try:
                 challenge = Challenge.objects.create(
                     name=data['name'],
                     groupID_id=data['group_id'],
                     initiator_id=data['initiator_id'],
                     startDate=None,
-                    endDate=data['end_date'],
+                    endDate=None,
+                    totalDays=data['total_days'],
                     isPublic=False,
-                    isPending=True
+                    isPending=True,
                 )
             except Exception as e:
                 print("Failed to create Challenge:", e)
@@ -1425,11 +1424,13 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
                         challenge.startDate = candidate_date
                         break
 
+                challenge.endDate = challenge.startDate + timedelta(days=challenge.totalDays - 1)
                 challenge.isPending = False
-                challenge.save(update_fields=["isPending", "startDate"])
+                challenge.save(update_fields=["isPending", "startDate", "endDate"])
 
                 # delete all invites
                 GroupChallengeInvite.objects.filter(chall=challenge).delete()
+
 
             return Response(
                 {"message": "Challenge schedule finalized.", "schedule": created_schedules},
@@ -1614,9 +1615,10 @@ class CreatePersonalChallengeView(APIView):
             user_id = data.get("userId")
             name = data.get("name")
             end_date = data.get("endDate")
-            schedule = data.get("schedule") 
+            alarm_schedule = data.get("alarm_schedule")
+            game_schedules = data.get("game_schedules")
 
-            if not user_id or not name or not end_date or not schedule:
+            if not user_id or not name or not end_date or not alarm_schedule or not game_schedules:
                 return Response({'error': 'Missing required fields.'}, status=status.HTTP_400_BAD_REQUEST)
 
             challenge = Challenge.objects.create(
@@ -1624,35 +1626,36 @@ class CreatePersonalChallengeView(APIView):
                 groupID=None,
                 isPublic=False,
                 isPending=False,
-                startDate=datetime.now().date(),
-                endDate=end_date
+                startDate=data['start_date'],
+                endDate=data['end_date'],
+                totalDays=data['total_days']
             )
 
             ChallengeMembership.objects.create(challengeID=challenge, uID_id=user_id)
 
-            for entry in schedule:
-                time_str = entry['time']
-                games = entry['games']
+            # Create alarms
+            for sched in data['alarm_schedule']:
                 alarm = AlarmSchedule.objects.create(
                     uID_id=user_id,
-                    dayOfWeek=entry['dayOfWeek'],
-                    alarmTime=datetime.strptime(time_str, "%I:%M %p").time()
+                    dayOfWeek=sched['dayOfWeek'],
+                    alarmTime=sched['time']
                 )
                 ChallengeAlarmSchedule.objects.create(
                     challenge=challenge,
                     alarm_schedule=alarm
                 )
 
+            # Game schedules
+            for g_sched in data['game_schedules']:
                 game_schedule = GameSchedule.objects.create(
                     challenge=challenge,
-                    dayOfWeek=entry['dayOfWeek']
+                    dayOfWeek=g_sched['dayOfWeek']
                 )
-
-                for i, game in enumerate(games):
+                for game in g_sched['games']:
                     GameScheduleGameAssociation.objects.create(
                         game_schedule=game_schedule,
                         game_id=game['id'],
-                        game_order=i
+                        game_order=game['order']
                     )
 
             return Response({'message': 'Personal challenge created successfully'}, status=status.HTTP_201_CREATED)
