@@ -35,16 +35,16 @@ export async function scheduleAlarms(
   }
 }
 
-// Example usage (remove or comment out in production):
-scheduleAlarms([
-  {
-    time: new Date('2025-09-24T18:07:00'),
-    screen: 'Sudoku',
-    data: { challengeId: 170, challName: 'wooho', whichChall: 'sudoku' },
-  },
-  // {
-  //   time: '2025-09-24T18:07:00',
-  //   screen: 'Sudoku',
-  //   data: { challengeId: 31, challName: 'Sudoku Challenge', whichChall: 'sudoku' },
-  // },
-]);
+// // Example usage (remove or comment out in production):
+// scheduleAlarms([
+//   {
+//     time: new Date('2025-09-24T18:07:00'),
+//     screen: 'Sudoku',
+//     data: { challengeId: 170, challName: 'wooho', whichChall: 'sudoku' },
+//   },
+//   // {
+//   //   time: '2025-09-24T18:07:00',
+//   //   screen: 'Sudoku',
+//   //   data: { challengeId: 31, challName: 'Sudoku Challenge', whichChall: 'sudoku' },
+//   // },
+// ]);
