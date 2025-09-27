@@ -43,6 +43,7 @@ import LoginScreen from './pages/Login';
 import InputOutput from './pages/mainPage';
 import MainPage from './pages/mainPage';
 import Messages from './pages/Messages';
+import Conversation from './pages/Conversation';
 import PatternGameScreen from './pages/PatternGame/PatternGameScreen';
 import Profile from './pages/Profile';
 import AcceptFInvite from './pages/Profile/AcceptFInvite';
@@ -205,6 +206,11 @@ function App() {
         <Stack.Screen
           name="Messages"
           component={Messages}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Conversation"
+          component={Conversation}
           options={{ headerShown: false }}
         />
         <Stack.Screen

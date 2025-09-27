@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import (AcceptPersonalChallenge, DeclinePersonalChallenge, GetPersonalChallengeInvites, LoginView, RegisterView, GroupListView, HelloWorldView, UserProfileView, GetChallengeScheduleView, AddGameToScheduleView,
+from .views import (AcceptPersonalChallenge, ConversationView, DeclinePersonalChallenge, ExternalHandleViewSet, FinalizeChallengeView, FinalizePublicChallengeView, GetMatchingChallengesView, GetPendingPublicChallengesView, GetPersonalChallengeInvites, GetPublicChallengesView, GetUserAvailabilityView, GroupConversationView, JoinPublicChallengeView, LoginView, ObligationViewSet, PaymentViewSet, RegisterView, GroupListView, HelloWorldView, SendMessageGroupView, SendMessageView, SetChallAvailabilityView, SetUserAvailabilityView, ShareChallengeView, SingOrMultGameListView, SomeCatsListView, UserGroupConversationsView, UserProfileView, GetChallengeScheduleView, AddGameToScheduleView,
                     UserMessagesView, GroupDetailsView, CatListView, GameListView,
                     ChallengeListView, GetChallengeInitiatorView,
                     ChallengeDetailView, ChallengeGameScheduleView, CreateManualGroupChallengeView,
@@ -68,6 +68,7 @@ urlpatterns = [
     path('get-initiator/<int:chall_id>/', GetChallengeInitiatorView.as_view(), name='get-initiator'),
     path('messages/<int:user_id>/', UserMessagesView.as_view()),
     path('groups/<int:group_id>/', GroupDetailsView.as_view(), name='group-details'),
+    path('user/<int:user_id>/group-conversations/', UserGroupConversationsView.as_view(), name='user-group-conversations'),
     path('group-member-add/<int:group_id>/', AddGroupMemberView.as_view(), name='group-mem-add'),
     path('join-public-challenge/<int:user_id>/', JoinPublicChallengeView.as_view(), name='join-public-challenge'),
     path('finalize-public-challenge/', FinalizePublicChallengeView.as_view(), name='finalize-public-challenge'),
@@ -91,7 +92,10 @@ urlpatterns = [
     path('get-user-availability/<int:user_id>/', GetUserAvailabilityView.as_view(), name='get-user-availability'),
     path('set-chall-availability/<int:user_id>/<int:chall_id>/', SetChallAvailabilityView.as_view(), name='set-chall-availability'),
     path('decline-challenge-invite/<int:user_id>/<int:chall_id>/', DeclineChallengeInviteView.as_view(), name='decline-challenge-invite'),
-
+    path('messages/send/<int:user_id>/', SendMessageView.as_view(), name='send-message'),
+    path('messages/send/group/<int:group_id>/', SendMessageGroupView.as_view()),
+    path('conversation/<int:user_id>/<int:recipient_id>/', ConversationView.as_view(), name='conversation'),
+    path('conversation/group/<int:group_id>/', GroupConversationView.as_view(), name='conversation-group'),
     path('profile/all/', AllUsersView.as_view(), name='all-users'),
     path('friend-request/delete/<int:request_id>/', CancelFriendRequestView.as_view(), name='cancel-friend-request'),
     path('create-group/', CreateGroupView.as_view(), name='create-group'),

@@ -16,6 +16,10 @@ export const endpoints = {
   singOrMultGames: (singOrMult: string) =>
     `${BASE_URL}/api/games/${singOrMult}/`,
   messages: (userId: number) => `${BASE_URL}/api/messages/${userId}/`,
+  conversation: (userId: number, recipientId: number) => `${BASE_URL}/api/conversation/${userId}/${recipientId}/`,
+  groupConversations: (userId: number) => `${BASE_URL}/api/user/${userId}/group-conversations/`,
+  sendGroupMessage: (groupId: number) => `${BASE_URL}/api/messages/send/group/${groupId}/`,
+  groupConversation: (userId: number, groupId: number) => `${BASE_URL}/api/conversation/group/${groupId}/`,
   profile: (userId: number) => `${BASE_URL}/api/profile/${userId}/`,
   getInitiator: (challId: number) =>
     `${BASE_URL}/api/get-initiator/${challId}/`,
@@ -101,8 +105,7 @@ export const endpoints = {
   challId
     ? `${BASE_URL}/api/share-challenge/${challId}/` // copy模式
     : `${BASE_URL}/api/share-challenge/`,          // new模式
-
-
+  notifications: (userId: number) => `${BASE_URL}/api/notifications/${userId}/`,
 };
 
 export const leaderboardHistory = (

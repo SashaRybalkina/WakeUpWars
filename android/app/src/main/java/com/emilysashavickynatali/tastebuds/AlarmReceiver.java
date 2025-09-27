@@ -19,15 +19,6 @@ import androidx.core.app.NotificationCompat;
 public class AlarmReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
-
-        // Log.d("AlarmReceiver", "SDK < M: " + (Build.VERSION.SDK_INT < Build.VERSION_CODES.M));
-        // Log.d("AlarmReceiver", "Can draw overlays: " + Settings.canDrawOverlays(context));
-
-        // if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(context)) {
-        //     Intent overlayIntent = new Intent(context, AlarmOverlayService.class);
-        //     context.startService(overlayIntent);
-        // }
-        
         String screen = intent.getStringExtra("screen");
         Bundle params = intent.getBundleExtra("params");
 
@@ -42,5 +33,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         }
 
         context.startActivity(i);
+
+        context.startService(new Intent(context, AlarmSoundService.class));
     }
 }

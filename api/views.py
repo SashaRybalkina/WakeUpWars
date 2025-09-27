@@ -30,7 +30,7 @@ from .serializers import (UserSerializer, RegisterSerializer, GroupSerializer, U
                           CatSerializer, GameSerializer, FriendSerializer, FriendRequestSerializer, CreateGroupSerializer, SkillLevelSerializer,
                           RewardSettingSerializer, ExternalHandleSerializer,ObligationSerializer, CashPaymentCreateSerializer,
                           ExternalPaymentCreateSerializer, PaymentSerializer, PendingPublicChallengeSummarySerializer, PublicChallengeSummarySerializer)
-from .models import (Group, PersonalChallengeInvite, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule,
+from .models import (Group, Notification, PersonalChallengeInvite, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule,
                      AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest,
                      SkillLevel, PendingGroupChallengeAvailability, GroupChallengeInvite, WordleMove, PublicChallengeConfiguration,
                      UserAvailability, PublicChallengeCategoryAssociation)
@@ -2602,4 +2602,66 @@ class DeclinePersonalChallenge(APIView):
         inv.chall.delete()
         return Response({"ok": True}, status=200)
 
+class SendMessageView(APIView):
+    def post(self, request, user_id):
+        sender = request.user
+        recipient = get_object_or_404(User, id=user_id)
+        message_text = request.data.get("message")
 
+        message = Message.objects.create(
+            sender=sender,
+            recipient=recipient,
+            message=message_text,
+        )
+        return Response({"success": True, "id": message.id})
+    
+class ConversationView(APIView):
+    def get(self, request, user_id, recipient_id):
+        messages = Message.objects.filter(
+            Q(sender_id=user_id, recipient_id=recipient_id) | Q(sender_id=recipient_id, recipient_id=user_id)
+        ).order_by('id')
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data)
+    
+class SendMessageGroupView(APIView):
+    def post(self, request, group_id):
+        sender = request.user
+        group = get_object_or_404(Group, id=group_id)
+        message_text = request.data.get("message")
+
+        if not message_text:
+            return Response({"success": False, "error": "Message cannot be empty"}, status=400)
+
+        message = Message.objects.create(
+            sender=sender,
+            groupID=group,
+            message=message_text,
+        )
+
+        return Response({"success": True, "id": message.id})
+
+class GroupConversationView(APIView):
+    def get(self, request, group_id):
+        # Ensure the group exists
+        group = get_object_or_404(Group, id=group_id)
+
+        # Fetch all messages for this group
+        messages = Message.objects.filter(groupID=group).order_by('id')
+
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data)
+
+class UserGroupConversationsView(APIView):
+    def get(self, request, user_id):
+        memberships = GroupMembership.objects.filter(uID=user_id)
+        group_ids = memberships.values_list('groupID', flat=True)
+        groups = Group.objects.filter(id__in=group_ids)
+        data = []
+        for group in groups:
+            last_message = Message.objects.filter(groupID=group).order_by('-id').first()
+            data.append({
+                'group_id': group.id,
+                'group_name': group.name,
+                'last_message': MessageSerializer(last_message).data if last_message else None,
+            })
+        return Response(data)
