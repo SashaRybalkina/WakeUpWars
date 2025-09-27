@@ -271,11 +271,60 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
 
     console.log("Group Members:", groupMembers)
 
+
+const getNextAlarmDate = (alarmDays: number[]): Date | null => {
+  if (alarmDays.length === 0) return null;
+  const today = new Date();
+  for (let offset = 1; offset <= 7; offset++) { // start from tomorrow
+    const candidate = new Date(today);
+    candidate.setDate(today.getDate() + offset);
+    const candidateDay = candidate.getDay(); // 0=Sun,1=Mon,...6=Sat
+    const candidateDayInt = candidateDay === 0 ? 7 : candidateDay; 
+    if (alarmDays.includes(candidateDayInt)) {
+      return candidate;
+    }
+  }
+  return null;
+};
+
+
+
+    // collect day numbers of scheduled alarms
+    const alarmDays = alarmSchedule
+      .map(a => a.dayOfWeek)
+      .filter((d): d is number => d !== undefined);
+
+    // find first valid future start date
+    const nextAlarmDate = getNextAlarmDate(alarmDays);
+    if (!nextAlarmDate) {
+      Alert.alert("Error", "Could not determine start date from schedule");
+      return;
+    }
+
+    const start_date = nextAlarmDate.toISOString().split("T")[0];
+    const end_date = selectedDate.toISOString().split("T")[0];
+
+    if (!start_date) {
+      Alert.alert("Error", "Could not determine start date");
+      return;
+    }
+
+    if (!end_date) {
+      Alert.alert("Error", "Please select an end date");
+      return;
+    }
+
+    // compute inclusive difference in days
+    const total_days = Math.ceil(
+      (new Date(end_date).getTime() - new Date(start_date).getTime()) / (1000 * 60 * 60 * 24)
+    ) + 1;
+
     const payload = {
       name,
       group_id: groupId,
-      start_date: new Date().toLocaleDateString('en-CA'),
-      end_date: selectedDate.toISOString().split("T")[0],
+      start_date,
+      end_date,
+      total_days,
       members: groupMembers.map((member) => member.id),
       alarm_schedule: alarmSchedule,
       game_schedules: gameSchedules,

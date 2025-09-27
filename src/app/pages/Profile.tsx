@@ -200,6 +200,20 @@ const Profile: React.FC<Props> = ({ navigation }) => {
         <TouchableOpacity
           style={styles.logoutButton}
           activeOpacity={0.8}
+          onPress={() => navigation.navigate('TestPayment')}
+        >
+          <Ionicons
+            name="log-out-outline"
+            size={22}
+            color="#FFF"
+            style={styles.logoutIcon}
+          />
+          <Text style={styles.logoutText}>Test Payment</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.logoutButton}
+          activeOpacity={0.8}
           onPress={() =>
             scheduleAlarms([
               {

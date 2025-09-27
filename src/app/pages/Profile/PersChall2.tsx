@@ -68,36 +68,39 @@ const PersChall2: React.FC<Props> = ({ navigation }) => {
 
   // Android and IOS
   const onTimeChange = (event: any, time?: Date) => {
-    //if (time) setTempTime(time)
     if (event?.type === "dismissed") {
-      setShowTimePicker(false);
-      setTempTime(null);
-      return;
+      setShowTimePicker(false)
+      return
     }
-
-    if (!time) return;
-
-    if (Platform.OS === "android") {
-      let formattedTime = cleanTime(formatTime(time));
-      const updatedMapping = { ...dayTimeMapping };
-      selectedDays.forEach((day) => {
-        updatedMapping[day] = formattedTime;
-      });
-      setDayTimeMapping(updatedMapping);
-      setShowTimePicker(false);
-      setTempTime(null);
-    } else {
-      setTempTime(time);
+  
+    if (time) {
+      if (Platform.OS === "android") {
+        let formattedTime = formatTime(time)
+        formattedTime = cleanTime(formattedTime)
+  
+        const updatedMapping = { ...dayTimeMapping }
+        selectedDays.forEach((day) => {
+          updatedMapping[day] = formattedTime
+        })
+  
+        setDayTimeMapping(updatedMapping)
+        setSelectedDays([])
+        setShowTimePicker(false)
+      } else {
+        // for ios
+        setTempTime(time)
+      }
     }
-  };
+  }
+
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
-      hour12: true,
-    }).replace(/([AP]M)/, " $1");
-  };
+      hour12: false,
+    })
+  }
 
 
   const cleanTime = (time: string) => {
@@ -149,7 +152,9 @@ const PersChall2: React.FC<Props> = ({ navigation }) => {
     return date.toLocaleDateString(undefined, options)
   }
 
+
   const handleCreateChallenge = async () => {
+    console.log("hello")
     if (!name.trim()) {
       Alert.alert("Error", "Please enter a challenge name");
       return;
@@ -160,19 +165,104 @@ const PersChall2: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
+
+    const alarmSchedule = Object.entries(dayTimeMapping)
+      .filter(([day, time]) => time && dayToInt[day])
+      .map(([day, time]) => ({
+        dayOfWeek: dayToInt[day],
+        time,
+      }));
+    console.log("Filtered Alarm Schedule:", alarmSchedule)
+
+    const gameSchedules = Object.entries(gamesByDay || {})
+      .filter(([day, games]) => {
+        const isValid = Array.isArray(games) && games.length > 0 && dayToInt[day]
+        if (!isValid) {
+          console.warn(`Skipping invalid entry for day: ${day}`, games)
+        }
+        return isValid
+      })
+      .map(([day, games]) => {
+        try {
+          return {
+            dayOfWeek: dayToInt[day],
+            games: games
+              .map((game, index) => {
+                console.log(`Processing game for day ${day}:`, game)
+                if (!Array.isArray(game) || game.length < 2) {
+                  console.error(`Malformed game entry for day ${day}:`, game)
+                  return null
+                }
+                return {
+                  id: parseInt(game[0], 10) || 0,
+                  order: index + 1,
+                }
+              })
+              .filter(Boolean),
+          }
+        } catch (e) {
+          console.error(`Failed to process games for day ${day}`, e)
+          return null
+        }
+      })
+      .filter(Boolean)
+
+
+    const getNextAlarmDate = (alarmDays: number[]): Date | null => {
+      if (alarmDays.length === 0) return null;
+      const today = new Date();
+      for (let offset = 0; offset < 7; offset++) {
+        const candidate = new Date(today);
+        candidate.setDate(today.getDate() + offset);
+        const candidateDay = candidate.getDay(); // 0=Sun,1=Mon,...6=Sat
+        // convert to your mapping
+        const candidateDayInt = candidateDay === 0 ? 7 : candidateDay; 
+        if (alarmDays.includes(candidateDayInt)) {
+          return candidate;
+        }
+      }
+      return null;
+    };
+
+
+    // collect day numbers of scheduled alarms
+    const alarmDays = alarmSchedule
+      .map(a => a.dayOfWeek)
+      .filter((d): d is number => d !== undefined);
+
+    // find first valid future start date
+    const nextAlarmDate = getNextAlarmDate(alarmDays);
+    if (!nextAlarmDate) {
+      Alert.alert("Error", "Could not determine start date from schedule");
+      return;
+    }
+
+    const start_date = nextAlarmDate.toISOString().split("T")[0];
+    const end_date = selectedDate.toISOString().split("T")[0];
+
+    if (!start_date) {
+      Alert.alert("Error", "Could not determine start date");
+      return;
+    }
+
+    if (!end_date) {
+      Alert.alert("Error", "Please select an end date");
+      return;
+    }
+
+    // compute inclusive difference in days
+    const total_days = Math.ceil(
+      (new Date(end_date).getTime() - new Date(start_date).getTime()) / (1000 * 60 * 60 * 24)
+    ) + 1;
+
     const payload = {
       userId: user?.id,
       name,
-      endDate: selectedDate.toISOString().split("T")[0],
-      schedule: selectedDays.map((day) => ({
-        day,
-        dayOfWeek: dayToInt[day],
-        time: dayTimeMapping[day],
-        games: (gamesByDay[day] || []).map(([id, name]) => ({
-          id: Number(id),
-          name,
-        })),
-      }))
+      start_date,
+      end_date,
+      total_days,
+      alarm_schedule: alarmSchedule,
+      game_schedules: gameSchedules,
     };
     console.log(payload)
 

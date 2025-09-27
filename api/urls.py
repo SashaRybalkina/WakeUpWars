@@ -35,7 +35,7 @@ from .views import (
     CreateWordleGameView, ValidateWordleMoveView, get_csrf_token, SingOrMultGameListView, ShareChallengeView,
     GetPendingPublicChallengesView, GetMatchingChallengesView, SetUserAvailabilityView,
     GetUserAvailabilityView, SomeCatsListView, JoinPublicChallengeView, FinalizePublicChallengeView,
-    GetPublicChallengesView,
+    GetPublicChallengesView, CreatePaymentIntentView,
 )
 
 router = DefaultRouter()
@@ -116,4 +116,6 @@ urlpatterns = [
     path('accept-personal-challenge/<int:user_id>/<int:chall_id>/', AcceptPersonalChallenge.as_view()),
     path('decline-personal-challenge/<int:user_id>/<int:chall_id>/', DeclinePersonalChallenge.as_view()),
 
+    path("create-payment-intent/", CreatePaymentIntentView.as_view()),
+    # path("transfer-to-winner/", transfer_to_winner.as_view()),
 ]

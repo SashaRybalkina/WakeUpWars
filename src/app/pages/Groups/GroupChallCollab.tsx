@@ -20,6 +20,7 @@ import {
   Platform,
 } from 'react-native';
 import { BASE_URL, endpoints } from '../../api';
+import { Picker } from '@react-native-picker/picker';
 
 type Props = { navigation: NavigationProp<any> } 
 // Config 
@@ -48,8 +49,10 @@ const GroupChallCollab: React.FC<Props> = ({ navigation }) => {
   const { user } = useUser()
 
   const [name, setName] = useState("")
-  const [selectedDate, setSelectedDate] = useState(new Date())
-  const [showDatePicker, setShowDatePicker] = useState(false)
+  // const [selectedDate, setSelectedDate] = useState(new Date())
+  // const [showDatePicker, setShowDatePicker] = useState(false)
+  const [durationValue, setDurationValue] = useState(1); // default 1
+  const [durationUnit, setDurationUnit] = useState<"weeks" | "months" | "years">("weeks");
 
   const [selectedCells, setSelectedCells] = useState<SelectedCell[]>([]);
 
@@ -63,29 +66,18 @@ const GroupChallCollab: React.FC<Props> = ({ navigation }) => {
     SU: 7,
   }
 
-  const onDateChange = (event: any, date?: Date) => {
-    if (event?.type === "dismissed") {
-      setShowDatePicker(false)
-      return
+  const getTotalDays = (value: number, unit: "weeks" | "months" | "years") => {
+    switch (unit) {
+      case "weeks":
+        return value * 7;
+      case "months":
+        return value * 30; // approximate month as 30 days
+      case "years":
+        return value * 365; // ignoring leap years for simplicity
+      default:
+        return value;
     }
-  
-    if (date) {
-      setSelectedDate(date)
-      if (Platform.OS === "android") {
-        setShowDatePicker(false)
-      }
-    }
-  }
-
-  const formatDate = (date: Date) => {
-    const options: Intl.DateTimeFormatOptions = { 
-      weekday: 'short', 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    }
-    return date.toLocaleDateString(undefined, options)
-  }
+  };
 
   const toggleCell = (day: number, time: number) => {
     setSelectedCells(prev => {
@@ -144,11 +136,12 @@ const convertTo24Hour = (time12: string) => {
           return [{ dayOfWeek, time: convertTo24Hour(TIMES[time]) }];
         });
 
+        const total_days = getTotalDays(durationValue, durationUnit);
         const payload = {
           name,
           group_id: groupId,
           initiator_id: Number(user?.id),
-          end_date: selectedDate.toISOString().split("T")[0],
+          total_days,
           members: groupMembers.map((member) => member.id),
           alarm_schedule: alarmSchedule,
         };
@@ -216,37 +209,25 @@ const convertTo24Hour = (time12: string) => {
           </View>
 
           <View style={styles.formSection}>
-            <Text style={styles.label}>End Date</Text>
-            <Text style={styles.dateDisplay}>{formatDate(selectedDate)}</Text>
+            <Text style={styles.label}>Challenge Duration</Text>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <TextInput
+                style={[styles.input, { flex: 1, marginRight: 10 }]}
+                keyboardType="numeric"
+                value={String(durationValue)}
+                onChangeText={text => setDurationValue(Number(text) || 0)}
+              />
 
-            <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.actionButton}>
-              <LinearGradient
-                colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']}
-                style={styles.buttonGradient}
+              <Picker
+                selectedValue={durationUnit}
+                style={{ flex: 1 }}
+                onValueChange={(itemValue) => setDurationUnit(itemValue)}
               >
-                <Ionicons name="calendar-outline" size={20} color="#FFF" style={styles.buttonIcon} />
-                <Text style={styles.buttonText}>Select End Date</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            {showDatePicker && (
-              <View style={styles.pickerContainer}>
-                <DateTimePicker
-                  value={selectedDate}
-                  mode="date"
-                  display="spinner"
-                  onChange={onDateChange}
-                />
-                {Platform.OS !== 'android' && (
-                  <TouchableOpacity
-                    style={styles.doneButton}
-                    onPress={() => setShowDatePicker(false)}
-                  >
-                    <Text style={styles.doneButtonText}>Done</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
+                <Picker.Item label="Weeks" value="weeks" />
+                <Picker.Item label="Months" value="months" />
+                <Picker.Item label="Years" value="years" />
+              </Picker>
+            </View>
           </View>
 
           <View style={styles.formSection}>

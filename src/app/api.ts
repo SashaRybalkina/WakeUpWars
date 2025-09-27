@@ -83,6 +83,9 @@ export const endpoints = {
   csrfToken: `${BASE_URL}/api/csrf-token/`,
 
   myObligations: () => `${BASE_URL}/api/obligations/me/`,
+  createPaymentIntent: () => `${BASE_URL}/api/create-payment-intent/`,
+  transferToWinner: () => `${BASE_URL}/api/transfer-to-winner/`,
+
   payExternal: (id: number) =>
     `${BASE_URL}/api/obligations/${id}/pay_external/`,
   payCash: (id: number) => `${BASE_URL}/api/obligations/${id}/pay_cash/`,

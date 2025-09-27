@@ -82,7 +82,9 @@ useEffect(() => {
       const data = res.data
 
       // Set challenge dates
-      const startDate = new Date(data.startDate)
+      const startDateParts = data.startDate.split("-").map(Number)
+      const startDate = new Date(startDateParts[0], startDateParts[1] - 1, startDateParts[2])
+      // const startDate = new Date(data.startDate)
       setSelectedStartDate(startDate)
       setSelectedEndDate(new Date(data.endDate))
 
