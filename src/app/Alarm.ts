@@ -37,8 +37,13 @@ export async function scheduleAlarms(
 
 // // Example usage (remove or comment out in production):
 // scheduleAlarms([
+//   // {
+//   //   time: new Date('2025-09-24T18:07:00'),
+//   //   screen: 'Sudoku',
+//   //   data: { challengeId: 170, challName: 'wooho', whichChall: 'sudoku' },
+//   // },
 //   {
-//     time: new Date('2025-09-24T18:07:00'),
+//     time: new Date(Date.now() + 60 * 1000),
 //     screen: 'Sudoku',
 //     data: { challengeId: 170, challName: 'wooho', whichChall: 'sudoku' },
 //   },

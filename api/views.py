@@ -905,7 +905,8 @@ class ChallengeDetailView(APIView):
         return Response({
             **serializer.data,
             'members': members,
-            'totalDays': (challenge.endDate - challenge.startDate).days + 1,
+            # 'totalDays': (challenge.endDate - challenge.startDate).days + 1,
+            'totalDays': challenge.totalDays,
             'daysOfWeek': days_of_week,
             'initiator_id': initiator_id,
             'reward_setting': RewardSettingSerializer(getattr(challenge,'reward_setting',None)).data if hasattr(challenge,'reward_setting') else None
@@ -1006,17 +1007,17 @@ class GetChallengeScheduleView(APIView):
                 "games": games_by_day.get(day, [])
             })
 
-        # TODO: fix this once update db
-        if (challenge.startDate and challenge.endDate):
-            totDays = (challenge.endDate - challenge.startDate).days + 1
-        else:
-            totDays = challenge.totalDays
+        # # TODO: fix this once update db
+        # if (challenge.startDate and challenge.endDate):
+        #     totDays = (challenge.endDate - challenge.startDate).days + 1
+        # else:
+        #     totDays = challenge.totalDays
         return Response({
             "id": challenge.id,
             "name": challenge.name,
             "startDate": challenge.startDate,
             "endDate": challenge.endDate,
-            "totalDays": totDays,
+            "totalDays": challenge.totalDays,
             "members": members,
             "schedule": schedule
         }, status=status.HTTP_200_OK)
@@ -1661,21 +1662,43 @@ class CreatePersonalChallengeView(APIView):
         try:
             user_id = data.get("userId")
             name = data.get("name")
-            end_date = data.get("endDate")
+            start_date = data.get("start_date")
+            end_date = data.get("end_date")
+            total_days = data.get("total_days")
             alarm_schedule = data.get("alarm_schedule")
             game_schedules = data.get("game_schedules")
 
-            if not user_id or not name or not end_date or not alarm_schedule or not game_schedules:
+            if not user_id or not name or not end_date or not start_date or not total_days or not alarm_schedule or not game_schedules:
                 return Response({'error': 'Missing required fields.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # def get_next_alarm_date(alarm_schedule):
+            #     if not alarm_schedule:
+            #         return None
 
+            #     today = date.today()
+
+            #     # convert all days to integers
+            #     alarm_days = [sched['dayOfWeek'] for sched in alarm_schedule]
+
+            #     for offset in range(0, 7):
+            #         candidate = today + timedelta(days=offset)
+            #         candidate_day = candidate.isoweekday()
+            #         if candidate_day in alarm_days:
+            #             return candidate
+
+            #     return None 
+
+            # start_date = get_next_alarm_date(alarm_schedule)
+            # end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+            # total_days = (end_date - start_date).days + 1
             challenge = Challenge.objects.create(
                 name=name,
                 groupID=None,
                 isPublic=False,
                 isPending=False,
-                startDate=data['start_date'],
-                endDate=data['end_date'],
-                totalDays=data['total_days']
+                startDate=start_date,
+                endDate=end_date,
+                totalDays=total_days
             )
 
             ChallengeMembership.objects.create(challengeID=challenge, uID_id=user_id)

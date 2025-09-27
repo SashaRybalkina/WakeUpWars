@@ -68,36 +68,39 @@ const PersChall2: React.FC<Props> = ({ navigation }) => {
 
   // Android and IOS
   const onTimeChange = (event: any, time?: Date) => {
-    //if (time) setTempTime(time)
     if (event?.type === "dismissed") {
-      setShowTimePicker(false);
-      setTempTime(null);
-      return;
+      setShowTimePicker(false)
+      return
     }
-
-    if (!time) return;
-
-    if (Platform.OS === "android") {
-      let formattedTime = cleanTime(formatTime(time));
-      const updatedMapping = { ...dayTimeMapping };
-      selectedDays.forEach((day) => {
-        updatedMapping[day] = formattedTime;
-      });
-      setDayTimeMapping(updatedMapping);
-      setShowTimePicker(false);
-      setTempTime(null);
-    } else {
-      setTempTime(time);
+  
+    if (time) {
+      if (Platform.OS === "android") {
+        let formattedTime = formatTime(time)
+        formattedTime = cleanTime(formattedTime)
+  
+        const updatedMapping = { ...dayTimeMapping }
+        selectedDays.forEach((day) => {
+          updatedMapping[day] = formattedTime
+        })
+  
+        setDayTimeMapping(updatedMapping)
+        setSelectedDays([])
+        setShowTimePicker(false)
+      } else {
+        // for ios
+        setTempTime(time)
+      }
     }
-  };
+  }
+
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
-      hour12: true,
-    }).replace(/([AP]M)/, " $1");
-  };
+      hour12: false,
+    })
+  }
 
 
   const cleanTime = (time: string) => {
@@ -149,7 +152,9 @@ const PersChall2: React.FC<Props> = ({ navigation }) => {
     return date.toLocaleDateString(undefined, options)
   }
 
+
   const handleCreateChallenge = async () => {
+    console.log("hello")
     if (!name.trim()) {
       Alert.alert("Error", "Please enter a challenge name");
       return;
@@ -160,12 +165,13 @@ const PersChall2: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
+
     const alarmSchedule = Object.entries(dayTimeMapping)
       .filter(([day, time]) => time && dayToInt[day])
       .map(([day, time]) => ({
         dayOfWeek: dayToInt[day],
         time,
-      }))
+      }));
     console.log("Filtered Alarm Schedule:", alarmSchedule)
 
     const gameSchedules = Object.entries(gamesByDay || {})

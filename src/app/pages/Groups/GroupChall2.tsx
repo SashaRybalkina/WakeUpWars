@@ -272,21 +272,21 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
     console.log("Group Members:", groupMembers)
 
 
-    const getNextAlarmDate = (alarmDays: number[]): Date | null => {
-      if (alarmDays.length === 0) return null;
-      const today = new Date();
-      for (let offset = 0; offset < 7; offset++) {
-        const candidate = new Date(today);
-        candidate.setDate(today.getDate() + offset);
-        const candidateDay = candidate.getDay(); // 0=Sun,1=Mon,...6=Sat
-        // convert to your mapping
-        const candidateDayInt = candidateDay === 0 ? 7 : candidateDay; 
-        if (alarmDays.includes(candidateDayInt)) {
-          return candidate;
-        }
-      }
-      return null;
-    };
+const getNextAlarmDate = (alarmDays: number[]): Date | null => {
+  if (alarmDays.length === 0) return null;
+  const today = new Date();
+  for (let offset = 1; offset <= 7; offset++) { // start from tomorrow
+    const candidate = new Date(today);
+    candidate.setDate(today.getDate() + offset);
+    const candidateDay = candidate.getDay(); // 0=Sun,1=Mon,...6=Sat
+    const candidateDayInt = candidateDay === 0 ? 7 : candidateDay; 
+    if (alarmDays.includes(candidateDayInt)) {
+      return candidate;
+    }
+  }
+  return null;
+};
+
 
 
     // collect day numbers of scheduled alarms
