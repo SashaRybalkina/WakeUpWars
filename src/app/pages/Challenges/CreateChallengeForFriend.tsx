@@ -123,6 +123,14 @@ const CreateChallengeForFriend: React.FC<Props> = ({ navigation }) => {
   const formatDate = (date: Date) =>
     date.toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" })
 
+  // format local date to YYYY-MM-DD (avoid UTC shift from toISOString)
+  const toLocalYMD = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
   const handleCreateChallenge = async () => {
     if (!name.trim()) {
       Alert.alert("Error", "Please enter a challenge name")
@@ -133,13 +141,13 @@ const CreateChallengeForFriend: React.FC<Props> = ({ navigation }) => {
       return
     }
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = toLocalYMD(new Date());
 
     const payload = {
       userId: user?.id,
       name,
       startDate: today,
-      endDate: selectedDate.toISOString().split("T")[0],
+      endDate: toLocalYMD(selectedDate),
       schedule: selectedDays.map(day => ({
         day,
         dayOfWeek: dayToInt[day],

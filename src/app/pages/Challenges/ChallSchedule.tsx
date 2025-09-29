@@ -81,12 +81,14 @@ useEffect(() => {
       const res = await axios.get(endpoints.getChallengeSchedule(challId))
       const data = res.data
 
-      // Set challenge dates
+      // Set challenge dates (parse as local to avoid UTC shifts)
       const startDateParts = data.startDate.split("-").map(Number)
       const startDate = new Date(startDateParts[0], startDateParts[1] - 1, startDateParts[2])
-      // const startDate = new Date(data.startDate)
       setSelectedStartDate(startDate)
-      setSelectedEndDate(new Date(data.endDate))
+
+      const endDateParts = data.endDate.split("-").map(Number)
+      const endDate = new Date(endDateParts[0], endDateParts[1] - 1, endDateParts[2])
+      setSelectedEndDate(endDate)
 
       setMembers(data.members)
 

@@ -169,6 +169,14 @@ const EditChallengeSharingFriends: React.FC<Props> = ({ navigation, route }) => 
   const formatDate = (date: Date | null) =>
     date ? date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "N/A";
 
+  // Local YYYY-MM-DD (avoid UTC shift from toISOString)
+  const toLocalYMD = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
   const handleSave = async () => {
     if (!challenge) return;
 
@@ -182,8 +190,8 @@ const EditChallengeSharingFriends: React.FC<Props> = ({ navigation, route }) => 
       const csrfToken = csrfResp.data.csrfToken;
 
       const payload = {
-        startDate: startDate?.toISOString().split("T")[0],
-        endDate: endDate?.toISOString().split("T")[0],
+        startDate: startDate ? toLocalYMD(startDate) : undefined,
+        endDate: endDate ? toLocalYMD(endDate) : undefined,
         members: selectedFriends, 
       };
 

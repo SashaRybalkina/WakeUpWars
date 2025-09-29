@@ -152,6 +152,14 @@ const PersChall2: React.FC<Props> = ({ navigation }) => {
     return date.toLocaleDateString(undefined, options)
   }
 
+  // format local date to YYYY-MM-DD (avoid UTC conversion)
+  const toLocalYMD = (d: Date) => {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+
 
   const handleCreateChallenge = async () => {
     console.log("hello")
@@ -237,8 +245,8 @@ const PersChall2: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    const start_date = nextAlarmDate.toISOString().split("T")[0];
-    const end_date = selectedDate.toISOString().split("T")[0];
+    const start_date = toLocalYMD(nextAlarmDate);
+    const end_date = toLocalYMD(selectedDate);
 
     if (!start_date) {
       Alert.alert("Error", "Could not determine start date");
