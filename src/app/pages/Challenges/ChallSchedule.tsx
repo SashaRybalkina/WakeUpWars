@@ -29,7 +29,7 @@ type Alarm = { userName: string; alarmTime: string }
 type DaySchedule = {
   dayOfWeek: number
   alarms: Alarm[]
-  games: { name: string; order: number }[]
+  games: { id?: number; name: string; order: number; screen?: string }[]
 }
 
 
@@ -226,22 +226,23 @@ const addGameToDay = async (game: { id: number; name: string }) => {
   }
 
 
-  const handleGamePress = (game: {name: string, order: number}, index: number) => {
-    game.name = game.name.toLowerCase();
+  const handleGamePress = (game: { name: string; order: number; screen?: string }, index: number) => {
+    // Prefer backend-provided screen for dynamic navigation
+    if (game.screen) {
+      navigation.navigate(game.screen, { challengeId: challId });
+      return;
+    }
 
-
-    if (game.name.includes("sudoku")) { // If the sudoku exists and matches certain names
+    // Fallback to name-based routing if screen is not provided
+    const lowered = game.name.toLowerCase();
+    if (lowered.includes("sudoku")) {
       goToSudoku();
-    }
-    else if (game.name.includes("wordle")) {
+    } else if (lowered.includes("wordle")) {
       goToWordle();
-    }
-    // If the pattern game exists and matches certain names
-    else if (game.name.includes("pattern")) {
+    } else if (lowered.includes("pattern")) {
       goToPattern();
-    }
-    else {
-      // removeGame(index);
+    } else {
+      // no-op for unknown games on this screen
     }
   }
 
