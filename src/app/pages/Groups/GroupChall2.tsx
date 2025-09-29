@@ -16,6 +16,7 @@ import { LinearGradient } from "expo-linear-gradient"
 import { BASE_URL, endpoints } from "../../api"
 import { Platform } from "react-native"
 import { getMetaFromTuple } from "../Games/NewGamesManagement"
+import { scheduleAlarmsForChallenge } from "../../alarmService"
 
 type Props = {
   navigation: NavigationProp<any>
@@ -194,6 +195,14 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
     return date.toLocaleDateString(undefined, options)
   }
 
+  // format as local YYYY-MM-DD (avoids UTC shift from toISOString)
+  const toLocalYMD = (d: Date) => {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+
   const showRewardInfo = () => {
     Alert.alert('Rewards', 'Choose the reward the winner will get. \n\nMoney: Send a USD amount. \nPoints: In-app points. \nCustom: Any creative prize. \n\nAfter saving, rewards are locked.');
   };
@@ -228,12 +237,12 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
       reward = { type: rewardType, amount: amt };
     }
     
-    const alarmSchedule = Object.entries(dayTimeMapping)
-      .filter(([day, time]) => time && dayToInt[day])
+    const alarmSchedule: { dayOfWeek: number; time: string }[] = Object.entries(dayTimeMapping)
+      .filter(([day, time]) => time && dayToInt[day] !== undefined)
       .map(([day, time]) => ({
-        dayOfWeek: dayToInt[day],
-        time,
-      }))
+        dayOfWeek: dayToInt[day] as number,
+        time: time as string,
+      }));
     console.log("Filtered Alarm Schedule:", alarmSchedule)
 
     const gameSchedules = Object.entries(gamesByDay || {})
@@ -272,22 +281,43 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
     console.log("Group Members:", groupMembers)
 
 
-const getNextAlarmDate = (alarmDays: number[]): Date | null => {
-  if (alarmDays.length === 0) return null;
-  const today = new Date();
-  for (let offset = 1; offset <= 7; offset++) { // start from tomorrow
-    const candidate = new Date(today);
-    candidate.setDate(today.getDate() + offset);
-    const candidateDay = candidate.getDay(); // 0=Sun,1=Mon,...6=Sat
-    const candidateDayInt = candidateDay === 0 ? 7 : candidateDay; 
-    if (alarmDays.includes(candidateDayInt)) {
-      return candidate;
-    }
-  }
-  return null;
-};
-
-
+    const getNextAlarmDate = (
+      alarmSchedule: { dayOfWeek: number; time: string }[],
+    ): Date | null => {
+      if (!alarmSchedule.length) return null;
+    
+      const now = new Date();
+    
+      for (let offset = 0; offset < 7; offset += 1) {
+        const candidate = new Date(now);
+        candidate.setDate(now.getDate() + offset);
+    
+        const weekday = candidate.getDay() === 0 ? 7 : candidate.getDay(); // Sun = 7
+        const todays = alarmSchedule.filter(a => a.dayOfWeek === weekday);
+        if (!todays.length) continue;
+    
+        if (
+          offset === 0 && // checking today
+          !todays.some(a => {
+            const [hhStr, mmStr] = a.time.split(':');
+            const hh = Number(hhStr ?? '0');
+            const mm = Number(mmStr ?? '0');
+            if (Number.isNaN(hh) || Number.isNaN(mm)) {
+              return false;
+            }
+            const alarmTime = new Date(candidate);
+            alarmTime.setHours(hh, mm, 0, 0);
+            return alarmTime > now; // strictly future; “now” counts as future enough
+          })
+        ) {
+          continue; // all of today’s alarms are already past
+        }
+    
+        return candidate;
+      }
+    
+      return null;
+    };
 
     // collect day numbers of scheduled alarms
     const alarmDays = alarmSchedule
@@ -295,14 +325,13 @@ const getNextAlarmDate = (alarmDays: number[]): Date | null => {
       .filter((d): d is number => d !== undefined);
 
     // find first valid future start date
-    const nextAlarmDate = getNextAlarmDate(alarmDays);
+    const nextAlarmDate = getNextAlarmDate(alarmSchedule);
     if (!nextAlarmDate) {
-      Alert.alert("Error", "Could not determine start date from schedule");
+      Alert.alert('Error', 'Could not determine start date from schedule');
       return;
     }
-
-    const start_date = nextAlarmDate.toISOString().split("T")[0];
-    const end_date = selectedDate.toISOString().split("T")[0];
+    const start_date = toLocalYMD(nextAlarmDate);
+    const end_date = toLocalYMD(selectedDate);
 
     if (!start_date) {
       Alert.alert("Error", "Could not determine start date");
@@ -314,23 +343,25 @@ const getNextAlarmDate = (alarmDays: number[]): Date | null => {
       return;
     }
 
+    const diffMs = new Date(end_date).getTime() - new Date(start_date).getTime();
+    if (diffMs < 0) {
+      Alert.alert('Error', 'End date must be on or after start date');
+      return;
+    }
     // compute inclusive difference in days
-    const total_days = Math.ceil(
-      (new Date(end_date).getTime() - new Date(start_date).getTime()) / (1000 * 60 * 60 * 24)
-    ) + 1;
-
+    const total_days = Math.ceil(diffMs / 86_400_000) + 1; // +1 → inclusive
+    
     const payload = {
       name,
       group_id: groupId,
       start_date,
       end_date,
       total_days,
-      members: groupMembers.map((member) => member.id),
+      members: groupMembers.map(m => m.id),
       alarm_schedule: alarmSchedule,
       game_schedules: gameSchedules,
       reward,
-    }
-    console.log(payload)
+    };
 
     try {
       const csrfRes = await fetch(`${BASE_URL}/api/csrf-token/`, {
@@ -358,6 +389,16 @@ const getNextAlarmDate = (alarmDays: number[]): Date | null => {
   
       const data = await res.json();
       console.log('Challenge created:', data);
+
+      // Schedule native alarms on this device for the newly created challenge
+      try {
+        const newId = (data && (data.id ?? data.challenge_id)) as number | undefined;
+        if (newId) {
+          await scheduleAlarmsForChallenge(newId, name);
+        }
+      } catch (e) {
+        console.warn('Failed to schedule alarms for new group challenge', e);
+      }
       Alert.alert('Success', 'Challenge created successfully', [
         { text: 'OK', onPress: () => navigation.navigate('GroupDetails', { groupId, groupMembers }) },
       ]);

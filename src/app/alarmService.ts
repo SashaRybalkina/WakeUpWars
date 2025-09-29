@@ -26,8 +26,8 @@ export async function scheduleAlarmsForChallenge(
 
     const data = await res.json();
     const { startDate, endDate, schedule } = data as {
-      startDate: string;
-      endDate: string;
+      startDate: string; // "YYYY-MM-DD"
+      endDate: string;   // "YYYY-MM-DD"
       schedule: any[];
     };
 
@@ -36,9 +36,18 @@ export async function scheduleAlarmsForChallenge(
       return;
     }
 
+    // Parse YYYY-MM-DD as a LOCAL date to avoid UTC shifting a day earlier/later
+    const parseLocalYMD = (ymd: string): Date => {
+      const [yRaw, mRaw, dRaw] = ymd.split('-');
+      const y = Number.parseInt(yRaw ?? '', 10) || 1970;
+      const m = Number.parseInt(mRaw ?? '', 10) || 1;   // 1-12
+      const d = Number.parseInt(dRaw ?? '', 10) || 1;   // 1-31
+      return new Date(y, m - 1, d);
+    };
+
     const alarms = buildAlarmList(
-      new Date(startDate),
-      new Date(endDate),
+      parseLocalYMD(startDate),
+      parseLocalYMD(endDate),
       schedule,
       challId,
       challName,
@@ -111,7 +120,7 @@ function buildAlarmList(
 
 function guessScreen(challName: string): string {
   const lower = challName.toLowerCase();
-  if (lower.includes('sudoku')) return 'Sudoku';
+  if (lower.includes('sudoku')) return 'Group Sudoku';
   if (lower.includes('wordle')) return 'Wordle';
   if (lower.includes('pattern')) return 'PatternGame';
   return 'ChallDetails';
