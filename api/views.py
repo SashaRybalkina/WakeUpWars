@@ -535,12 +535,35 @@ class FinalizePublicChallengeView(APIView):
                 )
 
             # dayOfWeek is 1–7 (Mon–Sun)
-            first_alarm = alarm_schedules.first()
+            # --- choose earliest schedule day ≥ today that still has a future alarm ---
+            from collections import defaultdict
+            day_to_times: Dict[int, List[time]] = defaultdict(list)
+            for a in alarm_schedules:
+                day_to_times[a.dayOfWeek].append(a.alarmTime)
 
-            today = timezone.now().date()
-            weekday_today = today.isoweekday()  # 1–7
-            offset_days = (first_alarm.dayOfWeek - weekday_today) % 7
-            start_date = today + timedelta(days=offset_days)
+            scheduled_days = sorted(day_to_times.keys())
+
+            today = timezone.localdate()
+            now   = timezone.localtime().time()
+
+            start_date: date | None = None
+            for offset in range(7):                       # look one week ahead max
+                cand_date = today + timedelta(days=offset)
+                cand_dow  = cand_date.isoweekday()        # 1-7
+
+                if cand_dow not in scheduled_days:
+                    continue
+
+                times_for_day = day_to_times[cand_dow]
+                # If checking today, ensure at least one alarm is still in the future (now counts as valid)
+                if offset == 0 and all(t < now for t in times_for_day):
+                    continue
+
+                start_date = cand_date
+                break
+
+            if start_date is None:        # fallback (shouldn’t happen)
+                start_date = today
 
             # End date = start_date + totalDays - 1
             end_date = start_date + timedelta(days=challenge.totalDays - 1)
@@ -1461,16 +1484,39 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
                         )
 
                 # make the challenge no longer pending
-                scheduled_days = sorted(final_schedule.keys())  # e.g., [1, 2, 4]
+                # --- choose earliest feasible start-date (today counts only if a future alarm remains) ---
+                from collections import defaultdict
+                day_to_times: Dict[int, List[time]] = defaultdict(list)
+                for d, pairs in final_schedule.items():
+                    for _user, minutes in pairs:
+                        # minutes is an int; convert back to time
+                        day_to_times[d].append( (datetime.min + timedelta(minutes=minutes)).time() )
 
-                today = date.today()
-                for i in range(7):
-                    candidate_date = today + timedelta(days=i)
-                    # Map Python weekday() 0-6 -> dayOfWeek 1-7
-                    candidate_day_of_week = candidate_date.weekday() + 1
-                    if candidate_day_of_week in scheduled_days:
-                        challenge.startDate = candidate_date
-                        break
+                scheduled_days = sorted(day_to_times.keys())
+
+                today = timezone.localdate()
+                now   = timezone.localtime().time()
+
+                start_date: date | None = None
+                for offset in range(7):                      # look at most one week ahead
+                    cand_date = today + timedelta(days=offset)
+                    cand_dow  = cand_date.isoweekday()       # 1 (Mon) .. 7 (Sun)
+
+                    if cand_dow not in scheduled_days:
+                        continue
+
+                    todays_times = day_to_times[cand_dow]
+                    if offset == 0 and all(t < now for t in todays_times):
+                        # All of today’s alarms are in the past → skip today
+                        continue
+
+                    start_date = cand_date
+                    break
+
+                if start_date is None:   # safety-net – shouldn’t happen
+                    start_date = today
+
+                challenge.startDate = start_date
 
                 challenge.endDate = challenge.startDate + timedelta(days=challenge.totalDays - 1)
                 challenge.isPending = False

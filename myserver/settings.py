@@ -119,7 +119,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+# Align server-side date calculations with US Mountain time (local for WakeUpWars users)
+TIME_ZONE = 'America/Denver'
 
 USE_I18N = True
 
