@@ -110,6 +110,9 @@ class Game(models.Model):
     name = models.CharField(max_length=255)
     category = models.ForeignKey(GameCategory, on_delete=models.CASCADE)
     isMultiplayer = models.BooleanField()
+    
+    # React Native screen to navigate to for this game
+    route = models.CharField(max_length=64, null=True, blank=True)
 
     class Meta:
         db_table = 'Games'

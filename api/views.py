@@ -1005,9 +1005,24 @@ class GetChallengeScheduleView(APIView):
         )
         for g in games_qs:
             day = g.game_schedule.dayOfWeek
+            # Prefer DB-provided route; fallback to name-based mapping
+            screen = (g.game.route or '').strip()
+            if not screen:
+                n = (g.game.name or '').lower()
+                if 'sudoku' in n:
+                    screen = 'Sudoku'
+                elif 'wordle' in n:
+                    screen = 'Wordle'
+                elif 'pattern' in n:
+                    screen = 'PatternGame'
+                else:
+                    screen = 'ChallDetails'
+
             games_by_day.setdefault(day, []).append({
+                "id": g.game.id,
                 "name": g.game.name,
-                "order": g.game_order
+                "order": g.game_order,
+                "screen": screen,
             })
 
         # Group alarms by day

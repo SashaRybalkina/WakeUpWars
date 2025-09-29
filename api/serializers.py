@@ -44,7 +44,7 @@ class CatSerializer(serializers.ModelSerializer):
 class GameSerializer(serializers.ModelSerializer):
     class Meta:
         model = Game
-        fields = ['id', 'name', 'category', 'isMultiplayer']
+        fields = ['id', 'name', 'category', 'isMultiplayer', 'route']
 
 class SkillLevelSerializer(serializers.ModelSerializer):
     category = CatSerializer()
