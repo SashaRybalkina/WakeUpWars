@@ -1765,8 +1765,9 @@ class CreateWordleGameView(APIView):
 
     Response:
       - game_state_id: ID of the WordleGameState
-      - answer: chosen word (only sent to the creator; in multiplayer you may want to hide it)
+      - puzzle: initial puzzle (underscores for hidden letters)
       - is_multiplayer: true if it's a multiplayer game
+      - answer: only for debugging (⚠️ must not be returned in production multiplayer)
     """
 
     def post(self, request):
@@ -1776,30 +1777,53 @@ class CreateWordleGameView(APIView):
         if not challenge_id:
             return Response({"error": "Missing challenge_id"}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Ensure the challenge exists
         try:
             Challenge.objects.get(id=challenge_id)
         except Challenge.DoesNotExist:
             return Response({"error": "Challenge not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # get_or_create_game should work for Wordle as well (if you extend it to handle WordleGameState)
+        # Use utils to create or get a Wordle game state
         game_data = get_or_create_game_wordle(challenge_id, user)
-
-        try:
-            state_id = game_data.get("game_state_id")
-            if state_id:
-                state = WordleGameState.objects.get(id=state_id)
-
-                state.answer = random.choice(WORD_LIST).upper()
-                state.save()
-
-                # Add info to response
-                game_data["game_id"] = state.game_id
-                game_data["answer"] = state.answer  # ⚠️ careful: in real multiplayer you may NOT want to send this to everyone
-        except WordleGameState.DoesNotExist:
-            pass
 
         return Response(game_data, status=status.HTTP_200_OK)
 
+class ValidateWordleMoveView(APIView):
+    """
+    Called whenever a player submits a guess.
+
+    Request:
+      - game_state_id: ID of the WordleGameState
+      - row: which row attempt (0–MAX_ATTEMPTS-1)
+      - guess: guessed word
+
+    Response:
+      - feedback: list of {letter, result} (result can be 'correct', 'present', 'absent')
+      - is_correct: True if the guess exactly matches the solution
+      - is_complete: True if the game ended (win or attempts exhausted)
+      - score_awarded: integer score for this move
+      - scores: leaderboard list for all players in the game
+    """
+
+    def post(self, request):
+        game_id = request.data.get("game_state_id")
+        row = request.data.get("row")
+        guess = request.data.get("guess")
+        user = request.user
+
+        if game_id is None or row is None or guess is None:
+            return Response({"error": "Missing parameters"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Ensure the game state exists
+        try:
+            WordleGameState.objects.get(id=game_id)
+        except WordleGameState.DoesNotExist:
+            return Response({"error": "Game not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Call utils to validate the move and update state
+        result = validate_wordle_move(game_id, user, guess, row)
+
+        return Response(result, status=status.HTTP_200_OK)
 
 class ValidateSudokuMoveView(APIView):
     def post(self, request):
@@ -1834,38 +1858,7 @@ class ValidateSudokuMoveView(APIView):
             }, status=200)
 
 
-class ValidateWordleMoveView(APIView):
-    def post(self, request):
-        game_id = request.data.get('game_state_id')
-        row = request.data.get('row')   # attempt row
-        guess = request.data.get('guess')   # guessed word
-        user = request.user
 
-        if game_id is None or row is None or guess is None:
-            return Response({'error': 'Missing parameters'}, status=400)
-
-        try:
-            game_state = WordleGameState.objects.get(id=game_id)
-        except WordleGameState.DoesNotExist:
-            return Response({'error': 'Game not found'}, status=404)
-
-        # Store the move if you want multiplayer history / stats
-        WordleGamePlayer.objects.get_or_create(
-            gameState=game_state,
-            player=user,
-            defaults={'accuracyCount': 0, 'inaccuracyCount': 0}
-        )
-        
-        move, created = WordleMove.objects.update_or_create(
-            gameState=game_state,
-            player=user,
-            row=row,
-            defaults={"guess": guess}
-        )
-
-        result = validate_wordle_move(game_id, user, guess, row)
-
-        return Response(result, status=200)
 
 
 # AI was used to help generate this class
