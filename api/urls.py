@@ -1,6 +1,13 @@
 from django.urls import path
 
-from .views import (AcceptPersonalChallenge, ConversationView, DeclinePersonalChallenge, ExternalHandleViewSet, FinalizeChallengeView, FinalizePublicChallengeView, GetMatchingChallengesView, GetPendingPublicChallengesView, GetPersonalChallengeInvites, GetPublicChallengesView, GetUserAvailabilityView, GroupConversationView, JoinPublicChallengeView, LoginView, ObligationViewSet, PaymentViewSet, RegisterView, GroupListView, HelloWorldView, SendMessageGroupView, SendMessageView, SetChallAvailabilityView, SetUserAvailabilityView, ShareChallengeView, SingOrMultGameListView, SomeCatsListView, UserGroupConversationsView, UserProfileView, GetChallengeScheduleView, AddGameToScheduleView,
+from .views import (AcceptPersonalChallenge, ConversationView, DeclinePersonalChallenge, 
+                    ExternalHandleViewSet, FinalizeChallengeView, FinalizePublicChallengeView, 
+                    GetMatchingChallengesView, GetPendingPublicChallengesView, GetPersonalChallengeInvites, 
+                    GetPublicChallengesView, GetUserAvailabilityView, GroupConversationView, 
+                    JoinPublicChallengeView, LoginView, ObligationViewSet, PaymentViewSet, RegisterView, 
+                    GroupListView, HelloWorldView, SendMessageGroupView, SendMessageView, SetChallAvailabilityView, 
+                    SetUserAvailabilityView, ShareChallengeView, SingOrMultGameListView, SomeCatsListView, 
+                    UserGroupConversationsView, UserProfileView, GetChallengeScheduleView, AddGameToScheduleView,
                     UserMessagesView, GroupDetailsView, CatListView, GameListView,
                     ChallengeListView, GetChallengeInitiatorView,
                     ChallengeDetailView, ChallengeGameScheduleView, CreateManualGroupChallengeView,
@@ -76,6 +83,7 @@ urlpatterns = [
     path('decline-challenge-invite/<int:user_id>/<int:chall_id>/', DeclineChallengeInviteView.as_view(), name='decline-challenge-invite'),
     path('messages/send/<int:user_id>/', SendMessageView.as_view(), name='send-message'),
     path('messages/send/group/<int:group_id>/', SendMessageGroupView.as_view()),
+    path('notifications/<int:user_id>/', SavePushTokenView.as_view()),
     path('conversation/<int:user_id>/<int:recipient_id>/', ConversationView.as_view(), name='conversation'),
     path('conversation/group/<int:group_id>/', GroupConversationView.as_view(), name='conversation-group'),
     path('profile/all/', AllUsersView.as_view(), name='all-users'),

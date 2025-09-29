@@ -2522,6 +2522,69 @@ class DeclinePersonalChallenge(APIView):
         inv.chall.delete()
         return Response({"ok": True}, status=200)
 
+class SendMessageView(APIView):
+    def post(self, request, user_id):
+        sender = request.user
+        recipient = get_object_or_404(User, id=user_id)
+        message_text = request.data.get("message")
+
+        message = Message.objects.create(
+            sender=sender,
+            recipient=recipient,
+            message=message_text,
+        )
+        return Response({"success": True, "id": message.id})
+    
+class ConversationView(APIView):
+    def get(self, request, user_id, recipient_id):
+        messages = Message.objects.filter(
+            Q(sender_id=user_id, recipient_id=recipient_id) | Q(sender_id=recipient_id, recipient_id=user_id)
+        ).order_by('id')
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data)
+    
+class SendMessageGroupView(APIView):
+    def post(self, request, group_id):
+        sender = request.user
+        group = get_object_or_404(Group, id=group_id)
+        message_text = request.data.get("message")
+
+        if not message_text:
+            return Response({"success": False, "error": "Message cannot be empty"}, status=400)
+
+        message = Message.objects.create(
+            sender=sender,
+            groupID=group,
+            message=message_text,
+        )
+
+        return Response({"success": True, "id": message.id})
+
+class GroupConversationView(APIView):
+    def get(self, request, group_id):
+        # Ensure the group exists
+        group = get_object_or_404(Group, id=group_id)
+
+        # Fetch all messages for this group
+        messages = Message.objects.filter(groupID=group).order_by('id')
+
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data)
+
+class UserGroupConversationsView(APIView):
+    def get(self, request, user_id):
+        memberships = GroupMembership.objects.filter(uID=user_id)
+        group_ids = memberships.values_list('groupID', flat=True)
+        groups = Group.objects.filter(id__in=group_ids)
+        data = []
+        for group in groups:
+            last_message = Message.objects.filter(groupID=group).order_by('-id').first()
+            data.append({
+                'group_id': group.id,
+                'group_name': group.name,
+                'last_message': MessageSerializer(last_message).data if last_message else None,
+            })
+        return Response(data)
 
 def send_expo_push_notification(user, title, body, data=None):
     try:
@@ -2540,3 +2603,16 @@ def send_expo_push_notification(user, title, body, data=None):
     except Exception as e:
         print(f"Expo push notification error: {e}")
         return False
+
+@method_decorator(csrf_exempt, name='dispatch')
+class SavePushTokenView(APIView):
+    def post(self, request):
+        user_id = request.data.get('user_id')
+        push_token = request.data.get('push_token')
+        if not user_id or not push_token:
+            return Response({'error': 'user_id and push_token required'}, status=400)
+        user = User.objects.filter(id=user_id).first()
+        if not user:
+            return Response({'error': 'User not found'}, status=404)
+        ExpoPushToken.objects.update_or_create(user=user, defaults={'token': push_token})
+        return Response({'success': True})
