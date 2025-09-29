@@ -8,7 +8,6 @@ import {
 import type { ParamListBase } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import * as Notifications from 'expo-notifications';
-import { StripeProvider } from "@stripe/stripe-react-native";
 
 import { useUser } from './context/UserContext';
 
@@ -60,7 +59,6 @@ import StartScreen from './pages/StartScreen';
 import SudokuScreen from './pages/SudokuScreen';
 import EditChallengeSharingFriends from './pages/Challenges/EditChallengeSharingFriends';
 import CreateChallengeForFriend from './pages/Challenges/CreateChallengeForFriend';
-import TestPayment from './pages/TestPayment';
 
 
 const { AlarmModule } = NativeModules;
@@ -153,7 +151,6 @@ function App() {
   }, [user]);
 
   return (
-    <StripeProvider publishableKey="pk_test_51SBSkXRUviiaQCLosAunAlctFslAJ40BrbEjztlUomc4OQQxJ9SyYv4t9VIuKtIOQzc5r02XtSX6vts77LKiYeTa00jufSE82W">
     <NavigationContainer ref={navigationRef} onReady={flushPendingNavigation}>
       <Stack.Navigator
         // initialRouteName="Login"
@@ -390,14 +387,8 @@ function App() {
           component={CreateChallengeForFriend}
           options={{ headerShown: false }}
         />
-        <Stack.Screen
-          name="TestPayment"
-          component={TestPayment}
-          options={{ headerShown: false }}
-        />
       </Stack.Navigator>
     </NavigationContainer>
-    </StripeProvider>
   );
 }
 

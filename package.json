@@ -23,7 +23,6 @@
     "@react-navigation/bottom-tabs": "^6.6.0",
     "@react-navigation/native": "^6.1.17",
     "@react-navigation/stack": "^6.4.0",
-    "@stripe/stripe-react-native": "0.38.6",
     "@tamagui/config": "1.98.3",
     "@tamagui/font-inter": "1.98.3",
     "@tamagui/lucide-icons": "^1.98.3",

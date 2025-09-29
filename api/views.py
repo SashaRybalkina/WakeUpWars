@@ -1,4 +1,3 @@
-import stripe
 from rest_framework.permissions import AllowAny
 from django.conf import settings
 from datetime import timezone, datetime, date, timedelta
@@ -67,54 +66,10 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 WORD_LIST = words
 
-stripe.api_key = settings.STRIPE_API_KEY
 
 # class GetUserInfoView(APIView):
     # def get(self, request):
     #     return Response(UserSerializer(request.user).data)
-
-# Create a PaymentIntent for $5
-class CreatePaymentIntentView(APIView):
-    def post(self, request):
-        intent = stripe.PaymentIntent.create(
-            amount=500,
-            currency="usd",
-            payment_method_types=["card"],
-            transfer_data={
-                "destination": "acct_1SBSqXDASBcnomPt"
-            }
-        )
-        return Response({"client_secret": intent.client_secret})
-    
-
-# @csrf_exempt
-# def create_payment_intent(request):
-#     data = json.loads(request.body)
-    
-#     intent = stripe.PaymentIntent.create(
-#         amount=500,
-#         currency="usd",
-#         payment_method_types=["card"],
-#         transfer_data={
-#             "destination": "acct_1SBSqXDASBcnomPt"  # hard coded winner account id for now
-#         }
-#     )
-#     return JsonResponse({"client_secret": intent.client_secret})
-
-
-# # Transfer to winner (after challenge ends)
-# @csrf_exempt
-# def transfer_to_winner(request):
-#     data = json.loads(request.body)
-#     winner_account_id = data.get("winner_account_id")  # e.g., "acct_1AbCxyz"
-    
-#     # For sandbox demo, just hardcode the amount
-#     transfer = stripe.Transfer.create(
-#         amount=500,  # cents
-#         currency="usd",
-#         destination=winner_account_id,
-#     )
-#     return JsonResponse({"transfer_id": transfer.id})
 
 
 # @ensure_csrf_cookie
