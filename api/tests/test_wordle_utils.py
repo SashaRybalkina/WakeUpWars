@@ -2,7 +2,6 @@ import pytest
 from django.contrib.auth import get_user_model
 from api.models import Challenge, WordleGameState, WordleGamePlayer
 from api.wordleStuff.utils import get_or_create_game_wordle, validate_wordle_move, MAX_ATTEMPTS
-from channels.db import database_sync_to_async  
 
 User = get_user_model()
 
@@ -34,17 +33,16 @@ def test_get_or_create_game_wordle_reuses_existing_game():
 
 
 @pytest.mark.django_db
-@pytest.mark.asyncio
-async def test_validate_wordle_move_correct_guess():
+def test_validate_wordle_move_correct_guess():
     """Submitting the correct guess should end the game and award score."""
-    user = await database_sync_to_async(User.objects.create_user)(username="tester3", password="pw")
-    challenge = await database_sync_to_async(Challenge.objects.create)(name="Test Challenge 3")
+    user = User.objects.create_user(username="tester3", password="pw")
+    challenge = Challenge.objects.create(name="Test Challenge 3")
 
-    game_data = await database_sync_to_async(get_or_create_game_wordle)(challenge.id, user)
-    gs = await database_sync_to_async(WordleGameState.objects.get)(id=game_data["game_state_id"])
+    game_data = get_or_create_game_wordle(challenge.id, user)
+    gs = WordleGameState.objects.get(id=game_data["game_state_id"])
 
     guess = "".join(gs.solution)
-    result = await validate_wordle_move(gs.id, user, guess, 0)
+    result = validate_wordle_move(gs.id, user, guess, 0)
 
     assert result["is_correct"] is True
     assert result["is_complete"] is True
@@ -53,16 +51,15 @@ async def test_validate_wordle_move_correct_guess():
 
 
 @pytest.mark.django_db
-@pytest.mark.asyncio
-async def test_validate_wordle_move_wrong_guess():
+def test_validate_wordle_move_wrong_guess():
     """Submitting a wrong guess should not complete the game and no score is awarded."""
-    user = await database_sync_to_async(User.objects.create_user)(username="tester4", password="pw")
-    challenge = await database_sync_to_async(Challenge.objects.create)(name="Test Challenge 4")
+    user = User.objects.create_user(username="tester4", password="pw")
+    challenge = Challenge.objects.create(name="Test Challenge 4")
 
-    game_data = await database_sync_to_async(get_or_create_game_wordle)(challenge.id, user)
-    gs = await database_sync_to_async(WordleGameState.objects.get)(id=game_data["game_state_id"])
+    game_data = get_or_create_game_wordle(challenge.id, user)
+    gs = WordleGameState.objects.get(id=game_data["game_state_id"])
 
-    result = await validate_wordle_move(gs.id, user, "XXXXX", 0)
+    result = validate_wordle_move(gs.id, user, "XXXXX", 0)
 
     assert result["is_correct"] is False
     assert result["is_complete"] is False
@@ -70,16 +67,15 @@ async def test_validate_wordle_move_wrong_guess():
 
 
 @pytest.mark.django_db
-@pytest.mark.asyncio
-async def test_validate_wordle_move_game_over_after_max_attempts():
+def test_validate_wordle_move_game_over_after_max_attempts():
     """Game should be marked complete after the last allowed attempt."""
-    user = await database_sync_to_async(User.objects.create_user)(username="tester5", password="pw")
-    challenge = await database_sync_to_async(Challenge.objects.create)(name="Test Challenge 5")
+    user = User.objects.create_user(username="tester5", password="pw")
+    challenge = Challenge.objects.create(name="Test Challenge 5")
 
-    game_data = await database_sync_to_async(get_or_create_game_wordle)(challenge.id, user)
-    gs = await database_sync_to_async(WordleGameState.objects.get)(id=game_data["game_state_id"])
+    game_data = get_or_create_game_wordle(challenge.id, user)
+    gs = WordleGameState.objects.get(id=game_data["game_state_id"])
 
     last_row = MAX_ATTEMPTS - 1
-    result = await validate_wordle_move(gs.id, user, "YYYYY", last_row)
+    result = validate_wordle_move(gs.id, user, "YYYYY", last_row)
 
     assert result["is_complete"] is True

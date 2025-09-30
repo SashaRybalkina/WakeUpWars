@@ -1,4 +1,4 @@
-from api.models import GameCategory, WordleGameState, Challenge, WordleGamePlayer, Game, WordleMove
+from api.models import GameCategory, WordleGameState, Challenge, WordleGamePlayer, User, Game, WordleMove
 import random
 from django.db import transaction
 from asgiref.sync import sync_to_async
@@ -65,12 +65,15 @@ def get_or_create_game_wordle(challenge_id, user):
 
 
 @transaction.atomic
-def validate_wordle_move_sync(game_state_id, user, guess, row):
+def validate_wordle_move(game_state_id, user, guess, row):
     """
-    Sync function: Validate a Wordle guess and return feedback, correctness, completion, and scores.
+    Validate a Wordle guess and return feedback, correctness, completion, and scores.
     """
     game_state = WordleGameState.objects.get(id=game_state_id)
     solution = game_state.solution
+    if isinstance(solution, str):
+        solution = list(solution)
+
     guess = guess.upper()
 
     feedback = []
@@ -158,6 +161,6 @@ def validate_wordle_move_sync(game_state_id, user, guess, row):
     }
 
 
-# Async wrappers for websocket usage
-validate_wordle_move = sync_to_async(validate_wordle_move_sync, thread_sensitive=True)
+# Async wrappers for WebSocket usage
 get_or_create_game_wordle_async = sync_to_async(get_or_create_game_wordle, thread_sensitive=True)
+validate_wordle_move_async = sync_to_async(validate_wordle_move, thread_sensitive=True)

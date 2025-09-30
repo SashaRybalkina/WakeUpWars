@@ -1,6 +1,7 @@
 from datetime import timezone, datetime, date, timedelta
 from datetime import date as date_cls, timedelta
 import random
+from unittest import result
 from django.db.models import Sum, Count, Q, F, Prefetch
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -1821,6 +1822,7 @@ class ValidateWordleMoveView(APIView):
             return Response({"error": "Game not found"}, status=status.HTTP_404_NOT_FOUND)
 
         # Call utils to validate the move and update state
+        # result = async_to_sync(validate_wordle_move)(game_id, user, guess, row)
         result = validate_wordle_move(game_id, user, guess, row)
 
         return Response(result, status=status.HTTP_200_OK)
