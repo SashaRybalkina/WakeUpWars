@@ -193,7 +193,7 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
 
       // WebSocket connection for multiplayer
       if (is_multiplayer) {
-        const ws = new WebSocket(`${BASE_URL.replace(/^http/, 'ws')}/ws/sudoku/${game_state_id}/`);
+        const ws = new WebSocket(`${BASE_URL.replace(/^http/, 'ws')}/ws/sudoku/${game_state_id}/?token=${accessToken}`);
 
         ws.onopen = () => console.log("[WebSocket] connected");
 

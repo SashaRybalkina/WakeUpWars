@@ -83,10 +83,10 @@ type Props = { route: any; navigation: any };
 
 
 // Generate WS path based on BASE_URL
-const wsUrlFor = (gameStateId: number) => {
+const wsUrlFor = (gameStateId: number, accessToken: string) => {
   const base = BASE_URL.replace(/\/+$/, '');
   const scheme = base.startsWith('https') ? 'wss' : 'ws';
-  return `${scheme}://${base.replace(/^https?:\/\//, '')}/ws/pattern/${gameStateId}/`;
+  return `${scheme}://${base.replace(/^https?:\/\//, '')}/ws/pattern/${gameStateId}/?token=${accessToken}`;
 };
 
 const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
@@ -173,8 +173,12 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Create WS (multiplayer)
   const openWs = useCallback(
-    (id: number) => {
-      const url = wsUrlFor(id);
+    async (id: number) => {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        throw new Error("Not authenticated");
+      }
+      const url = wsUrlFor(id, accessToken);
       const ws = new WebSocket(url);
       wsRef.current = ws;
 
