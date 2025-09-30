@@ -71,15 +71,19 @@ public class AlarmModule extends ReactContextBaseJavaModule {
             }
             intent.putExtra("params", bundle);
 
+            // Use a unique requestCode so multiple alarms don't overwrite each other
+            long triggerAtMillis = (long) timestamp;
+            int requestCode = (int) ((triggerAtMillis & 0x7FFFFFFF) ^ (screen != null ? screen.hashCode() : 0));
+
             PendingIntent pendingIntent = PendingIntent.getBroadcast(
                     reactContext,
-                    0,
+                    requestCode,
                     intent,
                     PendingIntent.FLAG_UPDATE_CURRENT |
                             (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? PendingIntent.FLAG_MUTABLE : 0)
             );
 
-            long triggerAtMillis = (long) timestamp;
+            // triggerAtMillis already computed above
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);

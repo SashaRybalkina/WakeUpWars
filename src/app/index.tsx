@@ -368,6 +368,11 @@ function App() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
+          name="PatternGame"
+          component={PatternGameScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
           name="MainPage"
           component={MainPage}
           options={{ headerShown: false }}
