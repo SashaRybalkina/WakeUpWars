@@ -14,6 +14,8 @@ import { BASE_URL, endpoints } from '../../api';
 import { useUser } from '../../context/UserContext';
 import { evaluateGuess, GuessResult, isWinningGuess } from './WordleHelper';
 import { getAccessToken } from "../../auth";
+// import { NativeModules } from "react-native";
+// const { AlarmModule } = NativeModules;
 
 const GRID_SIZE = 5;
 const MAX_ATTEMPTS = 5;
@@ -205,7 +207,10 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
           setGameOver(true);
           Alert.alert('⏰ Time’s up!', `The word was ${answer}`, [
             { text: 'Play Again', onPress: resetGame },
-            { text: 'Exit', onPress: () => navigation.goBack() },
+            { text: 'Exit', 
+              onPress: () => 
+                navigation.goBack() 
+            },
           ]);
           return 0;
         }
@@ -288,7 +293,14 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
       <ScrollView contentContainerStyle={styles.container}>
         <TouchableOpacity
           style={styles.exitButton}
-          onPress={() => navigation.goBack()}
+          onPress={() => {
+              navigation.goBack();
+          }}
+          // onPress={() => {
+          //   AlarmModule.clearLaunchIntent().then(() => {
+          //     navigation.goBack();
+          //   });
+          // }}
         >
           <Text style={styles.exitText}>Exit</Text>
         </TouchableOpacity>

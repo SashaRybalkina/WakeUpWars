@@ -3,8 +3,8 @@ import { View, ActivityIndicator } from "react-native";
 import { getAccessToken } from "../auth";
 import { useUser } from "../context/UserContext";
 import { BASE_URL, endpoints } from '../api';
-import { NativeModules } from "react-native";
-const { AlarmModule } = NativeModules;
+// import { NativeModules } from "react-native";
+// const { AlarmModule } = NativeModules;
 
 const BootstrapScreen = ({ navigation, route }: any) => {
   const { setUser } = useUser();
