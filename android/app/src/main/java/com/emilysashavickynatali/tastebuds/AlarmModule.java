@@ -95,20 +95,20 @@ public class AlarmModule extends ReactContextBaseJavaModule {
         }
     }
 
-    @ReactMethod
-    public void clearLaunchIntent(Promise promise) {
-        try {
-            if (getCurrentActivity() != null) {
-                Intent intent = getCurrentActivity().getIntent();
-                if (intent != null) {
-                    intent.removeExtra("screen");
-                    intent.removeExtra("params");
-                }
-            }
-            promise.resolve(true);
-        } catch (Exception e) {
-            promise.reject("CLEAR_INTENT_ERROR", e);
-        }
-    }
+    // @ReactMethod
+    // public void clearLaunchIntent(Promise promise) {
+    //     try {
+    //         if (getCurrentActivity() != null) {
+    //             Intent intent = getCurrentActivity().getIntent();
+    //             if (intent != null) {
+    //                 intent.removeExtra("screen");
+    //                 intent.removeExtra("params");
+    //             }
+    //         }
+    //         promise.resolve(true);
+    //     } catch (Exception e) {
+    //         promise.reject("CLEAR_INTENT_ERROR", e);
+    //     }
+    // }
 
 }
