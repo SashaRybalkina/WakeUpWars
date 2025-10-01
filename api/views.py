@@ -2705,3 +2705,18 @@ class SavePushTokenView(APIView):
         )
 
         return Response({"success": True, "token": push_token.token})
+
+
+class UserNotificationsView(APIView):
+    def get(self, request, user_id):
+        notifications = UserNotification.objects.filter(uID_id=user_id).order_by('-timestamp')
+        data = [
+            {
+                "id": n.id,
+                "type": n.type,
+                "timestamp": n.timestamp,
+                "message_string": n.message_string,
+            }
+            for n in notifications
+        ]
+        return Response(data, status=status.HTTP_200_OK)

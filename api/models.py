@@ -90,12 +90,14 @@ class UserNotification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications", null=True, blank=True)
     title = models.CharField(max_length=255, default="No title")
     body = models.TextField(default="")
+    type = models.CharField(max_length=32, default="generic")
+    timestamp = models.DateTimeField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True)
     read = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Notification for {self.user.username if self.user else 'Unknown'}: {self.title}"
-
+    
 
 # Game Categories: Different categories of games
 class GameCategory(models.Model):
