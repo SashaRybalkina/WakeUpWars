@@ -247,7 +247,7 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
               )}
               <TouchableOpacity
                 style={styles.addNewButton}
-                onPress={() => navigation.navigate("PersChall2")}
+                onPress={() => navigation.navigate("PersChall2Copy")}
               >
                 <Text style={styles.addNewButtonText}>Add new +</Text>
               </TouchableOpacity>

@@ -1,6 +1,7 @@
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import {
+  Alert,
   ImageBackground,
   ScrollView,
   StyleSheet,
@@ -16,6 +17,7 @@ import { scheduleAlarms } from '../Alarm';
 import { endpoints } from '../api';
 import { useUser } from '../context/UserContext';
 import UserProfileCard from './Components/UserProfileCard';
+import { scheduleAlarmsForUser } from '../alarmService';
 
 type Props = {
   navigation: NavigationProp<any>;
@@ -77,6 +79,16 @@ const Profile: React.FC<Props> = ({ navigation }) => {
       };
     }, [setSkillLevels]),
   );
+
+    const setUserAlarms = async() => {
+      try {
+        console.log("herein")
+        await scheduleAlarmsForUser(212, 'PAlarm', 5, '');
+      } catch (e) {
+        console.warn('Failed to schedule alarms for new group challenge', e);
+        Alert.alert('Error', 'Failed to schedule alarms');
+      }
+    }
 
   return (
     <ImageBackground
@@ -200,20 +212,6 @@ const Profile: React.FC<Props> = ({ navigation }) => {
         <TouchableOpacity
           style={styles.logoutButton}
           activeOpacity={0.8}
-          onPress={() => navigation.navigate('TestPayment')}
-        >
-          <Ionicons
-            name="log-out-outline"
-            size={22}
-            color="#FFF"
-            style={styles.logoutIcon}
-          />
-          <Text style={styles.logoutText}>Test Payment</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.logoutButton}
-          activeOpacity={0.8}
           onPress={() =>
             scheduleAlarms([
               {
@@ -235,6 +233,20 @@ const Profile: React.FC<Props> = ({ navigation }) => {
             style={styles.logoutIcon}
           />
           <Text style={styles.logoutText}>Alarm</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.logoutButton}
+          activeOpacity={0.8}
+          onPress={setUserAlarms}
+        >
+          <Ionicons
+            name="log-out-outline"
+            size={22}
+            color="#FFF"
+            style={styles.logoutIcon}
+          />
+          <Text style={styles.logoutText}>Test Schedule Alarms</Text>
         </TouchableOpacity>
 
         {/* Add padding at the bottom to ensure content isn't hidden behind the nav bar */}

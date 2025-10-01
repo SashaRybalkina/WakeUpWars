@@ -56,12 +56,12 @@ export async function scheduleAlarmsForChallenge(
 
     if (alarms.length === 0) return;
 
+    console.log(alarms)
     await scheduleAlarms(alarms);
   } catch (err) {
     console.error('Failed to sync alarms:', err);
   }
 }
-
 
 export async function scheduleAlarmsForUser(
   challId: number,
@@ -80,6 +80,7 @@ export async function scheduleAlarmsForUser(
     }
 
     const data = await res.json();
+    console.log(data)
     const { startDate, endDate, schedule } = data as {
       startDate: string; // "YYYY-MM-DD"
       endDate: string;   // "YYYY-MM-DD"
@@ -111,6 +112,7 @@ export async function scheduleAlarmsForUser(
 
     if (alarms.length === 0) return;
 
+    // console.log(alarms)
     await scheduleAlarms(alarms);
   } catch (err) {
     console.error('Failed to sync alarms:', err);
@@ -183,6 +185,7 @@ function buildAlarmList(
       if (alarmDate.getTime() > Date.now()) {
         const screenToUse = primaryScreen || route.screen;
         // TODO: add something to this about the user?
+        console.log(alarmDate + " " + screenToUse)
         alarms.push({
           time: alarmDate,
           screen: screenToUse,

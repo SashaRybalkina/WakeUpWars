@@ -144,5 +144,3 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 MEDIA_URL  = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
-
-STRIPE_API_KEY = "REDACTEDtest_51SBSkXRUviiaQCLomgy86pcSbqL5mU6K6Qlz6iEiuiPQknCqwM2hLNP0o0RQF91TdA86VjkbFLk9YVCVU8Wjh7In00JqlxVuWa"

@@ -43,7 +43,7 @@ const GameExpanded: React.FC<Props> = ({ navigation }) => {
     if (onGameSelected) {
       onGameSelected({ id: gameId, name: gameName });
     }
-    if (catType == 'Personal') navigation.navigate('PersChall2');
+    if (catType == 'Personal') navigation.navigate('PersChall2Copy');
     else if (catType == 'Group') navigation.navigate('GroupChall2', { groupId, groupMembers });
     else if (catType === 'Public') {
       // navigation.navigate('CreatePublicChall2', { 

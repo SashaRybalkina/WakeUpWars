@@ -35,7 +35,7 @@ from .views import (
     CreateWordleGameView, ValidateWordleMoveView, get_csrf_token, SingOrMultGameListView, ShareChallengeView,
     GetPendingPublicChallengesView, GetMatchingChallengesView, SetUserAvailabilityView,
     GetUserAvailabilityView, SomeCatsListView, JoinPublicChallengeView, FinalizePublicChallengeView,
-    GetPublicChallengesView, CreatePaymentIntentView,
+    GetPublicChallengesView, GetChallengeUserScheduleView,
 )
 
 router = DefaultRouter()
@@ -75,6 +75,7 @@ urlpatterns = [
     path('challenge-detail/<int:chall_id>/', ChallengeDetailView.as_view(), name='challenge-detail'),
     path('challenge-schedule/<int:chall_id>/', ChallengeGameScheduleView.as_view(), name='challenge-schedule'),
     path('get-challenge-schedule/<int:chall_id>/', GetChallengeScheduleView.as_view(), name='get-challenge-schedule'),
+    path('get-challenge-user-schedule/<int:chall_id>/<int:user_id>/', GetChallengeUserScheduleView.as_view(), name='get-challenge-user-schedule'),
     path('create-manual-group-challenge/', CreateManualGroupChallengeView.as_view(), name='create-manual-group-challenge'),
     path('create-public-challenge/', CreatePublicChallengeView.as_view(), name='create-public-challenge'),
     path('create-pending-collaborative-group-challenge/', CreatePendingCollaborativeGroupChallengeView.as_view(), name='create-pending-collaborative-group-challenge'),
@@ -120,6 +121,5 @@ urlpatterns = [
     path('accept-personal-challenge/<int:user_id>/<int:chall_id>/', AcceptPersonalChallenge.as_view()),
     path('decline-personal-challenge/<int:user_id>/<int:chall_id>/', DeclinePersonalChallenge.as_view()),
 
-    path("create-payment-intent/", CreatePaymentIntentView.as_view()),
-    # path("transfer-to-winner/", transfer_to_winner.as_view()),
+
 ]
