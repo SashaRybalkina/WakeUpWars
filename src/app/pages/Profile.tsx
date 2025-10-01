@@ -207,6 +207,26 @@ const Profile: React.FC<Props> = ({ navigation }) => {
           style={styles.logoutButton}
           activeOpacity={0.8}
           onPress={() =>
+            navigation.navigate('Wordle', {
+              challengeId: 211,   // multiplayer Challenge
+              challName: 'Multiplayer Wordle Test',
+              whichChall: 'wordle',
+            })
+          }
+        >
+          <Ionicons
+            name="people"   
+            size={22}
+            color="#FFF"
+            style={styles.logoutIcon}
+          />
+          <Text style={styles.logoutText}>Multiplayer Wordle</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.logoutButton}
+          activeOpacity={0.8}
+          onPress={() =>
             scheduleAlarms([
               {
                 time: new Date(Date.now() + 10000),

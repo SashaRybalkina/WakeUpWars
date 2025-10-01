@@ -15,7 +15,7 @@ import { useUser } from '../../context/UserContext';
 
 const GRID_SIZE = 5;
 const MAX_ATTEMPTS = 5;
-const CELL_SIZE = 50;
+const CELL_SIZE = 40;
 
 type Props = {
   navigation: NavigationProp<any>;
@@ -78,6 +78,7 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
     [player: string]: GuessResult[];
   }>({});
   const [submittedRows, setSubmittedRows] = useState<Set<number>>(new Set());
+  const [csrfToken, setCsrfToken] = useState<string | null>(null);
 
   // 🔄 Reset game
   const resetGame = () => {
@@ -105,13 +106,14 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
         credentials: 'include',
       });
       const tokenData = await token.json();
-      const csrfToken = tokenData.csrfToken;
+      //const csrfToken = tokenData.csrfToken;
+      setCsrfToken(tokenData.csrfToken);
 
       const res = await fetch(endpoints.createWordleGame, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': csrfToken,
+          'X-CSRFToken': tokenData.csrfToken,
         },
         credentials: 'include',
         body: JSON.stringify({ challenge_id: challengeId }),
@@ -132,24 +134,40 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
 
       //console.log(`[Wordle] Challenge=${challengeId}, game_state_id=${game_state_id}, answer=${answer}`);
 
-      // ⚡ multiplayer WebSocket 
-      // if (is_multiplayer) {
-      //   const ws = new WebSocket(
-      //     `${BASE_URL.replace(/^http/, 'ws')}/ws/wordle/${game_state_id}/`,
-      //   );
-      //   ws.onopen = () => console.log('[WebSocket] connected');
-      //   ws.onmessage = (event) => {
-      //     const msg: ServerToClientMessage = JSON.parse(event.data);
-      //     if (msg.type === 'broadcast_move') {
-      //       console.log(`[WebSocket] Opponent move from ${msg.player}:`, msg);
-      //       setOpponentRows((prev) => ({
-      //         ...prev,
-      //         [msg.player]: msg.evaluation,
-      //       }));
-      //     }
-      //   };
-      //   setSocket(ws);
-      // }
+      if (is_multiplayer) {
+        const ws = new WebSocket(
+          `${BASE_URL.replace(/^http/, 'ws')}/ws/wordle/${game_state_id}/`,
+        );
+        ws.onopen = () => console.log('[WebSocket] connected');
+
+        ws.onmessage = (event) => {
+          const msg: ServerToClientMessage = JSON.parse(event.data);
+
+          if (msg.type === 'broadcast_move') {
+            console.log(`[WebSocket] Opponent move from ${msg.player}:`, msg);
+            // only update the newest
+            setOpponentRows((prev) => ({
+              ...prev,
+              [msg.player]: msg.evaluation,
+            }));
+          }
+
+          if (msg.type === 'player_joined') {
+            console.log(`[WebSocket] Player joined: ${msg.player}`);
+          }
+
+          if (msg.type === 'game_complete') {
+            console.log('[WebSocket] Game complete:', msg.scores);
+            Alert.alert(
+              '🏆 Game Over',
+              msg.scores.map((s) => `${s.username}: ${s.score}`).join('\n')
+            );
+          }
+        };
+
+        ws.onclose = () => console.log('[WebSocket] disconnected');
+        setSocket(ws);
+      }
     } catch (err) {
       console.error('[initGame] Failed:', err);
     }
@@ -192,17 +210,17 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
     console.log(`[Wordle] Submitting guess row=${selectedRow}, guess="${guess}"`);
 
     try {
-      const token = await fetch(`${BASE_URL}/api/csrf-token/`, {
-        credentials: 'include',
-      });
-      const tokenData = await token.json();
-      const csrfToken = tokenData.csrfToken;
+      // const token = await fetch(`${BASE_URL}/api/csrf-token/`, {
+      //   credentials: 'include',
+      // });
+      // const tokenData = await token.json();
+      // const csrfToken = tokenData.csrfToken;
 
       const res = await fetch(endpoints.validateWordleMove, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': csrfToken,
+          'X-CSRFToken': csrfToken ?? '',
         },
         credentials: 'include',
         body: JSON.stringify({
@@ -309,15 +327,19 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
         {Object.keys(opponentRows).length > 0 && (
           <View style={{ marginVertical: 10, width: '100%' }}>
             {Object.entries(opponentRows).map(([player, row], idx) => (
-              <View key={idx} style={{ flexDirection: 'row', marginBottom: 4 }}>
-                <Text style={{ width: 70, color: 'white', fontWeight: 'bold' }}>
+              <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                <Text
+                  style={{ width: 70, color: 'white', fontWeight: 'bold' }}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
                   {player}
                 </Text>
                 {row.map((cell, cIndex) => (
                   <View
                     key={cIndex}
                     style={[
-                      styles.cell,
+                      styles.opponentCell,
                       cell.result === 'correct'
                         ? styles.correctCell
                         : cell.result === 'present'
@@ -325,7 +347,7 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
                         : styles.absentCell,
                     ]}
                   >
-                    <Text style={styles.cellText}>{cell.letter}</Text>
+                    {/* <Text style={styles.cellText}>{cell.letter}</Text> */}
                   </View>
                 ))}
               </View>
@@ -440,6 +462,13 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   keyText: { fontWeight: 'bold', fontSize: 16 },
+  opponentCell: {
+    width: CELL_SIZE / 2.2,
+    height: CELL_SIZE / 2.2,
+    borderRadius: 4,
+    marginHorizontal: 1,
+    backgroundColor: 'white',  
+  }
 });
 
 export default WordleScreen;
