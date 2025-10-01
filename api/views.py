@@ -28,9 +28,9 @@ from .serializers import (UserSerializer, RegisterSerializer, GroupSerializer, U
                           CatSerializer, GameSerializer, FriendSerializer, FriendRequestSerializer, CreateGroupSerializer, SkillLevelSerializer,
                           RewardSettingSerializer, ExternalHandleSerializer,ObligationSerializer, CashPaymentCreateSerializer,
                           ExternalPaymentCreateSerializer, PaymentSerializer, PendingPublicChallengeSummarySerializer, PublicChallengeSummarySerializer)
-from .models import (Group, Notification, PersonalChallengeInvite, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule,
+from .models import (Group, UserNotification, PersonalChallengeInvite, PushToken, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule,
                      AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest,
-                     SkillLevel, PendingGroupChallengeAvailability, GroupChallengeInvite, WordleMove, PublicChallengeConfiguration,
+                     SkillLevel, PendingGroupChallengeAvailability, GroupChallengeInvite, UserNotification, WordleMove, PublicChallengeConfiguration,
                      UserAvailability, PublicChallengeCategoryAssociation)
 from django.http import JsonResponse
 from typing     import Dict, List
@@ -39,7 +39,7 @@ from django.db.models import Min, Max
 
 #### Sudoku Game Imports ####
 from .models import (SudokuGameState, WordleGameState, Challenge, SudokuGamePlayer, WordleGamePlayer, User, Game, GamePerformance, RewardSetting,
-                     ExternalHandle, Obligation, Payment, PaymentStatus, PaymentMethod, PaymentProvider, ObligationStatus, RewardType, ExpoPushToken)
+                     ExternalHandle, Obligation, Payment, PaymentStatus, PaymentMethod, PaymentProvider, ObligationStatus, RewardType)
 from api.sudokuStuff.utils import validate_sudoku_move, get_or_create_game
 from api.wordleStuff.utils import validate_wordle_move, get_or_create_game_wordle
 from .serializers import ChallengeSummarySerializer
@@ -55,6 +55,7 @@ from api.services.skill import recompute_skill_for_user
 ### Pattern Memorization###
 from api.patternMem.utils import get_or_create_pattern_game, validate_pattern_move
 from api.models import PatternMemorizationGameState
+import pytz
 
 from .words_array import words
 
@@ -1288,12 +1289,6 @@ class CreatePendingCollaborativeGroupChallengeView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
 
-
-        
-
-
-
-
 class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
     def post(self, request, chall_id):
         # Get the Challenge object or 404
@@ -1426,8 +1421,38 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
             )
      
 
-    
-    
+class SendNotificationView(APIView):
+    def post(self, request):
+        user_id = request.data.get("user_id")
+        title = request.data.get("title", "New Notification")
+        body = request.data.get("body", "")
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Save to DB
+        notification = Notification.objects.create(
+            user=user,
+            title=title,
+            body=body,
+        )
+
+        # Send push notification
+        send_expo_push_notification(
+            user,
+            title=title,
+            body=body,
+            data={"notification_id": notification.id}
+        )
+
+        return Response(
+            {"success": True, "notification_id": notification.id},
+            status=status.HTTP_201_CREATED
+        )
+        
+
 class SendFriendRequestView(APIView):
     def post(self, request):
         sender_id = request.data.get("sender_id")
@@ -2588,7 +2613,7 @@ class UserGroupConversationsView(APIView):
 
 def send_expo_push_notification(user, title, body, data=None):
     try:
-        token_obj = ExpoPushToken.objects.filter(user=user).first()
+        token_obj = PushToken.objects.filter(user=user).first()
         if not token_obj:
             return False
         expo_token = token_obj.token
@@ -2604,15 +2629,79 @@ def send_expo_push_notification(user, title, body, data=None):
         print(f"Expo push notification error: {e}")
         return False
 
-@method_decorator(csrf_exempt, name='dispatch')
+
+class SendNotificationView(APIView):
+    def post(self, request):
+        """
+        Send a notification to a specific user:
+        - Saves it to DB
+        - Sends Expo push notification
+        """
+        timezone.activate(pytz.timezone("America/Denver"))
+        user_id = request.data.get("user_id")
+        title = request.data.get("title", "New Notification")
+        body = request.data.get("body", "")
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Save to DB
+        notification = UserNotification.objects.create(
+            user=user,
+            title=title,
+            body=body,
+        )
+
+        # Send push notification
+        send_expo_push_notification(
+            user,
+            title=title,
+            body=body,
+            data={"notification_id": notification.id}
+        )
+
+        return Response(
+            {"success": True, "notification_id": notification.id},
+            status=status.HTTP_201_CREATED
+        )
+
+    def get(self, request):
+        """
+        Get all notifications for a given user.
+        Expects ?user_id=<id> in query params.
+        """
+        user_id = request.query_params.get("user_id")
+        if not user_id:
+            return Response({"error": "Missing user_id"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        notifications = user.notifications.order_by("-created_at").values(
+            "id", "title", "body", "created_at", "read"
+        )
+
+        return Response({"notifications": list(notifications)}, status=status.HTTP_200_OK)
+
 class SavePushTokenView(APIView):
     def post(self, request):
-        user_id = request.data.get('user_id')
-        push_token = request.data.get('push_token')
-        if not user_id or not push_token:
-            return Response({'error': 'user_id and push_token required'}, status=400)
-        user = User.objects.filter(id=user_id).first()
-        if not user:
-            return Response({'error': 'User not found'}, status=404)
-        ExpoPushToken.objects.update_or_create(user=user, defaults={'token': push_token})
-        return Response({'success': True})
+        user_id = request.data.get("user_id")
+        token = request.data.get("token")
+
+        if not user_id or not token:
+            return Response({"error": "Missing user_id or token"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        push_token, created = PushToken.objects.update_or_create(
+            user=user, defaults={"token": token}
+        )
+
+        return Response({"success": True, "token": push_token.token})

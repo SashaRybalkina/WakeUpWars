@@ -16,6 +16,7 @@ import { scheduleAlarms } from '../Alarm';
 import { endpoints } from '../api';
 import { useUser } from '../context/UserContext';
 import UserProfileCard from './Components/UserProfileCard';
+import NotificationService from '../Notification';
 
 type Props = {
   navigation: NavigationProp<any>;
@@ -186,7 +187,13 @@ const Profile: React.FC<Props> = ({ navigation }) => {
         <TouchableOpacity
           style={styles.logoutButton}
           activeOpacity={0.8}
-          onPress={() => navigation.navigate('Wordle')}
+          onPress={() =>
+            NotificationService.sendNotification(
+              user.id,
+              "Wassupppp",
+              "This is a real push notification!"
+            )
+          }
         >
           <Ionicons
             name="log-out-outline"
@@ -194,7 +201,7 @@ const Profile: React.FC<Props> = ({ navigation }) => {
             color="#FFF"
             style={styles.logoutIcon}
           />
-          <Text style={styles.logoutText}>Wordle</Text>
+          <Text style={styles.logoutText}>Notification</Text>
         </TouchableOpacity>
 
         <TouchableOpacity

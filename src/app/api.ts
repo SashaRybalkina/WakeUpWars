@@ -1,4 +1,4 @@
-export const BASE_URL = 'https://6cbea00bdf81.ngrok-free.app';
+export const BASE_URL = 'https://d7f45aa53da7.ngrok-free.app';
 
 export const endpoints = {
   // getToken
@@ -76,6 +76,9 @@ export const endpoints = {
   createWordleGame: `${BASE_URL}/api/create-wordle/`,
   validateWordleMove: `${BASE_URL}/api/wordle/validate/`,
 
+  notifications: (userId: number) => `${BASE_URL}/api/notifications/?user_id=${userId}`,
+  sendNotification: `${BASE_URL}/api/notifications/send/`,
+
   createPersonalChallenge: `${BASE_URL}/api/create-personal-challenge/`,
   leaderboard: (id: number) => `${BASE_URL}/api/challenge-leaderboard/${id}/`,
   submitGameScores: () => `${BASE_URL}/api/submit-game-scores/`,
@@ -102,7 +105,6 @@ export const endpoints = {
   challId
     ? `${BASE_URL}/api/share-challenge/${challId}/` // copy模式
     : `${BASE_URL}/api/share-challenge/`,          // new模式
-  notifications: (userId: number) => `${BASE_URL}/api/notifications/${userId}/`,
 };
 
 export const leaderboardHistory = (

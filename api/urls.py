@@ -5,7 +5,7 @@ from .views import (AcceptPersonalChallenge, ConversationView, DeclinePersonalCh
                     GetMatchingChallengesView, GetPendingPublicChallengesView, GetPersonalChallengeInvites, 
                     GetPublicChallengesView, GetUserAvailabilityView, GroupConversationView, 
                     JoinPublicChallengeView, LoginView, ObligationViewSet, PaymentViewSet, RegisterView, 
-                    GroupListView, HelloWorldView, SendMessageGroupView, SendMessageView, SetChallAvailabilityView, 
+                    GroupListView, HelloWorldView, SendMessageGroupView, SendMessageView, SendNotificationView, SetChallAvailabilityView, 
                     SetUserAvailabilityView, ShareChallengeView, SingOrMultGameListView, SomeCatsListView, 
                     UserGroupConversationsView, UserProfileView, GetChallengeScheduleView, AddGameToScheduleView,
                     UserMessagesView, GroupDetailsView, CatListView, GameListView,
@@ -18,12 +18,11 @@ from .views import (AcceptPersonalChallenge, ConversationView, DeclinePersonalCh
                     CreateGroupView, CreatePersonalChallengeView, GetChallengeInvitesView,
                     GetAvailabilitiesView, DeclineChallengeInviteView,
                     ChallengeLeaderboardView, SubmitGameScoresView, ChallengeDailyHistoryView,
-                    SkillLevelsView, CreatePublicChallengeView, RewardSettingView)
+                    SkillLevelsView, CreatePublicChallengeView, RewardSettingView, 
+                    CreateSudokuGameView, ValidateSudokuMoveView, CreatePatternGameView, 
+                    ValidatePatternMoveView, CreateWordleGameView, ValidateWordleMoveView, 
+                    SavePushTokenView, get_csrf_token)
 
-from .views import CreateSudokuGameView, ValidateSudokuMoveView, get_csrf_token
-from .views import CreatePatternGameView, ValidatePatternMoveView
-from .views import CreateWordleGameView, ValidateWordleMoveView
-from .views import SavePushTokenView
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
@@ -83,7 +82,9 @@ urlpatterns = [
     path('decline-challenge-invite/<int:user_id>/<int:chall_id>/', DeclineChallengeInviteView.as_view(), name='decline-challenge-invite'),
     path('messages/send/<int:user_id>/', SendMessageView.as_view(), name='send-message'),
     path('messages/send/group/<int:group_id>/', SendMessageGroupView.as_view()),
-    path('notifications/<int:user_id>/', SavePushTokenView.as_view()),
+    path("notifications/send/", SendNotificationView.as_view(), name="send_notification"),
+    path("notifications/", SendNotificationView.as_view(), name="notification"),
+    path("push-tokens/", SavePushTokenView.as_view(), name="save_push_token"),
     path('conversation/<int:user_id>/<int:recipient_id>/', ConversationView.as_view(), name='conversation'),
     path('conversation/group/<int:group_id>/', GroupConversationView.as_view(), name='conversation-group'),
     path('profile/all/', AllUsersView.as_view(), name='all-users'),

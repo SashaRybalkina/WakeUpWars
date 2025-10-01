@@ -86,15 +86,15 @@ class Message(models.Model):
 
 # Notifications: every time a user sends a message, insert a notification into the table for each recipient. 
 # When a recipient opens the screen the message can be read from, remove their row from the table
-class Notification(models.Model):
-    uID = models.ForeignKey(User, on_delete=models.CASCADE)
-    message = models.ForeignKey(Message, on_delete=models.CASCADE)
-
-    class Meta:
-        db_table = 'Notifications'
+class UserNotification(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications", null=True, blank=True)
+    title = models.CharField(max_length=255, default="No title")
+    body = models.TextField(default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    read = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"Notification for {self.uID.username} regarding message {self.message.id}"
+        return f"Notification for {self.user.username if self.user else 'Unknown'}: {self.title}"
 
 
 # Game Categories: Different categories of games
@@ -639,12 +639,11 @@ class PersonalChallengeInvite(models.Model):
         db_table = 'PersonalChallengeInvites'
         unique_together = ('chall', 'recipient')
 
-class ExpoPushToken(models.Model):
+
+class PushToken(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='expo_push_token')
     token = models.CharField(max_length=256)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"ExpoPushToken for {self.user.username}: {self.token}"
-
-
