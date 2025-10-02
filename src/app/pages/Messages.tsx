@@ -271,12 +271,25 @@ const Messages: React.FC<Props> = ({ navigation }) => {
   
     const deleteNotification = async (id: number) => {
       try {
-        await fetch(`${BASE_URL}/api/notifications/${id}/delete/`, { method: "DELETE" })
+        const response = await fetch(`${BASE_URL}/api/notifications/${id}/delete/`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken,
+          },
+          credentials: "include",
+        })
+    
+        if (!response.ok) {
+          throw new Error(`Failed with status ${response.status}`)
+        }
+    
         setNotifications(prev => prev.filter(n => n.id !== id))
       } catch (err) {
         console.error("Failed to delete notification:", err)
+        Alert.alert("Error", "Could not delete notification. Please try again.")
       }
-    }
+    }    
   
     return (
       <TouchableOpacity
