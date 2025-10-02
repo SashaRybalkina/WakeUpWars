@@ -31,12 +31,15 @@ const Groups: React.FC<Props> = ({ navigation }) => {
       const fetchGroups = async () => {
         setIsLoading(true);
         try {
-          const access = await getAccessToken();
+                const accessToken = await getAccessToken();
+                if (!accessToken) {
+                  throw new Error("Not authenticated");
+                }
           const response = await fetch(endpoints.groups(Number(user.id)), {
-          headers: {
-            Authorization: `Bearer ${access}`
-          }
-        });
+                headers: {
+                  Authorization: `Bearer ${accessToken}`
+                }
+              });
           const data = await response.json();
           setGroups(data);
         } catch (error) {
