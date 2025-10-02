@@ -76,6 +76,8 @@ class Message(models.Model):
     sender = models.ForeignKey(User, related_name='sent_messages', on_delete=models.CASCADE)
     recipient = models.ForeignKey(User, related_name='received_messages', null=True, blank=True, on_delete=models.CASCADE) # null if group message
     groupID = models.ForeignKey(Group, related_name='group_messages', null=True, blank=True, on_delete=models.CASCADE) # null if private message
+    created_at = models.DateTimeField(auto_now_add=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'Messages'
@@ -92,7 +94,6 @@ class UserNotification(models.Model):
     body = models.TextField(default="")
     type = models.CharField(max_length=32, default="generic")
     timestamp = models.DateTimeField(auto_now_add=True)
-    created_at = models.DateTimeField(auto_now_add=True)
     read = models.BooleanField(default=False)
 
     def __str__(self):

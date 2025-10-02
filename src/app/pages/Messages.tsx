@@ -228,11 +228,11 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     }
   }
 
-  const MessageItem: React.FC<{ name: string; text: string; index: number; timestamp?: string; onPress?: () => void }> = ({
+  const MessageItem: React.FC<{ name: string; text: string; index: number; timestamp: string; onPress?: () => void }> = ({
     name,
     text,
     index,
-    timestamp = "now",
+    timestamp,
     onPress,
   }) => (
     <TouchableOpacity
@@ -249,6 +249,7 @@ const Messages: React.FC<Props> = ({ navigation }) => {
         <View style={styles.messageHeader}>
           <Text style={styles.messageName}>{name}</Text>
           <Text style={styles.messageTime}>{getTimeAgo(timestamp)}</Text>
+          {/* <Text style={styles.messageTime}>N/A</Text> */}
         </View>
         <Text style={styles.messageText} numberOfLines={1}>
           {text}
