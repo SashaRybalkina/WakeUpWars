@@ -150,6 +150,7 @@ function App() {
     };
   }, [user]);
 
+
   return (
     <NavigationContainer ref={navigationRef} onReady={flushPendingNavigation}>
       <Stack.Navigator
@@ -390,11 +391,6 @@ function App() {
         <Stack.Screen
           name="CreateChallengeForFriend"
           component={CreateChallengeForFriend}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="PatternGame"
-          component={PatternGameScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>
