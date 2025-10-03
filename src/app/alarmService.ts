@@ -78,8 +78,14 @@ export async function scheduleAlarmsForUser(
   whichChall: string = '',
 ): Promise<void> {
   try {
+    const access = await getAccessToken();
+    if (!access) {
+      throw new Error("Not authenticated");
+    }
     const res = await fetch(endpoints.getChallengeUserSchedule(challId, userId), {
-      credentials: 'include',
+      headers: {
+        Authorization: `Bearer ${access}`
+      }
     });
 
     if (!res.ok) {
