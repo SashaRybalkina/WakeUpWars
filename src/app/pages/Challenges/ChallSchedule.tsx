@@ -46,7 +46,7 @@ const ChallSchedule = ({ navigation }: { navigation: NavigationProp<any> }) => {
     challName: string, 
     fromSearch: boolean,
     userAverageSkillLevel: number,
-    isInitiator: boolean
+    isInitiator: boolean,
   }
 
   const [selectedStartDate, setSelectedStartDate] = useState<Date>(new Date())
@@ -354,6 +354,29 @@ const addGameToDay = async (game: { id: number; name: string }) => {
     return true
   })
 
+  const generatePastelColor = (name: string): string => {
+  // Simple hash function to generate a number from a string
+  const hash = name.split("").reduce((acc, char) => {
+    return char.charCodeAt(0) + ((acc << 5) - acc)
+  }, 0)
+
+  // Generate pastel colors by keeping high lightness and medium saturation
+  const h = hash % 360 // Hue: 0-359
+  const s = 60 + (hash % 20) // Saturation: 60-79%
+  const l = 80 + (hash % 10) // Lightness: 80-89%
+
+  return `hsl(${h}, ${s}%, ${l}%)`
+}
+
+// Function to get initials from name
+const getInitials = (name: string): string => {
+  return name
+    .split(" ")
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("")
+    .substring(0, 2) // Limit to 2 characters
+}
+
   return (
     <ImageBackground source={require("../../images/tertiary.png")} style={styles.background} resizeMode="cover">
       <View style={styles.container}>
@@ -388,6 +411,33 @@ const addGameToDay = async (game: { id: number; name: string }) => {
               <DateTimePicker value={selectedEndDate} mode="date" display={Platform.OS === "android" ? "default" : "spinner"} onChange={onEndDateChange} />
             )}
           </View>
+
+
+
+          {fromSearch === true && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Enrolled Members</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.membersScroll}>
+                {members.map((member, index) => {
+                  const initials = getInitials(member.name)
+                  const backgroundColor = generatePastelColor(member.name)
+
+                  return (
+                    <View key={index} style={styles.memberCard}>
+                      <View style={[styles.memberAvatar, { backgroundColor }]}>
+                        <Text style={styles.memberInitials}>{initials}</Text>
+                      </View>
+                      <Text style={styles.memberName}>{member.name}</Text>
+                    </View>
+                  )
+                })}
+              </ScrollView>
+            </View>
+          )}
+
+
+
+
 
           {/* Days + Alarms Section */}
           <View style={styles.alarmSection}>
@@ -946,6 +996,42 @@ const styles = StyleSheet.create({
     color: '#333',
     fontSize: 18,
     fontWeight: '700',
+  },
+    section: {
+    marginBottom: 20,
+  },
+    membersScroll: {
+    flexDirection: "row",
+    marginBottom: 10,
+  },
+  memberCard: {
+    alignItems: "center",
+    marginRight: 20,
+    width: 70,
+  },
+  memberAvatar: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+    borderWidth: 2,
+    borderColor: "rgba(255, 255, 255, 0.5)",
+  },
+  memberInitials: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#333",
+  },
+  memberName: {
+    color: "#FFF",
+    fontSize: 14,
+    fontWeight: "500",
+    textAlign: "center",
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0.5, height: 0.5 },
+    textShadowRadius: 1,
   },
 })
 
