@@ -1,5 +1,7 @@
 import * as Notifications from "expo-notifications";
 import { BASE_URL } from "./api";
+import { NativeModules } from 'react-native';
+const { NotificationModule } = NativeModules;
 
 class NotificationService {
   static async registerForPushNotificationsAsync(): Promise<string | null> {
@@ -52,8 +54,7 @@ class NotificationService {
         throw new Error(`Server error: ${res.status} ${text}`);
       }
 
-      // 3️⃣ Optional: show local notification
-      await this.sendLocalNotification(title, body);
+      NotificationModule.showNotification(title, body);
     } catch (error) {
       console.error("Failed to send notification:", error);
     }

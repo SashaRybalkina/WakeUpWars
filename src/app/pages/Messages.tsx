@@ -54,18 +54,19 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     fetchCsrf()
   }, [])
 
-  useEffect(() => {
-    const fetchMessages = async () => {
-      if (!user?.id) return
-      try {
-        const response = await fetch(endpoints.messages(Number(user.id)))
-        const data = await response.json()
-        const friends = data.filter((msg: any) => msg.recipient !== null)
-        setFriendMessages(friends)
-      } catch (error) {
-        console.error("Failed to fetch messages:", error)
-      }
+  const fetchMessages = async () => {
+    if (!user?.id) return
+    try {
+      const response = await fetch(endpoints.messages(Number(user.id)))
+      const data = await response.json()
+      const friends = data.filter((msg: any) => msg.recipient !== null)
+      setFriendMessages(friends)
+    } catch (error) {
+      console.error("Failed to fetch messages:", error)
     }
+  }
+
+  useEffect(() => {
     fetchMessages()
   }, [user])
 
@@ -137,6 +138,37 @@ const Messages: React.FC<Props> = ({ navigation }) => {
       tension: 50,
     }).start()
   }, [selected])
+
+  useEffect(() => {
+    if (!user?.id) return
+  
+    fetchMessages()
+
+    const interval = setInterval(() => {
+      fetchMessages()
+    }, 1000)
+  
+    return () => clearInterval(interval)
+  }, [user])
+
+  useEffect(() => {
+    if (!user?.id) return
+  
+    const fetchGroupConversations = async () => {
+      try {
+        const response = await fetch(`${BASE_URL}/api/user/${user.id}/group-conversations/`)
+        const data = await response.json()
+        setGroupConversations(data)
+      } catch (error) {
+        console.error("Failed to fetch group conversations:", error)
+      }
+    }
+  
+    fetchGroupConversations()
+    const interval = setInterval(fetchGroupConversations, 5000)
+  
+    return () => clearInterval(interval)
+  }, [user])  
 
   const getConversations = (messages: any[]) => {
     const conversations: Record<string, any> = {}
@@ -217,6 +249,7 @@ const Messages: React.FC<Props> = ({ navigation }) => {
         )
         // Optionally, you may want to refresh groupConversations here
       }
+      await fetchMessages()
       setComposeText("")
       setComposeRecipientId("")
       setComposeGroupId("")
@@ -242,7 +275,7 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     >
       <View style={styles.messageAvatarContainer}>
         <View style={styles.messageAvatar}>
-          <Text style={styles.avatarText}>{name.charAt(0).toUpperCase()}</Text>
+          <Text style={styles.avatarText}>{name ? name.charAt(0).toUpperCase() : "?"}</Text>
         </View>
       </View>
       <View style={styles.messageContent}>
@@ -392,14 +425,15 @@ const Messages: React.FC<Props> = ({ navigation }) => {
               groupConversations.map((group: any, index: number) => {
                 const groupName = group.group_name || `Group ${group.group_id}`
                 const lastMessage = group.last_message
-                const isMine = lastMessage.sender.id === user?.id
                 let text = "No messages yet"
                 let timestamp = ""
                 let senderName = ""
+                let isMine = false
                 if (lastMessage) {
                   senderName = lastMessage.sender?.name || lastMessage.sender?.username || "Someone"
                   text = `${isMine ? "You" : senderName}: ${lastMessage.message}`
                   timestamp = lastMessage.timestamp
+                  isMine = lastMessage.sender.id === user?.id
                 }
                 return (
                   <MessageItem

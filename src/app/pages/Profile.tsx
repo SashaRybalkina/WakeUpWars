@@ -11,6 +11,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
+import { NativeModules } from 'react-native';
+const { NotificationModule } = NativeModules;
 
 import { scheduleAlarms } from '../Alarm';
 import { endpoints } from '../api';
