@@ -165,7 +165,7 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     }
   
     fetchGroupConversations()
-    const interval = setInterval(fetchGroupConversations, 5000)
+    const interval = setInterval(fetchGroupConversations, 1000)
   
     return () => clearInterval(interval)
   }, [user])  

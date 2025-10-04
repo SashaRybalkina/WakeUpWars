@@ -22,15 +22,15 @@ import java.util.Map;
 
 public class NotificationModule extends ReactContextBaseJavaModule {
     private final ReactApplicationContext reactContext;
-    private static final String CHANNEL_ID = "tastebuds_channel";
+    private static final String CHANNEL_ID = "wakeupwars_channel";
 
     public NotificationModule(ReactApplicationContext reactContext) {
         super(reactContext);
         this.reactContext = reactContext;
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            CharSequence name = "Tastebuds Notifications";
-            String description = "Notifications from Tastebuds app";
+            CharSequence name = "WakeUpWars Notifications";
+            String description = "Notifications from WakeUpWars app";
             int importance = NotificationManager.IMPORTANCE_DEFAULT;
             NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
             channel.setDescription(description);
@@ -72,20 +72,20 @@ public class NotificationModule extends ReactContextBaseJavaModule {
             intent.putExtra("params", bundle);
 
             PendingIntent pendingIntent = PendingIntent.getActivity(
-                reactContext,
-                (int) System.currentTimeMillis(),
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT |
-                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? PendingIntent.FLAG_IMMUTABLE : 0)
+                    reactContext,
+                    (int) System.currentTimeMillis(),
+                    intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT |
+                    (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? PendingIntent.FLAG_IMMUTABLE : 0)
             );
 
             NotificationCompat.Builder builder = new NotificationCompat.Builder(reactContext, CHANNEL_ID)
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentTitle(title)
-                .setContentText(message)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setAutoCancel(true)
-                .setContentIntent(pendingIntent);
+                    .setSmallIcon(R.drawable.ic_launcher_foreground)
+                    .setContentTitle(title)
+                    .setContentText(message)
+                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                    .setAutoCancel(true)
+                    .setContentIntent(pendingIntent);
 
             NotificationManagerCompat.from(reactContext).notify((int) System.currentTimeMillis(), builder.build());
 
