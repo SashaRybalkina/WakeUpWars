@@ -391,10 +391,10 @@ const getInitials = (name: string): string => {
           <View style={styles.dateSection}>
             <View style={styles.dateContainer}>
               <Text style={styles.dateLabel}>Start date</Text>
-              <Text style={styles.dateValue}>{formatDate(selectedStartDate)}</Text>
-              <TouchableOpacity style={styles.dateButton} onPress={() => setShowStartDatePicker(true)}>
+              <Text style={styles.dateValue}>{selectedStartDate ? formatDate(selectedStartDate) : "TBD"}</Text>
+              {/* <TouchableOpacity style={styles.dateButton} onPress={() => setShowStartDatePicker(true)}>
                 <Text style={styles.dateButtonText}>Edit Start Date</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
             {showStartDatePicker && (
               <DateTimePicker value={selectedStartDate} mode="date" display={Platform.OS === "android" ? "default" : "spinner"} onChange={onStartDateChange} />
@@ -402,10 +402,10 @@ const getInitials = (name: string): string => {
 
             <View style={styles.dateContainer}>
               <Text style={styles.dateLabel}>End date</Text>
-              <Text style={styles.dateValue}>{formatDate(selectedEndDate)}</Text>
-              <TouchableOpacity style={styles.dateButton} onPress={() => setShowEndDatePicker(true)}>
+              <Text style={styles.dateValue}>{selectedStartDate ? formatDate(selectedEndDate) : "TBD"}</Text>
+              {/* <TouchableOpacity style={styles.dateButton} onPress={() => setShowEndDatePicker(true)}>
                 <Text style={styles.dateButtonText}>Edit End Date</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
             {showEndDatePicker && (
               <DateTimePicker value={selectedEndDate} mode="date" display={Platform.OS === "android" ? "default" : "spinner"} onChange={onEndDateChange} />

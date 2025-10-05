@@ -834,7 +834,7 @@ class GetMatchingChallengesView(APIView):
         
 class ChallengeListView(APIView):
     def get(self, request, user_id, which_chall):
-        print("heeere")
+        # print("heeere")
         # TODO: consider only fetching non-pending challenges
         if which_chall == 'Group':
             group_ids = GroupMembership.objects.filter(uID=user_id).values_list('groupID', flat=True)
