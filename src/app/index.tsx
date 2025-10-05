@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { useState } from 'react';
-import { Alert, NativeEventEmitter, NativeModules } from 'react-native';
+import { NativeEventEmitter, NativeModules } from 'react-native';
 import {
   createNavigationContainerRef,
   NavigationContainer,
@@ -57,8 +56,6 @@ import SudokuScreen from './pages/SudokuScreen';
 import EditChallengeSharingFriends from './pages/Challenges/EditChallengeSharingFriends';
 import CreateChallengeForFriend from './pages/Challenges/CreateChallengeForFriend';
 
-
-const { AlarmModule } = NativeModules;
 const { IntentModule } = NativeModules;
 
 const Stack = createStackNavigator();
@@ -90,24 +87,24 @@ function App() {
     let subscription: any;
     let notificationListener: any;
 
-    // // 1) cold-start intent
-    // IntentModule.getInitialIntent()
-    //   .then((data: any) => {
-    //     console.log('getInitialIntent =>', data);
-    //     if (data?.screen) {
-    //       if (!user) {
-    //         navigate('Login', {
-    //           redirectTo: data.screen,
-    //           redirectParams: data,
-    //         });
-    //       } else {
-    //         navigate(data.screen, data.params);
-    //       }
-    //     }
-    //   })
-    //   .catch((e: any) => {
-    //     console.warn('getInitialIntent error', e);
-    //   });
+    // 1) cold-start intent
+    IntentModule.getInitialIntent()
+      .then((data: any) => {
+        console.log('getInitialIntent =>', data);
+        if (data?.screen) {
+          if (!user) {
+            navigate('Login', {
+              redirectTo: data.screen,
+              redirectParams: data,
+            });
+          } else {
+            navigate(data.screen, data.params);
+          }
+        }
+      })
+      .catch((e: any) => {
+        console.warn('getInitialIntent error', e);
+      });
 
     // 2) warm-start intents: subscribe to native event emitter
     const emitter = new NativeEventEmitter(IntentModule);
@@ -148,7 +145,7 @@ function App() {
   return (
     <NavigationContainer ref={navigationRef} onReady={flushPendingNavigation}>
       <Stack.Navigator
-        initialRouteName="Profile"
+        initialRouteName="Login"
         screenOptions={{ animationEnabled: false, headerShown: false }}
       >
         <Stack.Screen

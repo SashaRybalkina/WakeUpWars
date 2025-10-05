@@ -1,35 +1,10 @@
-import * as Notifications from "expo-notifications";
 import { BASE_URL } from "./api";
 import { NativeModules } from 'react-native';
 const { NotificationModule } = NativeModules;
 
 class NotificationService {
-  static async registerForPushNotificationsAsync(): Promise<string | null> {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
 
-    if (existingStatus !== "granted") {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-
-    if (finalStatus !== "granted") {
-      console.warn("Failed to get push token for push notification!");
-      return null;
-    }
-
-    const tokenData = await Notifications.getExpoPushTokenAsync();
-    return tokenData.data;
-  }
-
-  static async sendLocalNotification(title: string, body: string) {
-    await Notifications.scheduleNotificationAsync({
-      content: { title, body },
-      trigger: null,
-    });
-  }
-
-  static async sendNotification(userId: number, title: string, body: string) {
+  static async sendNotification(userId: number, title: string, body: string, screen: string, params: any) {
     try {
       // 1️⃣ Fetch CSRF token
       const tokenRes = await fetch(`${BASE_URL}/api/csrf-token/`, {
@@ -54,7 +29,7 @@ class NotificationService {
         throw new Error(`Server error: ${res.status} ${text}`);
       }
 
-      NotificationModule.showNotification(title, body);
+      NotificationModule.showNotification(title, body, screen, params);
     } catch (error) {
       console.error("Failed to send notification:", error);
     }

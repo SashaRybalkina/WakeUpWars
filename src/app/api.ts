@@ -1,4 +1,4 @@
-export const BASE_URL = 'https://899b1fc9831f.ngrok-free.app';
+export const BASE_URL = 'https://a20d0c317732.ngrok-free.app';
 
 export const endpoints = {
   // getToken
