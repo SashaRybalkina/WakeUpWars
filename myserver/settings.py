@@ -146,10 +146,10 @@ CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:63
 from datetime import timedelta
 
 CELERY_BEAT_SCHEDULE = {
-    "close-joins-and-zero-no-shows-every-minute": {
-        "task": "api.tasks.close_joins_and_zero_no_shows",
-        "schedule": timedelta(minutes=1),
-    },
+    # "close-joins-and-zero-no-shows-every-minute": {
+    #     "task": "api.tasks.close_joins_and_zero_no_shows",
+    #     "schedule": timedelta(minutes=1),
+    # },
 }
 # ------------------------------------------------------
 

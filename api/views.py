@@ -53,6 +53,7 @@ from django.middleware.csrf import get_token
 from asgiref.sync import async_to_sync
 import traceback
 from api.services.skill import recompute_skill_for_user
+from api.tasks import open_join_window
 
 ### Pattern Memorization###
 from api.patternMem.utils import get_or_create_pattern_game, validate_pattern_move
@@ -573,6 +574,8 @@ class FinalizePublicChallengeView(APIView):
             challenge.startDate = start_date
             challenge.endDate = end_date
             challenge.save()
+            
+            # TODO
 
             return Response(
                 {
@@ -1178,18 +1181,59 @@ class CreateManualGroupChallengeView(APIView):
                         game_id=game['id'],
                         game_order=game['order']
                     )
+                    
+            # 1. build slot_tasks from DB (no duplicates)
+            slot_tasks: set[tuple[datetime.time, int]] = set()
+
+            alarms = (
+                AlarmSchedule.objects
+                .filter(challengealarmschedule__challenge=challenge)
+                .values("dayOfWeek", "alarmTime")
+            )
+
+            for a in alarms:
+                # all games scheduled for that day
+                game_ids = (
+                    GameScheduleGameAssociation.objects
+                    .filter(game_schedule__challenge=challenge,
+                            game_schedule__dayOfWeek=a["dayOfWeek"])
+                    .values_list("game_id", flat=True)
+                )
+                for gid in game_ids:
+                    slot_tasks.add((a["alarmTime"], gid))
+
+            # 2. parse start_date once
+            raw_start = data["start_date"]
+            start_date = (
+                datetime.strptime(raw_start, "%Y-%m-%d").date()
+                if isinstance(raw_start, str) else raw_start
+            )
+
+            # 3. queue tasks
+            for t_obj, game_id in slot_tasks:
+                alarm_dt = timezone.make_aware(datetime.combine(start_date, t_obj))
+                g_name = Game.objects.get(id=game_id).name.lower()
+
+                if "sudoku" in g_name:
+                    code = "sudoku"
+                elif "wordle" in g_name:
+                    code = "wordle"
+                elif "pattern" in g_name:
+                    code = "pattern"
+                else:
+                    logger.warning("unknown game %s, skipping", g_name)
+                    continue
+
+                open_join_window.apply_async(
+                    args=[challenge.id, game_id, code],   # pass game_id too
+                    eta=alarm_dt,
+                )
 
             return Response({'message': 'Challenge created successfully', 'challenge_id': challenge.id}, status=status.HTTP_201_CREATED)
 
         except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        
-
-
-
-        
-
-        
+            logger.exception("[ManualGroupChallenge] failed")
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)        
 
 class CreatePublicChallengeView(APIView):
     @transaction.atomic
@@ -1234,7 +1278,7 @@ class CreatePublicChallengeView(APIView):
                 challengeID=challenge,
                 uID_id=data['initiator_id']
             )
-
+            
             # Create alarms
             for sched in data['alarm_schedule']:
                 alarm = AlarmSchedule.objects.create(
@@ -1394,12 +1438,6 @@ class CreatePendingCollaborativeGroupChallengeView(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
-
-
-        
-
-
-
 
 class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
     def post(self, request, chall_id):
