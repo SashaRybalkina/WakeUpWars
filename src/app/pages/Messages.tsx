@@ -162,8 +162,8 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     };
     wsNotification.current.onclose = () => {};
 
-    // Private messages WebSocket (aggregate all 1-1 chats for this user)
-    const wsUrlPrivate = `${BASE_URL.replace(/^http/, "ws")}/ws/chat/${user.id}/${user.id}/`;
+    // NEW: All 1-1 chats WebSocket
+    const wsUrlPrivate = `${BASE_URL.replace(/^http/, "ws")}/ws/chat/users/${user.id}/`;
     wsPrivate.current = new WebSocket(wsUrlPrivate);
     wsPrivate.current.onmessage = (event: any) => {
       try {
@@ -178,9 +178,8 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     };
     wsPrivate.current.onclose = () => {};
 
-    // Group messages WebSocket (aggregate all groups for this user)
-    // You may want to open a socket for each group, but here is a single example for groupId=0 (broadcast)
-    const wsUrlGroups = `${BASE_URL.replace(/^http/, "ws")}/ws/chat/group/0/`;
+    // NEW: All group chats WebSocket
+    const wsUrlGroups = `${BASE_URL.replace(/^http/, "ws")}/ws/chat/groups/${user.id}/`;
     wsGroups.current = new WebSocket(wsUrlGroups);
     wsGroups.current.onmessage = (event: any) => {
       try {
