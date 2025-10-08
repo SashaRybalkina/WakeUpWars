@@ -33,7 +33,7 @@ from .serializers import (UserSerializer, RegisterSerializer, GroupSerializer, U
 from .models import (Group, Notification, PersonalChallengeInvite, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule,
                      AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest,
                      SkillLevel, PendingGroupChallengeAvailability, GroupChallengeInvite, WordleMove, PublicChallengeConfiguration,
-                     UserAvailability, PublicChallengeCategoryAssociation)
+                     PublicChallengeCategoryAssociation, UserAvailability)
 from django.http import JsonResponse
 from typing     import Dict, List
 from rest_framework.exceptions import ValidationError
@@ -602,13 +602,14 @@ class AddGroupMemberView(APIView):
 
 class GetHasSetAlarmsView(APIView):
     def get(self, request, chall_id, user_id):
-        membership = get_object_or_404(
-            ChallengeMembership,
+        membership = ChallengeMembership.objects.filter(
             challengeID_id=chall_id,
             uID_id=user_id
-        )
+        ).first()  # returns None if not found
 
-        return Response({"hasSetAlarms": membership.hasSetAlarms}, status=status.HTTP_200_OK)
+        has_set_alarms = membership.hasSetAlarms if membership else False
+
+        return Response({"hasSetAlarms": has_set_alarms}, status=status.HTTP_200_OK)
 
 
 
@@ -1377,6 +1378,8 @@ class CreatePublicChallengeView(APIView):
             return Response({'message': 'Challenge created successfully', 'challenge_id': challenge.id}, status=status.HTTP_201_CREATED)
 
         except Exception as e:
+            print("Exception creating public challenge:")
+            traceback.print_exc()
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
 

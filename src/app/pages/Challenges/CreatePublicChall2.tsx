@@ -552,7 +552,7 @@ const CreatePublicChall2: React.FC<Props> = ({ navigation }) => {
               colors={["#FFD700", "#FFC107"]}
               style={styles.createButtonGradient}
             >
-              <Text style={styles.createButtonText}>Create Challenge</Text>
+              <Text style={styles.createButtonText}>Next</Text>
             </LinearGradient>
           </TouchableOpacity>
         </ScrollView>
