@@ -210,7 +210,8 @@ class GetAvailabilitiesView(APIView):
         return Response({
             "availabilities": availabilitiesData,
             "gameSchedule": schedule,
-            "initiator_id": initiator_id
+            "initiator_id": initiator_id,
+            "start_date": challenge.startDate
         }, status=status.HTTP_200_OK)
 
         
@@ -497,7 +498,7 @@ class JoinPublicChallengeView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
-
+# should no longer be called
 class FinalizePublicChallengeView(APIView):
     def post(self, request):
         try:
@@ -1600,44 +1601,44 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
                             }
                         )
 
-                # make the challenge no longer pending
-                # --- choose earliest feasible start-date (today counts only if a future alarm remains) ---
-                from collections import defaultdict
-                day_to_times: Dict[int, List[time]] = defaultdict(list)
-                for d, pairs in final_schedule.items():
-                    for _user, minutes in pairs:
-                        # minutes is an int; convert back to time
-                        day_to_times[d].append( (datetime.min + timedelta(minutes=minutes)).time() )
+                # # --- choose earliest feasible start-date (today counts only if a future alarm remains) ---
+                # from collections import defaultdict
+                # day_to_times: Dict[int, List[time]] = defaultdict(list)
+                # for d, pairs in final_schedule.items():
+                #     for _user, minutes in pairs:
+                #         # minutes is an int; convert back to time
+                #         day_to_times[d].append( (datetime.min + timedelta(minutes=minutes)).time() )
 
-                scheduled_days = sorted(day_to_times.keys())
+                # scheduled_days = sorted(day_to_times.keys())
 
-                today = timezone.localdate()
-                now   = timezone.localtime().time()
+                # today = timezone.localdate()
+                # now   = timezone.localtime().time()
 
-                start_date: date | None = None
-                for offset in range(7):                      # look at most one week ahead
-                    cand_date = today + timedelta(days=offset)
-                    cand_dow  = cand_date.isoweekday()       # 1 (Mon) .. 7 (Sun)
+                # start_date: date | None = None
+                # for offset in range(7):                      # look at most one week ahead
+                #     cand_date = today + timedelta(days=offset)
+                #     cand_dow  = cand_date.isoweekday()       # 1 (Mon) .. 7 (Sun)
 
-                    if cand_dow not in scheduled_days:
-                        continue
+                #     if cand_dow not in scheduled_days:
+                #         continue
 
-                    todays_times = day_to_times[cand_dow]
-                    if offset == 0 and all(t < now for t in todays_times):
-                        # All of today’s alarms are in the past → skip today
-                        continue
+                #     todays_times = day_to_times[cand_dow]
+                #     if offset == 0 and all(t < now for t in todays_times):
+                #         # All of today’s alarms are in the past → skip today
+                #         continue
 
-                    start_date = cand_date
-                    break
+                #     start_date = cand_date
+                #     break
 
-                if start_date is None:   # safety-net – shouldn’t happen
-                    start_date = today
+                # if start_date is None:   # safety-net – shouldn’t happen
+                #     start_date = today
 
-                challenge.startDate = start_date
+                # challenge.startDate = start_date
 
-                challenge.endDate = challenge.startDate + timedelta(days=challenge.totalDays - 1)
+                # challenge.endDate = challenge.startDate + timedelta(days=challenge.totalDays - 1)
+
                 challenge.isPending = False
-                challenge.save(update_fields=["isPending", "startDate", "endDate"])
+                challenge.save(update_fields=["isPending"])
 
                 # delete all invites
                 GroupChallengeInvite.objects.filter(chall=challenge).delete()

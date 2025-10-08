@@ -85,6 +85,7 @@ const EditAvailability: React.FC<Props> = ({ navigation }) => {
   const [userAvailability, setUserAvailability] = useState<AvailabilityEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [isInitiator, setIsInitiator] = useState(false);
+  let challengeStartDate: string | null = null;
 
   const [schedule, setSchedule] = useState<
     {
@@ -146,6 +147,7 @@ const fetchAvailabilities = async () => {
     setUserAvailability(data.availabilities.filter((entry: AvailabilityEntry) => entry.uID === user.id));
     setPendingToggles([]); // clear pending toggles after full refresh
     setIsInitiator(data.initiator_id === user?.id);
+    challengeStartDate = data.start_date;
 
     const dedupedSchedule: DaySchedule[] = data.gameSchedule.map((day: DaySchedule) => ({
         ...day,
@@ -382,6 +384,23 @@ const handleSubmit = async () => {
 
 
     const handleFinalizeSchedule = async () => {
+
+      if (!challengeStartDate) {
+        console.warn("Start date not loaded yet");
+        return;
+      }
+
+      // TODO: the commented version will be final version (don't allow people to finalize on the start date
+      // to give people time to set alarms, but for the sake of demoing, use the uncommented code below)
+      // if (new Date() >= new Date(challengeStartDate)) {
+      //   alert("Start date already passed.");
+      //   return;
+      // }
+      if (new Date() > new Date(challengeStartDate)) {
+        alert("Start date already passed.");
+        return;
+      }
+
       try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
@@ -397,24 +416,24 @@ const handleSubmit = async () => {
         });
         if (!res.ok) throw new Error(`Failed to finalize schedule. (${res.status})`);
 
-        let challenge_id: number | null = null;
-        const text = await res.text();
-        if (text) {
-          try {
-            const json = JSON.parse(text);
-            challenge_id = json?.challenge_id ?? null;
-          } catch {
-            // not JSON — ignore; we’ll fall back to pending id
-          }
-        }
+        // let challenge_id: number | null = null;
+        // const text = await res.text();
+        // if (text) {
+        //   try {
+        //     const json = JSON.parse(text);
+        //     challenge_id = json?.challenge_id ?? null;
+        //   } catch {
+        //     // not JSON — ignore; we’ll fall back to pending id
+        //   }
+        // }
 
-        const targetId = challenge_id ?? pendingChallengeId;
+        // const targetId = challenge_id ?? pendingChallengeId;
         Alert.alert('Success', 'Schedule finalized.', [
           {
             text: 'OK',
             onPress: () =>
-              navigation.replace('ChallDetails', {
-                challId: targetId,
+              navigation.navigate('ChallDetails', {
+                challId: pendingChallengeId,
                 challName: pendingChallengeName,
                 whichChall: 'Group',
               }),
@@ -631,7 +650,7 @@ return (
 
       {isInitiator && uniqueUserIds.length > 1 && (
         <TouchableOpacity style={styles.saveButton} onPress={handleFinalizeSchedule}>
-          <Text style={styles.saveButtonText}>Finalize Challenge Schedule</Text>
+          <Text style={styles.saveButtonText}>Finalize Challenge</Text>
         </TouchableOpacity>
       )}
 
