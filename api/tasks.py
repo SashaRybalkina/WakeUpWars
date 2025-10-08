@@ -1,4 +1,5 @@
 from django.utils import timezone
+from django.contrib.auth import get_user_model
 from celery import shared_task, uuid
 from django.db.models import F
 from api.sudokuStuff.utils import get_or_create_game as sudoku_init
@@ -16,55 +17,56 @@ def _game_state_model(game_code):
         "pattern": PatternMemorizationGameState,
     }[game_code]
 
-# A. fire at alarm-time -------------------------------------------------
+User = get_user_model()   
+
+# A. fire at alarm-time
 @shared_task
-def open_join_window(challenge_id, game_id, game_code):         
+def open_join_window(challenge_id, game_id, game_code):
     Model = _game_state_model(game_code)
 
     ch   = Challenge.objects.get(pk=challenge_id)
-    game = Game.objects.get(pk=game_id)                  
-          
-    # build or fetch a fully-initialised GameState
-    if game_code == "sudoku":
-        system_user = User.objects.get(username="gshin")
-        gs_dict = sudoku_init(challenge.id, system_user, allow_join=False)
-        gs = SudokuGameState.objects.get(pk=gs_dict["game_state_id"])
+    game = Game.objects.get(pk=game_id)
 
-    elif game_code == "wordle":
-        blank = "_____"
-        gs, _ = WordleGameState.objects.get_or_create(
-            challenge=ch,
-            game=game,
-            defaults={
-                "puzzle": blank,        # 5 underscores → empty board
-                "solution": blank,
-                "created_at": timezone.now(),
-            },
-        )
+    # try to reuse an existing state
+    try:
+        gs = Model.objects.get(challenge=ch, game=game)
+    except Model.DoesNotExist:
+        # otherwise create one
+        if game_code == "sudoku":
+            system_user = User.objects.get(username="gshin")
+            gs_dict = sudoku_init(ch.id, system_user, allow_join=False)   # ← use ch.id
+            gs = SudokuGameState.objects.get(pk=gs_dict["game_state_id"])
 
-    elif game_code == "pattern":
-        gs, _ = PatternMemorizationGameState.objects.get_or_create(
-            challenge=ch,
-            game=game,
-            defaults={
-                "pattern_sequence": [],
-                "created_at": timezone.now(),
-            },
-        )
-    else:
-        return   # unknown game type, nothing to do
-    
+        elif game_code == "wordle":
+            blank = "_____"
+            gs, _ = WordleGameState.objects.get_or_create(
+                challenge=ch,
+                game=game,
+                defaults={"puzzle": blank, "solution": blank,
+                          "created_at": timezone.now()},
+            )
+
+        elif game_code == "pattern":
+            gs, _ = PatternMemorizationGameState.objects.get_or_create(
+                challenge=ch,
+                game=game,
+                defaults={"pattern_sequence": [],
+                          "created_at": timezone.now()},
+            )
+        else:
+            return  # unknown game type
+
+    # continue with join-window timing
     if not gs.join_deadline_at:
         gs.join_deadline_at = timezone.now() + timezone.timedelta(minutes=2)
-        gs.save(update_fields=["created_at", "join_deadline_at", "joins_closed"])
-
+        gs.save(update_fields=["join_deadline_at"])
     close_join_window.apply_async(
         args=[Model.__name__, gs.id],
         eta=gs.join_deadline_at,
         taREDACTEDid=f"close-{Model.__name__}-{gs.id}-{uuid()}",
     )
 
-# B. fire 2 minutes later ----------------------------------------------
+# B. fire 2 minutes later
 @shared_task
 def close_join_window(model_name, gs_id):
     Model = globals()[model_name]
