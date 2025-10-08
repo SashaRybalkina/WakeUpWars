@@ -476,8 +476,12 @@ class JoinPublicChallengeView(APIView):
             # --- add membership ---
             ChallengeMembership.objects.get_or_create(
                 challengeID=challenge,
-                uID=user
+                uID=user,
+                hasSetAlarms=True # TODO: change this later
             )
+
+            challenge.isPending = False
+            challenge.save()
 
             # --- update challenge average skill ---
             cfg = PublicChallengeConfiguration.objects.get(challenge=challenge)
@@ -1590,14 +1594,18 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
                 # create the game schedule
                 # on days where everyone is waking up at same time, choose multiplayer version of the
                 # chosen game, otherwise singleplayer
-                for day, singOrMult in day_game_type_mapping:
-                    gsga = get_object_or_404(GameScheduleGameAssociation, game_schedule_challenge_id=chall_id)
-                    if singOrMult == 0: # if multiplayer
-                        newGame = get_object_or_404(Game, id=default_to_multiplayer[gsga.game.id])
-                    else:
-                        newGame = get_object_or_404(Game, id=default_to_singleplayer[gsga.game.id])
-                    gsga.game = newGame
-                    gsga.save(update_fields=["game"])
+                for day, singOrMult in day_game_type_mapping.items():
+                    gsgas = GameScheduleGameAssociation.objects.filter(
+                        game_schedule__challenge_id=chall_id,
+                        game_schedule__dayOfWeek=day
+                    )
+                    for gsga in gsgas:
+                        if singOrMult == 0: # if multiplayer
+                            newGame = get_object_or_404(Game, id=default_to_multiplayer[gsga.game.id])
+                        else:
+                            newGame = get_object_or_404(Game, id=default_to_singleplayer[gsga.game.id])
+                        gsga.game = newGame
+                        gsga.save(update_fields=["game"])
 
 
                 created_schedules = []
@@ -1620,41 +1628,6 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
                             }
                         )
 
-                # # --- choose earliest feasible start-date (today counts only if a future alarm remains) ---
-                # from collections import defaultdict
-                # day_to_times: Dict[int, List[time]] = defaultdict(list)
-                # for d, pairs in final_schedule.items():
-                #     for _user, minutes in pairs:
-                #         # minutes is an int; convert back to time
-                #         day_to_times[d].append( (datetime.min + timedelta(minutes=minutes)).time() )
-
-                # scheduled_days = sorted(day_to_times.keys())
-
-                # today = timezone.localdate()
-                # now   = timezone.localtime().time()
-
-                # start_date: date | None = None
-                # for offset in range(7):                      # look at most one week ahead
-                #     cand_date = today + timedelta(days=offset)
-                #     cand_dow  = cand_date.isoweekday()       # 1 (Mon) .. 7 (Sun)
-
-                #     if cand_dow not in scheduled_days:
-                #         continue
-
-                #     todays_times = day_to_times[cand_dow]
-                #     if offset == 0 and all(t < now for t in todays_times):
-                #         # All of today’s alarms are in the past → skip today
-                #         continue
-
-                #     start_date = cand_date
-                #     break
-
-                # if start_date is None:   # safety-net – shouldn’t happen
-                #     start_date = today
-
-                # challenge.startDate = start_date
-
-                # challenge.endDate = challenge.startDate + timedelta(days=challenge.totalDays - 1)
 
                 challenge.isPending = False
                 challenge.save(update_fields=["isPending"])
@@ -1884,7 +1857,7 @@ class CreatePersonalChallengeView(APIView):
                 totalDays=total_days
             )
 
-            ChallengeMembership.objects.create(challengeID=challenge, uID_id=user_id)
+            ChallengeMembership.objects.create(challengeID=challenge, uID_id=user_id, hasSetAlarms=True)
 
             # Create alarms
             for sched in data['alarm_schedule']:

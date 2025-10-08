@@ -59,6 +59,7 @@ const ChallSchedule = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const [isPending, setIsPending] = useState<boolean>()
   const [groupId, setGroupId] = useState<Number>() // is personal if groupId null and isPublic false
   const [isPublic, setIsPublic] = useState<boolean>()
+  const [isMember, setIsMember] = useState<boolean>()
 
   const { user } = useUser()
 
@@ -303,7 +304,16 @@ const addGameToDay = async (game: { id: number; name: string }) => {
               throw new Error(error.message || 'Failed to join challenge');
           }
   
-          const data = await res.json();
+          setIsPending(false)
+            try {
+                if (challId) {
+                console.log(challId)
+                // await scheduleAlarmsForUser(challId, challName, Number(user?.id));
+                setHasSetAlarms(true)
+                }
+            } catch (e) {
+                console.warn('Failed to schedule alarms for new challenge', e);
+            }
           Alert.alert('Success', 'Joined Challenge', [
               { text: 'OK', onPress: () => navigation.navigate('PublicChallenges') },
           ]);
@@ -314,43 +324,43 @@ const addGameToDay = async (game: { id: number; name: string }) => {
       }
 
 
-        const handleFinalizePublicChallenge = async () => {
+      //   const handleFinalizePublicChallenge = async () => {
   
-          try {
+      //     try {
 
-            const payload = {
-              challenge_id: challId,
-            }
+      //       const payload = {
+      //         challenge_id: challId,
+      //       }
 
-        const accessToken = await getAccessToken();
-        if (!accessToken) {
-          throw new Error("Not authenticated");
-        }
+      //   const accessToken = await getAccessToken();
+      //   if (!accessToken) {
+      //     throw new Error("Not authenticated");
+      //   }
   
           
-          const res = await fetch(endpoints.finalizePublicChallenge(), {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                "Authorization": `Bearer ${accessToken}`,
-              },
-              body: JSON.stringify(payload),
-          });
+      //     const res = await fetch(endpoints.finalizePublicChallenge(), {
+      //         method: 'POST',
+      //         headers: {
+      //           'Content-Type': 'application/json',
+      //           "Authorization": `Bearer ${accessToken}`,
+      //         },
+      //         body: JSON.stringify(payload),
+      //     });
   
-          if (!res.ok) {
-              const error = await res.json();
-              throw new Error(error.message || 'Failed to finalize challenge');
-          }
+      //     if (!res.ok) {
+      //         const error = await res.json();
+      //         throw new Error(error.message || 'Failed to finalize challenge');
+      //     }
   
-          const data = await res.json();
-          Alert.alert('Success', 'Finalized Challenge', [
-              { text: 'OK', onPress: () => navigation.navigate('PublicChallenges') },
-          ]);
-          } catch (err: any) {
-              Alert.alert('Error', err.message);
-          }
+      //     const data = await res.json();
+      //     Alert.alert('Success', 'Finalized Challenge', [
+      //         { text: 'OK', onPress: () => navigation.navigate('PublicChallenges') },
+      //     ]);
+      //     } catch (err: any) {
+      //         Alert.alert('Error', err.message);
+      //     }
   
-      }
+      // }
 
 
   // const formatDate = (date: Date) => {
@@ -428,7 +438,7 @@ const getInitials = (name: string): string => {
 
 
 
-          {fromSearch === true && (
+          {(fromSearch === true || isPending === true) && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Enrolled Members</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.membersScroll}>
@@ -607,7 +617,7 @@ const getInitials = (name: string): string => {
   </TouchableOpacity>
 )} */}
 
-{!isPending && !hasSetAlarms && !(!groupId && !isPublic) && (
+{!isPending && !hasSetAlarms && (
   <Button
     title="Set My Alarms"
     onPress={async () => {
