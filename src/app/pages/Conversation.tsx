@@ -10,7 +10,7 @@ type Props = {
 }
 
 const Conversation: React.FC<Props> = ({ route, navigation }) => {
-  const { user } = useUser()
+  const { user, setActiveConversationId, setActiveGroupId } = useUser()
   const { recipientId, recipientName, otherUserId, groupId } = route.params
   const [messages, setMessages] = useState<any[]>([])
   const [newMessage, setNewMessage] = useState("")
@@ -79,6 +79,21 @@ const Conversation: React.FC<Props> = ({ route, navigation }) => {
     }
     fetchConversation()
   }, [user, otherUserId, groupId])
+
+  useEffect(() => {
+    // Set active conversation/group on mount
+    if (groupId) {
+      setActiveGroupId(groupId)
+      setActiveConversationId(null)
+    } else if (otherUserId) {
+      setActiveConversationId(otherUserId)
+      setActiveGroupId(null)
+    }
+    return () => {
+      setActiveConversationId(null)
+      setActiveGroupId(null)
+    }
+  }, [groupId, otherUserId, setActiveConversationId, setActiveGroupId])
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !user?.id) return

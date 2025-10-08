@@ -20,6 +20,7 @@ import { LinearGradient } from "expo-linear-gradient"
 import axios from "axios"
 import * as Notifications from 'expo-notifications'
 import {formatDistanceToNow} from 'date-fns'
+import NotificationService from '../Notification'
 
 type Props = {
   navigation: NavigationProp<any>
@@ -29,7 +30,7 @@ const { width } = Dimensions.get("window")
 
 const Messages: React.FC<Props> = ({ navigation }) => {
   const [selected, setSelected] = useState("Friends")
-  const { user } = useUser()
+  const { user, activeConversationId, activeGroupId } = useUser()
   const [friendMessages, setFriendMessages] = useState<any[]>([])
   const [groupConversations, setGroupConversations] = useState<any[]>([])
   const [notifications, setNotifications] = useState<any[]>([])
@@ -168,7 +169,27 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     wsPrivate.current.onmessage = (event: any) => {
       try {
         const data = JSON.parse(event.data);
-        setFriendMessages((prev) => [...prev, data]);
+        setFriendMessages((prev) => {
+          // Remove previous last message for this conversation
+          const otherUserId = data.sender.id === user.id ? data.recipient_id : data.sender.id;
+          const filtered = prev.filter(
+            msg => {
+              const msgOtherUserId = msg.sender.id === user.id ? msg.recipient.id : msg.sender.id;
+              return msgOtherUserId !== otherUserId;
+            }
+          );
+          return [...filtered, data];
+        });
+        // Push notification logic
+        if (activeConversationId !== (data.sender.id === user.id ? data.recipient_id : data.sender.id)) {
+          NotificationService.sendNotification(
+            user.id,
+            "New Message",
+            `${data.sender.name}: ${data.message}`,
+            "Conversation",
+            { otherUserId: data.sender.id }
+          );
+        }
       } catch (e) {
         console.error("WebSocket private message parse error:", e);
       }
@@ -184,7 +205,23 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     wsGroups.current.onmessage = (event: any) => {
       try {
         const data = JSON.parse(event.data);
-        setGroupConversations((prev) => [...prev, data]);
+        setGroupConversations((prev) => {
+          // Remove previous last message for this group
+          const filtered = prev.filter(
+            group => group.group_id !== data.group_id
+          );
+          return [...filtered, data];
+        });
+        // Push notification logic for groups
+        if (activeGroupId !== data.group_id) {
+          NotificationService.sendNotification(
+            user.id,
+            "New Group Message",
+            `${data.sender.name}: ${data.message}`,
+            "Conversation",
+            { groupId: data.group_id }
+          );
+        }
       } catch (e) {
         console.error("WebSocket group message parse error:", e);
       }
@@ -199,7 +236,7 @@ const Messages: React.FC<Props> = ({ navigation }) => {
       wsPrivate.current?.close();
       wsGroups.current?.close();
     };
-  }, [user]);
+  }, [user, activeConversationId, activeGroupId]);
 
   const getConversations = (messages: any[]) => {
     const conversations: Record<string, any> = {}
