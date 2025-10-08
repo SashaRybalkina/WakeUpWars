@@ -13,6 +13,7 @@ import { NavigationProp, useRoute } from '@react-navigation/native';
 import { useUser } from '../../context/UserContext';
 import { BASE_URL, endpoints } from '../../api';
 import { getAccessToken } from '../../auth';
+import { scheduleAlarmsForUser } from '../../alarmService';
 
 const DAYS = ["M", "T", "W", "TH", "F", "S", "SU"];
 const DayOfWeekLabels: Record<number, string> = { 1: "M", 2: "T", 3: "W", 4: "TH", 5: "F", 6: "S", 7: "SU" }
@@ -427,15 +428,29 @@ const handleSubmit = async () => {
         //   }
         // }
 
+        // try {
+        //     console.log("setting user alarms for challenge:")
+        //     console.log(pendingChallengeId)
+        //     // await scheduleAlarmsForUser(pendingChallengeId, pendingChallengeName, Number(user?.id));
+        // } catch (e) {
+        //     console.warn('Failed to schedule alarms for new challenge', e);
+        // }
+
         // const targetId = challenge_id ?? pendingChallengeId;
         Alert.alert('Success', 'Schedule finalized.', [
           {
             text: 'OK',
+            // onPress: () =>
+            //   navigation.navigate('ChallDetails', {
+            //     challId: pendingChallengeId,
+            //     challName: pendingChallengeName,
+            //     whichChall: 'Group',
+            //   }),
             onPress: () =>
-              navigation.navigate('ChallDetails', {
+              navigation.navigate('ChallSchedule', {
                 challId: pendingChallengeId,
                 challName: pendingChallengeName,
-                whichChall: 'Group',
+                fromSearch: false,
               }),
           },
         ]);

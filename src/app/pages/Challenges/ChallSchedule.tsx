@@ -368,12 +368,12 @@ const addGameToDay = async (game: { id: number; name: string }) => {
     return date.toLocaleDateString(undefined, options)
   }
 
-  const allDaysHaveGames = schedule.every(day => {
-    if (day.alarms.length > 0) {
-      return day.games.length > 0
-    }
-    return true
-  })
+  // const allDaysHaveGames = schedule.every(day => {
+  //   if (day.alarms.length > 0) {
+  //     return day.games.length > 0
+  //   }
+  //   return true
+  // })
 
   const generatePastelColor = (name: string): string => {
   // Simple hash function to generate a number from a string
@@ -596,7 +596,7 @@ const getInitials = (name: string): string => {
   </TouchableOpacity>
 )}
 
-{isInitiator === true && (
+{/* {isInitiator === true && (
   <TouchableOpacity style={styles.createButton} onPress={handleFinalizePublicChallenge}>
     <LinearGradient
       colors={['#FFD700', '#FFC107']}
@@ -605,16 +605,16 @@ const getInitials = (name: string): string => {
       <Text style={styles.createButtonText}>Finalize Challenge</Text>
     </LinearGradient>
   </TouchableOpacity>
-)}
+)} */}
 
 {!isPending && !hasSetAlarms && !(!groupId && !isPublic) && (
   <Button
     title="Set My Alarms"
     onPress={async () => {
-      if (!allDaysHaveGames) {
-        Alert.alert("Error", "Select at least one game for each scheduled alarm");
-        return;
-      }
+      // if (!allDaysHaveGames) {
+      //   Alert.alert("Error", "Select at least one game for each scheduled alarm");
+      //   return;
+      // }
 
       try {
         // 1. Schedule alarms locally
@@ -644,7 +644,7 @@ const getInitials = (name: string): string => {
         ]);
       }
     }}
-    disabled={!allDaysHaveGames}
+    // disabled={!allDaysHaveGames}
   />
 
 )}
