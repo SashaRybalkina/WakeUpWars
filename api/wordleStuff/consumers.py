@@ -22,13 +22,12 @@ class WordleConsumer(AsyncWebsocketConsumer):
         print(f"[WebSocket][PLAYER] Added {self.user.username} into game_state={self.game_state_id}")
 
         # Send existing players (excluding self) back to the frontend
-        existing_players = await self.get_existing_players()
-        print(f"[WebSocket][EXISTING PLAYERS] for {self.user.username}: {[p['username'] for p in existing_players]}")
-        for player in existing_players:
-            await self.send(text_data=json.dumps({
-                'type': 'player_joined',
-                'player': player['username'],
-            }))
+        all_players = await self.get_all_players()
+        await self.send(text_data=json.dumps({
+            'type': 'player_list',
+            'players': all_players,
+        }))
+        print(f"[WebSocket][PLAYER LIST] sent to {self.user.username}: {all_players}")
 
         # Broadcast: notify others that a new player has joined
         await self.channel_layer.group_send(
@@ -41,8 +40,29 @@ class WordleConsumer(AsyncWebsocketConsumer):
         print(f"[WebSocket][BROADCAST] {self.user.username} joined game_state={self.game_state_id}")
 
     async def disconnect(self, close_code):
-        print(f"[WebSocket][DISCONNECT] user={self.user.username} left game_state={self.game_state_id} (code={close_code})")
+        username = self.user.username
+        print(f"[WebSocket][DISCONNECT] user={username} left game_state={self.game_state_id} (code={close_code})")
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
+
+        # remove player from db
+        await self.remove_player()
+
+        # Broadcast: notify others that a player has left
+        await self.channel_layer.group_send(
+            self.group_name,
+            {
+                'type': 'player.left',
+                'player': username,
+            }
+        )
+
+        # If no players remain, clean up game state
+        remaining_players = await self.get_all_players()
+        if not remaining_players:
+            print(f"[WebSocket][CLEANUP] All players left. Cleaning up game_state={self.game_state_id}")
+            await self.cleanup_game()
+
+
 
     async def receive(self, text_data):
         data = json.loads(text_data)
@@ -78,6 +98,7 @@ class WordleConsumer(AsyncWebsocketConsumer):
                     'row': row,
                     'guess': guess,
                     'evaluation': result['feedback'],
+                    'attempt': row + 1,
                 }
             )
             print(f"[WebSocket][BROADCAST] move from {self.user.username} -> others in game_state={self.game_state_id}")
@@ -95,6 +116,15 @@ class WordleConsumer(AsyncWebsocketConsumer):
 
     # --- Group event handlers ---
 
+    async def player_left(self, event):
+        if event['player'] != self.user.username:
+            print(f"[WebSocket][PLAYER LEFT] {self.user.username} sees {event['player']} left.")
+            await self.send(text_data=json.dumps({
+                'type': 'player_left',
+                'player': event['player'],
+            }))
+
+
     async def broadcast_move(self, event):
         if event['player'] != self.user.username:  
             print(f"[WebSocket][RECEIVE BROADCAST] {self.user.username} got move from {event['player']}: {event}")
@@ -104,6 +134,7 @@ class WordleConsumer(AsyncWebsocketConsumer):
                 'row': event['row'],
                 'guess': event['guess'],
                 'evaluation': event['evaluation'],
+                'attempt': event['attempt'],
             }))
 
     async def player_joined(self, event):
@@ -140,3 +171,20 @@ class WordleConsumer(AsyncWebsocketConsumer):
             .select_related('player')
         )
         return [{'username': p.player.username} for p in players]
+    
+    @sync_to_async
+    def get_all_players(self):
+        players = (
+            WordleGamePlayer.objects
+            .filter(gameState__id=self.game_state_id)
+            .select_related('player')
+        )
+        return [p.player.username for p in players]
+    
+    @sync_to_async
+    def remove_player(self):
+        WordleGamePlayer.objects.filter(
+            gameState__id=self.game_state_id,
+            player=self.user
+        ).delete()
+

@@ -28,11 +28,20 @@ export type GuessResult = {
 
 type ServerToClientMessage =
   | {
+      type: 'player_list';
+      players: string[];
+    }
+  | {
       type: 'broadcast_move';
       player: string;
       row: number;
       guess: string;
       evaluation: GuessResult[];
+      attempt: number;
+    }
+  | {
+      type: 'player_left';
+      player: string;
     }
   | {
       type: 'player_joined';
@@ -75,10 +84,11 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
   const [first, setFirst] = useState(true);
   const [gameStateId, setGameStateId] = useState<number | null>(null);
   const [opponentRows, setOpponentRows] = useState<{
-    [player: string]: GuessResult[];
+    [player: string]: { evaluation: GuessResult[]; attempt: number };
   }>({});
   const [submittedRows, setSubmittedRows] = useState<Set<number>>(new Set());
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
+  const [players, setPlayers] = useState<string[]>([]);
 
   // 🔄 Reset game
   const resetGame = () => {
@@ -143,17 +153,26 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
         ws.onmessage = (event) => {
           const msg: ServerToClientMessage = JSON.parse(event.data);
 
+          if (msg.type === 'player_list') {
+            console.log('[WebSocket] Current players:', msg.players);
+            setPlayers(msg.players);
+          }
+
           if (msg.type === 'broadcast_move') {
             console.log(`[WebSocket] Opponent move from ${msg.player}:`, msg);
             // only update the newest
             setOpponentRows((prev) => ({
               ...prev,
-              [msg.player]: msg.evaluation,
+              [msg.player]: { evaluation: msg.evaluation, attempt: msg.attempt },
             }));
           }
 
           if (msg.type === 'player_joined') {
             console.log(`[WebSocket] Player joined: ${msg.player}`);
+          }
+
+          if (msg.type === 'player_left') {
+            setPlayers((prev) => prev.filter((p) => p !== msg.player));
           }
 
           if (msg.type === 'game_complete') {
@@ -322,20 +341,45 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.description}>
           Time left: {formatTime(timeLeft)}
         </Text>
+        
+        {/* Player List */}
+        {players.length > 0 && (
+          <View style={{ marginVertical: 10, width: '100%' }}>
+            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 18, marginBottom: 5 }}>
+              👥 Players ({players.length})
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+              {players.map((p, idx) => (
+                <View key={idx} style={{ backgroundColor: '#ffffff33', padding: 6, borderRadius: 8, marginRight: 6, marginBottom: 6 }}>
+                  <Text style={{ color: 'white', fontWeight: 'bold' }}>{p}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
 
         {/* Opponent progress */}
         {Object.keys(opponentRows).length > 0 && (
           <View style={{ marginVertical: 10, width: '100%' }}>
-            {Object.entries(opponentRows).map(([player, row], idx) => (
-              <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+            {Object.entries(opponentRows).map(([player, info], idx) => (
+              <View
+                key={idx}
+                style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}
+              >
                 <Text
-                  style={{ width: 70, color: 'white', fontWeight: 'bold' }}
+                  style={{
+                    width: 120,
+                    color: 'white',
+                    fontWeight: 'bold',
+                  }}
                   numberOfLines={1}
                   ellipsizeMode="tail"
                 >
-                  {player}
+                  {player} (#{info.attempt})
                 </Text>
-                {row.map((cell, cIndex) => (
+
+                {info.evaluation.map((cell, cIndex) => (
                   <View
                     key={cIndex}
                     style={[
@@ -346,9 +390,7 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
                         ? styles.presentCell
                         : styles.absentCell,
                     ]}
-                  >
-                    {/* <Text style={styles.cellText}>{cell.letter}</Text> */}
-                  </View>
+                  />
                 ))}
               </View>
             ))}
