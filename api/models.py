@@ -109,14 +109,13 @@ class GameCategory(models.Model):
 class Game(models.Model):
     name = models.CharField(max_length=255)
     category = models.ForeignKey(GameCategory, on_delete=models.CASCADE)
-    isMultiplayer = models.BooleanField()
+    isMultiplayer = models.BooleanField(null=True) # null if not yet single or multiplayer
     
     # React Native screen to navigate to for this game
     route = models.CharField(max_length=64, null=True, blank=True)
 
     class Meta:
         db_table = 'Games'
-        unique_together = ('name', 'category')
 
     def __str__(self):
         return self.name
@@ -278,6 +277,7 @@ class UserAvailability(models.Model):
 class ChallengeMembership(models.Model):
     challengeID = models.ForeignKey(Challenge, on_delete=models.CASCADE)
     uID = models.ForeignKey(User, on_delete=models.CASCADE)
+    hasSetAlarms = models.BooleanField(default=False, null=True)
 
     class Meta:
         db_table = 'ChallengeMemberships'
@@ -390,8 +390,8 @@ class GamePerformance(models.Model):
 class SkillLevel(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     category = models.ForeignKey(GameCategory, on_delete=models.CASCADE)
-    totalEarned = models.IntegerField()
-    totalPossible = models.IntegerField()
+    totalEarned = models.IntegerField(null=True)
+    totalPossible = models.IntegerField(null=True)
     # the skill level is just (totalEarned / totalPossible) x 10 to get numbers from 1-10
 
     class Meta:

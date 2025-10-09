@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import {
   Alert,
   ImageBackground,
@@ -16,8 +16,9 @@ import { LinearGradient } from "expo-linear-gradient"
 import { BASE_URL, endpoints } from "../../api"
 import { Platform } from "react-native"
 import { getMetaFromTuple } from "../Games/NewGamesManagement"
+import { scheduleAlarmsForChallenge, scheduleAlarmsForUser } from "../../alarmService"
+import { useUser } from "../../context/UserContext"
 import { getAccessToken } from "../../auth"
-import { scheduleAlarmsForChallenge } from "../../alarmService"
 import { getNextAlarmDate } from "../../../utils/dateUtils"
 
 type Props = {
@@ -28,28 +29,10 @@ type Props = {
 
 const DAYS = ["M", "T", "W", "TH", "F", "S", "SU"]
 
-const REWARD_TYPES = [
-  { key: 'money', label: 'Money' },
-  { key: 'points', label: 'Points' },
-  { key: 'custom', label: 'Custom' },
-] as const;
-
-type RewardTypeKey = typeof REWARD_TYPES[number]['key'];
-
-const GroupChall2: React.FC<Props> = ({ navigation }) => {
-  const route = useRoute()
-  const { groupId, groupMembers } = route.params as {
-    groupId: number
-    groupMembers: { id: number; name: string }[]
-  }
-
-  useEffect(() => {
-    console.log("GroupChall2 Group Members:", groupMembers)
-  }, [])
-
+const PersChall2Copy: React.FC<Props> = ({ navigation }) => {
+  const { user } = useUser()
+    
   const [name, setName] = useState("")
-  const [selectedDate, setSelectedDate] = useState(new Date())
-  const [showDatePicker, setShowDatePicker] = useState(false)
 
   const [tempTime, setTempTime] = useState<Date | null>(null)
   const [showTimePicker, setShowTimePicker] = useState(false)
@@ -57,10 +40,6 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
   const [selectedDays, setSelectedDays] = useState<string[]>([])
   const [dayTimeMapping, setDayTimeMapping] = useState<Record<string, string>>({})
   const [gamesByDay, setGamesByDay] = useState<Record<string, [string, string][]>>({})
-  // reward state
-  const [rewardType, setRewardType] = useState<RewardTypeKey>('money');
-  const [rewardAmount, setRewardAmount] = useState('5');
-  const [rewardNote, setRewardNote] = useState('');
 
   const goToMessages = () => navigation.navigate("Messages")
   const goToGroups = () => navigation.navigate("Groups")
@@ -76,6 +55,7 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
     S: 6,
     SU: 7,
   }
+
 
   const toggleDay = (day: string) => {
     if (selectedDays.includes(day)) {
@@ -93,20 +73,6 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
   //   if (date) setSelectedDate(date)
   // }
 
-  // Android + IOS version
-  const onDateChange = (event: any, date?: Date) => {
-    if (event?.type === "dismissed") {
-      setShowDatePicker(false)
-      return
-    }
-  
-    if (date) {
-      setSelectedDate(date)
-      if (Platform.OS === "android") {
-        setShowDatePicker(false)
-      }
-    }
-  }
 
   // const onTimeChange = (_: any, time?: Date) => {
   //   if (time) setTempTime(time)
@@ -187,29 +153,15 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
     setGamesByDay(updated)
   }
 
-  const formatDate = (date: Date) => {
-    const options: Intl.DateTimeFormatOptions = { 
-      weekday: 'short', 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    }
-    return date.toLocaleDateString(undefined, options)
-  }
-
-  // format as local YYYY-MM-DD (avoids UTC shift from toISOString)
-  const toLocalYMD = (d: Date) => {
+    const toLocalYMD = (d: Date) => {
     const y = d.getFullYear()
     const m = String(d.getMonth() + 1).padStart(2, '0')
     const day = String(d.getDate()).padStart(2, '0')
     return `${y}-${m}-${day}`
   }
 
-  const showRewardInfo = () => {
-    Alert.alert('Rewards', 'Choose the reward the winner will get. \n\nMoney: Send a USD amount. \nPoints: In-app points. \nCustom: Any creative prize. \n\nAfter saving, rewards are locked.');
-  };
 
-  const handleCreateChallenge = async() => {
+  const handleNext = async() => {
     if (!name.trim()) {
       Alert.alert("Error", "Please enter a challenge name")
       return
@@ -222,23 +174,7 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
 
     console.log("Day-Time Mapping:", dayTimeMapping)
     console.log("Games By Day:", JSON.stringify(gamesByDay, null, 2))
-    // reward validation
-    let reward: any = null;
-    if (rewardType === 'custom') {
-      if (!rewardNote.trim()) {
-        Alert.alert('Error', 'Please enter a description for the custom reward');
-        return;
-      }
-      reward = { type: 'custom', note: rewardNote.trim() };
-    } else {
-      const amt = parseFloat(rewardAmount);
-      if (isNaN(amt) || amt <= 0) {
-        Alert.alert('Error', 'Enter a valid positive amount for the reward');
-        return;
-      }
-      reward = { type: rewardType, amount: amt };
-    }
-    
+
     const alarmSchedule: { dayOfWeek: number; time: string }[] = Object.entries(dayTimeMapping)
       .filter(([day, time]) => time && dayToInt[day] !== undefined)
       .map(([day, time]) => ({
@@ -280,13 +216,24 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
       })
       .filter(Boolean)
 
-    console.log("Group Members:", groupMembers)
 
 
-    // collect day numbers of scheduled alarms
-    const alarmDays = alarmSchedule
-      .map(a => a.dayOfWeek)
-      .filter((d): d is number => d !== undefined);
+
+      const alarmDays = alarmSchedule.map(a => a.dayOfWeek);
+      const gameDays = gameSchedules.map(g => g.dayOfWeek);
+
+      // find alarm days missing games
+      const missingGames = alarmDays.filter(day => !gameDays.includes(day));
+
+      if (missingGames.length > 0) {
+        Alert.alert(
+          "Error",
+          "Please select at least one game for each day that has an alarm."
+        );
+        return;
+      }
+
+
 
     // find first valid future start date
     const nextAlarmDate = getNextAlarmDate(alarmSchedule);
@@ -294,78 +241,17 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
       Alert.alert('Error', 'Could not determine start date from schedule');
       return;
     }
-    const start_date = toLocalYMD(nextAlarmDate);
-    const end_date = toLocalYMD(selectedDate);
+    console.log("in here2")
+    console.log(toLocalYMD(nextAlarmDate));
+    // const startDate = toLocalYMD(nextAlarmDate);
 
-    if (!start_date) {
-      Alert.alert("Error", "Could not determine start date");
-      return;
-    }
-
-    if (!end_date) {
-      Alert.alert("Error", "Please select an end date");
-      return;
-    }
-
-    const diffMs = new Date(end_date).getTime() - new Date(start_date).getTime();
-    if (diffMs < 0) {
-      Alert.alert('Error', 'End date must be on or after start date');
-      return;
-    }
-    // compute inclusive difference in days
-    const total_days = Math.ceil(diffMs / 86_400_000) + 1; // +1 → inclusive
-    
-    const payload = {
-      name,
-      group_id: groupId,
-      start_date,
-      end_date,
-      total_days,
-      members: groupMembers.map(m => m.id),
-      alarm_schedule: alarmSchedule,
-      game_schedules: gameSchedules,
-      reward,
-    };
-
-    try {
-      const accessToken = await getAccessToken();
-      if (!accessToken) {
-        throw new Error("Not authenticated");
-      }
-  
-  
-      const res = await fetch(endpoints.createManualGroupChallenge, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          "Authorization": `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(payload),
-      });
-  
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || 'Failed to create challenge');
-      }
-  
-      const data = await res.json();
-      console.log('Challenge created:', data);
-
-      // Schedule native alarms on this device for the newly created challenge
-      try {
-        const newId = (data && (data.id ?? data.challenge_id)) as number | undefined;
-        if (newId) {
-          await scheduleAlarmsForChallenge(newId, name);
-        }
-      } catch (e) {
-        console.warn('Failed to schedule alarms for new group challenge', e);
-      }
-      Alert.alert('Success', 'Challenge created successfully', [
-        { text: 'OK', onPress: () => navigation.navigate('GroupDetails', { groupId, groupMembers }) },
-      ]);
-    } catch (err: any) {
-      Alert.alert('Error', err.message);
-    }
+    navigation.navigate('PersChall3', {
+                first_possible_start_date: toLocalYMD(nextAlarmDate),
+                name,
+                alarm_schedule: alarmSchedule,
+                game_schedule: gameSchedules,
+                chall_type: 'Personal'
+            })
   
   }
 
@@ -499,14 +385,11 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
                   style={styles.addGameButton}
                   onPress={() => {
                     navigation.navigate("Categories", {
-                      groupId,
-                      groupMembers,
-                      catType: "Group",
+                      catType: "Personal",
+                      singOrMult: "Singleplayer",
                       onGameSelected: (game: { id: number; name: string }) => {
                         handleGameAdd(game)
                       },
-                      challId: null,
-                      challName: null
                     })
                   }}
                 >
@@ -522,98 +405,17 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
             </View>
           )}
 
-          <View style={styles.formSection}>
-            <View style={styles.rewardHeader}>
-              <Text style={styles.sectionTitle}>Set Reward</Text>
-              <TouchableOpacity style={{marginLeft:6, marginBottom: 13}} onPress={showRewardInfo}>
-                <Ionicons name="help-circle-outline" size={22} color="#FFD700" />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.choiceRow}>
-              {REWARD_TYPES.map(rt => (
-                <TouchableOpacity
-                  key={rt.key}
-                  style={[styles.choiceButton, rewardType === rt.key && styles.choiceButtonSelected]}
-                  onPress={() => setRewardType(rt.key as RewardTypeKey)}
-                >
-                  <Text style={[styles.choiceText, rewardType === rt.key && styles.choiceTextSelected]}>{rt.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            {(rewardType === 'money' || rewardType === 'points') && (
-              <TextInput
-                style={[styles.input, { marginTop: 10 }]}
-                placeholder="Amount"
-                placeholderTextColor="rgba(255,255,255,0.6)"
-                keyboardType="numeric"
-                value={rewardAmount}
-                onChangeText={setRewardAmount}
-              />
-            )}
-            {rewardType === 'custom' && (
-              <TextInput
-                style={[styles.input, { marginTop: 10 }]}
-                placeholder="Describe reward"
-                placeholderTextColor="rgba(255,255,255,0.6)"
-                value={rewardNote}
-                onChangeText={setRewardNote}
-              />
-            )}
-          </View>
 
-          <View style={styles.formSection}>
-            <Text style={styles.sectionTitle}>End Date</Text>
-            <Text style={styles.dateDisplay}>{formatDate(selectedDate)}</Text>
-            
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => setShowDatePicker(true)}
-            >
-              <LinearGradient
-                colors={["rgba(255, 255, 255, 0.2)", "rgba(255, 255, 255, 0.1)"]}
-                style={styles.buttonGradient}
-              >
-                <Ionicons name="calendar-outline" size={20} color="#FFF" style={styles.buttonIcon} />
-                <Text style={styles.buttonText}>Select Date</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            {showDatePicker && (
-              <View style={styles.pickerContainer}>
-                <DateTimePicker
-                  value={selectedDate}
-                  mode="date"
-                  display="spinner"
-                  onChange={onDateChange}
-                  textColor="#FFF"
-                />
-                {/* <TouchableOpacity
-                  style={styles.doneButton}
-                  onPress={() => setShowDatePicker(false)}
-                >
-                  <Text style={styles.doneButtonText}>Done</Text>
-                </TouchableOpacity> */}
-                {Platform.OS !== "android" && (
-                  <TouchableOpacity
-                    style={styles.doneButton}
-                    onPress={() => setShowDatePicker(false)}
-                  >
-                    <Text style={styles.doneButtonText}>Done</Text>
-                  </TouchableOpacity>
-                )}  
-              </View>
-            )}
-          </View>
 
           <TouchableOpacity
             style={styles.createButton}
-            onPress={handleCreateChallenge}
+            onPress={handleNext}
           >
             <LinearGradient
               colors={["#FFD700", "#FFC107"]}
               style={styles.createButtonGradient}
             >
-              <Text style={styles.createButtonText}>Create Challenge</Text>
+              <Text style={styles.createButtonText}>Next</Text>
             </LinearGradient>
           </TouchableOpacity>
         </ScrollView>
@@ -910,4 +712,4 @@ const styles = StyleSheet.create({
   },
 })
 
-export default GroupChall2
+export default PersChall2Copy

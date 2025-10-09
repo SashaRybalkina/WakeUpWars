@@ -106,6 +106,7 @@ class ChallengeSummarySerializer(serializers.ModelSerializer):
 class PendingPublicChallengeSummarySerializer(serializers.ModelSerializer):
     daysOfWeek = serializers.SerializerMethodField()
     numParticipants = serializers.SerializerMethodField()
+    # participants = serializers.SerializerMethodField()
     categories = serializers.SerializerMethodField()
     averageSkillLevel = serializers.SerializerMethodField()
 

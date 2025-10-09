@@ -1,4 +1,4 @@
-import stripe
+from rest_framework.permissions import AllowAny
 from django.conf import settings
 from datetime import timezone, datetime, date, timedelta
 from datetime import date as date_cls, timedelta
@@ -33,7 +33,7 @@ from .serializers import (UserSerializer, RegisterSerializer, GroupSerializer, U
 from .models import (Group, Notification, PersonalChallengeInvite, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule,
                      AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest,
                      SkillLevel, PendingGroupChallengeAvailability, GroupChallengeInvite, WordleMove, PublicChallengeConfiguration,
-                     UserAvailability, PublicChallengeCategoryAssociation)
+                     PublicChallengeCategoryAssociation, UserAvailability)
 from django.http import JsonResponse
 from typing     import Dict, List
 from rest_framework.exceptions import ValidationError
@@ -67,56 +67,16 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 WORD_LIST = words
 
-stripe.api_key = settings.STRIPE_API_KEY
 
-# Create a PaymentIntent for $5
-class CreatePaymentIntentView(APIView):
-    def post(self, request):
-        intent = stripe.PaymentIntent.create(
-            amount=500,
-            currency="usd",
-            payment_method_types=["card"],
-            transfer_data={
-                "destination": "acct_1SBSqXDASBcnomPt"
-            }
-        )
-        return Response({"client_secret": intent.client_secret})
-    
-
-# @csrf_exempt
-# def create_payment_intent(request):
-#     data = json.loads(request.body)
-    
-#     intent = stripe.PaymentIntent.create(
-#         amount=500,
-#         currency="usd",
-#         payment_method_types=["card"],
-#         transfer_data={
-#             "destination": "acct_1SBSqXDASBcnomPt"  # hard coded winner account id for now
-#         }
-#     )
-#     return JsonResponse({"client_secret": intent.client_secret})
+# class GetUserInfoView(APIView):
+    # def get(self, request):
+    #     return Response(UserSerializer(request.user).data)
 
 
-# # Transfer to winner (after challenge ends)
-# @csrf_exempt
-# def transfer_to_winner(request):
-#     data = json.loads(request.body)
-#     winner_account_id = data.get("winner_account_id")  # e.g., "acct_1AbCxyz"
-    
-#     # For sandbox demo, just hardcode the amount
-#     transfer = stripe.Transfer.create(
-#         amount=500,  # cents
-#         currency="usd",
-#         destination=winner_account_id,
-#     )
-#     return JsonResponse({"transfer_id": transfer.id})
-
-
-@ensure_csrf_cookie
-def get_csrf_token(request):
-    token = get_token(request)
-    return JsonResponse({'csrfToken': token})
+# @ensure_csrf_cookie
+# def get_csrf_token(request):
+#     token = get_token(request)
+#     return JsonResponse({'csrfToken': token})
 
 
 class SetChallAvailabilityView(APIView):
@@ -207,7 +167,7 @@ class GetAvailabilitiesView(APIView):
             chall_id=chall_id
         ).select_related('uID')
 
-        data = [
+        availabilitiesData = [
             {
                 "uID": entry.uID.id,
                 "name": entry.uID.name,
@@ -217,7 +177,45 @@ class GetAvailabilitiesView(APIView):
             for entry in availabilities
         ]
 
-        return Response(data, status=status.HTTP_200_OK)
+        games_by_day = {}
+        games_qs = (
+            GameScheduleGameAssociation.objects
+            .filter(game_schedule__challenge_id=chall_id)
+            .select_related("game_schedule", "game")
+            .order_by("game_schedule__dayOfWeek", "game_order")
+        )
+
+        for g in games_qs:
+            day = g.game_schedule.dayOfWeek
+            games_by_day.setdefault(day, []).append({
+                "id": g.game.id,
+                "name": g.game.name,
+                "order": g.game_order,
+            })
+
+        schedule = []
+        all_days = set(games_by_day.keys())
+        for day in sorted(all_days):
+            schedule.append({
+                "dayOfWeek": day,
+                "games": games_by_day.get(day, [])
+            })
+
+
+        challenge = Challenge.objects.get(id=chall_id)
+        initiator_id = challenge.initiator_id
+
+        print(schedule)
+        print(initiator_id)
+
+        return Response({
+            "availabilities": availabilitiesData,
+            "gameSchedule": schedule,
+            "initiator_id": initiator_id,
+            "start_date": challenge.startDate
+        }, status=status.HTTP_200_OK)
+
+        
     
 
 class GetUserAvailabilityView(APIView):
@@ -238,35 +236,18 @@ class GetUserAvailabilityView(APIView):
 
 
 
-# class LoginView(APIView):
-#     def post(self, request):
-#         print("Request data:", request.data)
-#         username = request.data.get('username')
-#         password = request.data.get('password')
+# # class LoginView(APIView):
+# #     def post(self, request):
+# #         print("Request data:", request.data)
+# #         username = request.data.get('username')
+# #         password = request.data.get('password')
 class LoginView(APIView):
-    def post(self, request):
-        print("Request data:", request.data)
-        username = request.data.get('username')
-        password = request.data.get('password')
-
-        try:
-            user = User.objects.get(username=username)
-        except User.DoesNotExist:
-            return Response({'success': False, 'error': 'Username does not exist'}, status=status.HTTP_404_NOT_FOUND)
-
-        if not user.check_password(password):
-            return Response({'success': False, 'error': 'Incorrect password'}, status=status.HTTP_401_UNAUTHORIZED)
-
-        if not user.is_active:
-            return Response({'success': False, 'error': 'Account is inactive'}, status=status.HTTP_403_FORBIDDEN)
-
-        # This sets the session cookie
-        login(request, user)
-
-        serializer = UserSerializer(user)
+    def get(self, request):
+        serializer = UserSerializer(request.user)
         return Response({'success': True, **serializer.data})
 
 class RegisterView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         if not serializer.is_valid():
@@ -361,9 +342,13 @@ class SomeCatsListView(APIView):
 
 class GameListView(APIView):
     def get(self, request, cat_id, sing_or_mult):
+        print(sing_or_mult)
         isMult = True
         if sing_or_mult == "Singleplayer":
             isMult = False
+        elif sing_or_mult == 'Neither':
+            isMult = None
+        print(isMult)
         games = Game.objects.filter(category_id=cat_id, isMultiplayer=isMult)
         serializer = GameSerializer(games, many=True)
         return Response(serializer.data)
@@ -429,6 +414,7 @@ class GetChallengeInvitesView(APIView):
             {
                 "id": invite.chall.id,
                 "name": invite.chall.name,
+                "startDate": invite.chall.startDate,
                 "endDate": invite.chall.endDate,
                 "accepted": invite.accepted
             }
@@ -491,8 +477,12 @@ class JoinPublicChallengeView(APIView):
             # --- add membership ---
             ChallengeMembership.objects.get_or_create(
                 challengeID=challenge,
-                uID=user
+                uID=user,
+                hasSetAlarms=True # TODO: change this later
             )
+
+            challenge.isPending = False
+            challenge.save()
 
             # --- update challenge average skill ---
             cfg = PublicChallengeConfiguration.objects.get(challenge=challenge)
@@ -513,7 +503,7 @@ class JoinPublicChallengeView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
-
+# should no longer be called
 class FinalizePublicChallengeView(APIView):
     def post(self, request):
         try:
@@ -616,6 +606,37 @@ class AddGroupMemberView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+class GetHasSetAlarmsView(APIView):
+    def get(self, request, chall_id, user_id):
+        membership = ChallengeMembership.objects.filter(
+            challengeID_id=chall_id,
+            uID_id=user_id
+        ).first()  # returns None if not found
+
+        has_set_alarms = membership.hasSetAlarms if membership else False
+
+        return Response({"hasSetAlarms": has_set_alarms}, status=status.HTTP_200_OK)
+
+
+
+class SetUserHasSetAlarmsView(APIView):
+    def post(self, request, chall_id, user_id):
+        membership = get_object_or_404(
+            ChallengeMembership,
+            challengeID_id=chall_id,
+            uID_id=user_id
+        )
+
+        membership.hasSetAlarms = True
+        membership.save()
+
+        return Response(
+            {"message": "Marked alarm set in backend"},
+            status=status.HTTP_200_OK
+        )
+
         
 
 
@@ -864,7 +885,7 @@ class GetMatchingChallengesView(APIView):
         
 class ChallengeListView(APIView):
     def get(self, request, user_id, which_chall):
-        print("heeere")
+        # print("heeere")
         # TODO: consider only fetching non-pending challenges
         if which_chall == 'Group':
             group_ids = GroupMembership.objects.filter(uID=user_id).values_list('groupID', flat=True)
@@ -1062,10 +1083,90 @@ class GetChallengeScheduleView(APIView):
         return Response({
             "id": challenge.id,
             "name": challenge.name,
+            "groupId": challenge.groupID_id,
+            "isPublic": challenge.isPublic,
             "startDate": challenge.startDate,
             "endDate": challenge.endDate,
             "totalDays": challenge.totalDays,
+            "isPending": challenge.isPending,
             "members": members,
+            "schedule": schedule
+        }, status=status.HTTP_200_OK)
+    
+
+class GetChallengeUserScheduleView(APIView):
+    def get(self, request, chall_id, user_id):
+        # print("DEBUG GetChallengeUserScheduleView:", chall_id, user_id)
+        # Get the challenge
+        try:
+            challenge = Challenge.objects.get(id=chall_id)
+        except Challenge.DoesNotExist:
+            return Response({'error': 'Challenge not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+        alarm_schedules = (
+            AlarmSchedule.objects
+            .filter(
+                uID_id=user_id,
+                challengealarmschedule__challenge_id=chall_id
+            )
+            .order_by("dayOfWeek", "alarmTime")
+            .values("dayOfWeek", "alarmTime")
+        )
+
+        days_list = sorted({s["dayOfWeek"] for s in alarm_schedules})
+
+        # alarm_schedules → [{"dayOfWeek": 1, "alarmTime": "07:30:00"}, ...]
+        # days_list → [1, 3, 5]
+
+
+        # Collect games for the challenge, grouped by day
+        games_by_day = {}
+        games_qs = (
+            GameScheduleGameAssociation.objects
+            .filter(game_schedule__challenge_id=chall_id)
+            .select_related("game_schedule", "game")
+            .order_by("game_schedule__dayOfWeek", "game_order")
+        )
+        for g in games_qs:
+            day = g.game_schedule.dayOfWeek
+            # Prefer DB-provided route; fallback to name-based mapping
+            screen = (g.game.route or '').strip()
+            if not screen:
+                n = (g.game.name or '').lower()
+                if 'sudoku' in n:
+                    screen = 'Sudoku'
+                elif 'wordle' in n:
+                    screen = 'Wordle'
+                elif 'pattern' in n:
+                    screen = 'PatternGame'
+                else:
+                    screen = 'ChallDetails'
+
+            games_by_day.setdefault(day, []).append({
+                "id": g.game.id,
+                "name": g.game.name,
+                "order": g.game_order,
+                "screen": screen,
+            })
+
+        # Merge games + alarms into result
+        schedule = []
+        # all_days = set(alarms_by_day.keys()) | set(games_by_day.keys())
+        for s in alarm_schedules:
+            schedule.append({
+                "dayOfWeek": s["dayOfWeek"],
+                "alarmTime": s["alarmTime"],
+                "games": games_by_day.get(s["dayOfWeek"], [])
+            })
+
+
+        return Response({
+            "id": challenge.id,
+            "name": challenge.name,
+            "startDate": challenge.startDate,
+            "endDate": challenge.endDate,
+            "totalDays": challenge.totalDays,
             "schedule": schedule
         }, status=status.HTTP_200_OK)
 
@@ -1246,32 +1347,22 @@ class CreatePublicChallengeView(APIView):
                 name=data['name'],
                 groupID_id=None,
                 initiator_id=data['initiator_id'],
-                startDate=None,
-                endDate=None,
+                startDate=data['start_date'],
+                endDate=data['end_date'],
                 totalDays=data['total_days'],
                 isPublic=True,
                 isPending=True
             )
 
-            # ─── Reward config ──────────────────────────────
-            reward_data = data.get('reward')
-            if reward_data:
-                serializer_rs = RewardSettingSerializer(data=reward_data)
-                serializer_rs.is_valid(raise_exception=True)
-                RewardSetting.objects.create(
-                    challenge=challenge,
-                    **serializer_rs.validated_data,
-                )
-
-            # ─── Reward config ──────────────────────────────
-            reward_data = data.get('reward')
-            if reward_data:
-                serializer_rs = RewardSettingSerializer(data=reward_data)
-                serializer_rs.is_valid(raise_exception=True)
-                RewardSetting.objects.create(
-                    challenge=challenge,
-                    **serializer_rs.validated_data,
-                )
+            # # ─── Reward config ──────────────────────────────
+            # reward_data = data.get('reward')
+            # if reward_data:
+            #     serializer_rs = RewardSettingSerializer(data=reward_data)
+            #     serializer_rs.is_valid(raise_exception=True)
+            #     RewardSetting.objects.create(
+            #         challenge=challenge,
+            #         **serializer_rs.validated_data,
+            #     )
 
             # Add membership
             ChallengeMembership.objects.create(
@@ -1342,6 +1433,8 @@ class CreatePublicChallengeView(APIView):
             return Response({'message': 'Challenge created successfully', 'challenge_id': challenge.id}, status=status.HTTP_201_CREATED)
 
         except Exception as e:
+            print("Exception creating public challenge:")
+            traceback.print_exc()
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
 
@@ -1373,8 +1466,8 @@ class CreatePendingCollaborativeGroupChallengeView(APIView):
                     name=data['name'],
                     groupID_id=data['group_id'],
                     initiator_id=data['initiator_id'],
-                    startDate=None,
-                    endDate=None,
+                    startDate=data['start_date'],
+                    endDate=data['end_date'],
                     totalDays=data['total_days'],
                     isPublic=False,
                     isPending=True,
@@ -1384,17 +1477,17 @@ class CreatePendingCollaborativeGroupChallengeView(APIView):
                 raise
 
 
-            # ─── Reward config ──────────────────────────────
-            reward_data = data.get('reward')
-            if reward_data:
-                serializer_rs = RewardSettingSerializer(data=reward_data)
-                serializer_rs.is_valid(raise_exception=True)
-                RewardSetting.objects.create(
-                    challenge=challenge,
-                    **serializer_rs.validated_data,
-                )
+            # # ─── Reward config ──────────────────────────────
+            # reward_data = data.get('reward')
+            # if reward_data:
+            #     serializer_rs = RewardSettingSerializer(data=reward_data)
+            #     serializer_rs.is_valid(raise_exception=True)
+            #     RewardSetting.objects.create(
+            #         challenge=challenge,
+            #         **serializer_rs.validated_data,
+            #     )
 
-            print("here1")
+
             # Add inititor membership
             ChallengeMembership.objects.create(
                 challengeID=challenge,
@@ -1417,6 +1510,20 @@ class CreatePendingCollaborativeGroupChallengeView(APIView):
             ]
             PendingGroupChallengeAvailability.objects.bulk_create(availability_entries)
             print("here2")
+
+
+            # Game schedules
+            for g_sched in data['game_schedules']:
+                game_schedule = GameSchedule.objects.create(
+                    challenge=challenge,
+                    dayOfWeek=g_sched['dayOfWeek']
+                )
+                for game in g_sched['games']:
+                    GameScheduleGameAssociation.objects.create(
+                        game_schedule=game_schedule,
+                        game_id=game['id'],
+                        game_order=game['order']
+                    )
 
             # create invites for everyone (accepted = 2 means neither accepted nor declined, 1 
             # means accepted, 0 means declined)
@@ -1496,6 +1603,7 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
             return assignment
 
         final_schedule = defaultdict(list)  # {day: [(User, minutes), ...]}
+        day_game_type_mapping = defaultdict(list)  # {day: multiplayer/singleplayer, ...}
 
         for day, entries in valid_days.items():
             # group times per user
@@ -1507,11 +1615,13 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
             common_times = set.intersection(*user_times.values())
 
             if common_times:
+                day_game_type_mapping[day] = 0 # 0 for multiplayer, 1 for singleplayer
                 # pick the earliest shared time
                 chosen_time = min(common_times)
                 for user in users_in_challenge:
                     final_schedule[day].append((user, chosen_time))
             else:
+                day_game_type_mapping[day] = 1
                 # assign each user the time closest to the group’s median
                 user_assignments = heuristic_assignment(user_times)
                 for user, minutes in user_assignments.items():
@@ -1519,9 +1629,29 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
         
         print(final_schedule)
 
+        default_to_multiplayer = {43: 10, 44: 12, 45: 30}
+        default_to_singleplayer = {43: 9, 44: 11, 45: 32}
+
         # Persist everything atomically
         try:
             with transaction.atomic():
+                # create the game schedule
+                # on days where everyone is waking up at same time, choose multiplayer version of the
+                # chosen game, otherwise singleplayer
+                for day, singOrMult in day_game_type_mapping.items():
+                    gsgas = GameScheduleGameAssociation.objects.filter(
+                        game_schedule__challenge_id=chall_id,
+                        game_schedule__dayOfWeek=day
+                    )
+                    for gsga in gsgas:
+                        if singOrMult == 0: # if multiplayer
+                            newGame = get_object_or_404(Game, id=default_to_multiplayer[gsga.game.id])
+                        else:
+                            newGame = get_object_or_404(Game, id=default_to_singleplayer[gsga.game.id])
+                        gsga.game = newGame
+                        gsga.save(update_fields=["game"])
+
+
                 created_schedules = []
                 for day, user_time_pairs in final_schedule.items():
                     for user, minutes in user_time_pairs:
@@ -1542,44 +1672,9 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
                             }
                         )
 
-                # make the challenge no longer pending
-                # --- choose earliest feasible start-date (today counts only if a future alarm remains) ---
-                from collections import defaultdict
-                day_to_times: Dict[int, List[time]] = defaultdict(list)
-                for d, pairs in final_schedule.items():
-                    for _user, minutes in pairs:
-                        # minutes is an int; convert back to time
-                        day_to_times[d].append( (datetime.min + timedelta(minutes=minutes)).time() )
 
-                scheduled_days = sorted(day_to_times.keys())
-
-                today = timezone.localdate()
-                now   = timezone.localtime().time()
-
-                start_date: date | None = None
-                for offset in range(7):                      # look at most one week ahead
-                    cand_date = today + timedelta(days=offset)
-                    cand_dow  = cand_date.isoweekday()       # 1 (Mon) .. 7 (Sun)
-
-                    if cand_dow not in scheduled_days:
-                        continue
-
-                    todays_times = day_to_times[cand_dow]
-                    if offset == 0 and all(t < now for t in todays_times):
-                        # All of today’s alarms are in the past → skip today
-                        continue
-
-                    start_date = cand_date
-                    break
-
-                if start_date is None:   # safety-net – shouldn’t happen
-                    start_date = today
-
-                challenge.startDate = start_date
-
-                challenge.endDate = challenge.startDate + timedelta(days=challenge.totalDays - 1)
                 challenge.isPending = False
-                challenge.save(update_fields=["isPending", "startDate", "endDate"])
+                challenge.save(update_fields=["isPending"])
 
                 # delete all invites
                 GroupChallengeInvite.objects.filter(chall=challenge).delete()
@@ -1806,7 +1901,7 @@ class CreatePersonalChallengeView(APIView):
                 totalDays=total_days
             )
 
-            ChallengeMembership.objects.create(challengeID=challenge, uID_id=user_id)
+            ChallengeMembership.objects.create(challengeID=challenge, uID_id=user_id, hasSetAlarms=True)
 
             # Create alarms
             for sched in data['alarm_schedule']:
@@ -1833,7 +1928,8 @@ class CreatePersonalChallengeView(APIView):
                         game_order=game['order']
                     )
 
-            return Response({'message': 'Personal challenge created successfully'}, status=status.HTTP_201_CREATED)
+            # print(challenge.isCompleted)
+            return Response({'message': 'Personal challenge created successfully', 'challenge_id': challenge.id}, status=status.HTTP_201_CREATED)
 
         except Exception as e:
             traceback.print_exc()
@@ -1972,7 +2068,7 @@ class CreateWordleGameView(APIView):
 
                 # Add info to response
                 game_data["game_id"] = state.game_id
-                game_data["answer"] = state.answer  # ⚠️ careful: in real multiplayer you may NOT want to send this to everyone
+                game_data["answer"] = state.answer  # careful: in real multiplayer you may NOT want to send this to everyone
         except WordleGameState.DoesNotExist:
             pass
 

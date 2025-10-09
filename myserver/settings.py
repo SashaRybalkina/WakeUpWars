@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
 import os
 
 
@@ -114,6 +115,21 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
+    )
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),   # default 15 minutes
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),     # default 7 days
+}
+
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
@@ -160,5 +176,3 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 MEDIA_URL  = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
-
-STRIPE_API_KEY = "REDACTEDtest_51SBSkXRUviiaQCLomgy86pcSbqL5mU6K6Qlz6iEiuiPQknCqwM2hLNP0o0RQF91TdA86VjkbFLk9YVCVU8Wjh7In00JqlxVuWa"
