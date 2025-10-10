@@ -12,7 +12,6 @@ import { NavigationProp, useRoute } from '@react-navigation/native';
 
 import { BASE_URL, endpoints } from '../../api';
 import { useUser } from '../../context/UserContext';
-import { evaluateGuess, GuessResult, isWinningGuess } from './WordleHelper';
 import { getAccessToken } from "../../auth";
 // import { NativeModules } from "react-native";
 // const { AlarmModule } = NativeModules;
@@ -91,7 +90,6 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
     [player: string]: { evaluation: GuessResult[]; attempt: number };
   }>({});
   const [submittedRows, setSubmittedRows] = useState<Set<number>>(new Set());
-  const [csrfToken, setCsrfToken] = useState<string | null>(null);
   const [players, setPlayers] = useState<string[]>([]);
 
   // 🔄 Reset game
@@ -256,13 +254,18 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
     console.log(`[Wordle] Submitting guess row=${selectedRow}, guess="${guess}"`);
 
     try {
+      const accessToken = await getAccessToken(); // ✅ get token before request
+      if (!accessToken) {
+        console.error("[Wordle] No access token found");
+        return;
+      }
+
       const res = await fetch(endpoints.validateWordleMove, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': csrfToken ?? '',
+          'Authorization': `Bearer ${accessToken}`, // ✅ changed here
         },
-        credentials: 'include',
         body: JSON.stringify({
           game_state_id: gameStateId,
           row: selectedRow,
