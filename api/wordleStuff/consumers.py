@@ -37,17 +37,31 @@ class WordleConsumer(AsyncWebsocketConsumer):
                 'player': self.user.username,
             }
         )
+        await self.channel_layer.group_send(
+            self.group_name,
+            {
+                'type': 'player.list.update',
+                'players': all_players,
+            }
+        )
         print(f"[WebSocket][BROADCAST] {self.user.username} joined game_state={self.game_state_id}")
+    
+    async def player_list_update(self, event):
+        print(f"[WebSocket][PLAYER LIST UPDATE] sending new list to {self.user.username}: {event['players']}")
+        await self.send(text_data=json.dumps({
+            'type': 'player_list',
+            'players': event['players'],
+        }))
 
     async def disconnect(self, close_code):
         username = self.user.username
         print(f"[WebSocket][DISCONNECT] user={username} left game_state={self.game_state_id} (code={close_code})")
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
-        # remove player from db
+        # Remove player from DB
         await self.remove_player()
 
-        # Broadcast: notify others that a player has left
+        # Notify others that a player has left
         await self.channel_layer.group_send(
             self.group_name,
             {
@@ -56,11 +70,22 @@ class WordleConsumer(AsyncWebsocketConsumer):
             }
         )
 
-        # If no players remain, clean up game state
+        # Get updated player list
         remaining_players = await self.get_all_players()
+
+        # 🌟 Broadcast the updated player list to everyone still in the game
+        await self.channel_layer.group_send(
+            self.group_name,
+            {
+                'type': 'player.list.update',
+                'players': remaining_players,
+            }
+        )
+
+        # If no players remain, clean up game state
         if not remaining_players:
             print(f"[WebSocket][CLEANUP] All players left. Cleaning up game_state={self.game_state_id}")
-            await self.cleanup_game()
+            #await self.cleanup_game()
 
 
 

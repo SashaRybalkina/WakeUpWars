@@ -172,7 +172,7 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
           }
 
           if (msg.type === 'player_left') {
-            setPlayers((prev) => prev.filter((p) => p !== msg.player));
+            console.log(`[WebSocket] Player left: ${msg.player}`);
           }
 
           if (msg.type === 'game_complete') {
@@ -192,11 +192,23 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  // 🧽 Cleanup socket on unmount
   useEffect(() => {
     if (first) {
       initGame();
       setFirst(false);
     }
+
+    return () => {
+      if (socket) {
+        console.log('[WebSocket] closing on unmount...');
+        socket.close();
+      }
+    };
+  }, [socket]);
+  
+  // ⏳ Timer
+  useEffect(() => {
     if (gameOver) return;
 
     const timer = setInterval(() => {
@@ -229,12 +241,6 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
     console.log(`[Wordle] Submitting guess row=${selectedRow}, guess="${guess}"`);
 
     try {
-      // const token = await fetch(`${BASE_URL}/api/csrf-token/`, {
-      //   credentials: 'include',
-      // });
-      // const tokenData = await token.json();
-      // const csrfToken = tokenData.csrfToken;
-
       const res = await fetch(endpoints.validateWordleMove, {
         method: 'POST',
         headers: {
