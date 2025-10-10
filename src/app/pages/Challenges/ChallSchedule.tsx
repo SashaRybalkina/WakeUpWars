@@ -49,10 +49,10 @@ const ChallSchedule = ({ navigation }: { navigation: NavigationProp<any> }) => {
     isInitiator: boolean,
   }
 
-  const [startDate, setStartDate] = useState<Date | null>(null)
-  const [endDate, setEndDate] = useState<Date | null>(null)
-  const [selectedStartDate, setSelectedStartDate] = useState<Date>(new Date())
-  const [selectedEndDate, setSelectedEndDate] = useState<Date>(new Date())
+  const [startDate, setStartDate] = useState<string>()
+  const [endDate, setEndDate] = useState<string>()
+  // const [selectedStartDate, setSelectedStartDate] = useState<Date>(new Date())
+  // const [selectedEndDate, setSelectedEndDate] = useState<Date>(new Date())
   const [showStartDatePicker, setShowStartDatePicker] = useState(false)
   const [showEndDatePicker, setShowEndDatePicker] = useState(false)
   const [hasSetAlarms, setHasSetAlarms] = useState<boolean>()
@@ -113,10 +113,10 @@ useEffect(() => {
       if (data.startDate) {
         // const startDateParts = data.startDate.split("-").map(Number)
         // const startDate = new Date(startDateParts[0], startDateParts[1] - 1, startDateParts[2])
-        setStartDate(parseLocalDate(data.startDate))
+        setStartDate(data.startDate)
       }
       if (data.endDate) {
-        setEndDate(parseLocalDate(data.endDate))
+        setEndDate(data.endDate)
       }
 
       setMembers(data.members)
@@ -153,21 +153,21 @@ useEffect(() => {
 }, [])
 
 
-  const onStartDateChange = (event: any, date?: Date) => {
-    if (event?.type === "dismissed") return setShowStartDatePicker(false)
-    if (date) {
-      setSelectedStartDate(date)
-      if (Platform.OS === "android") setShowStartDatePicker(false)
-    }
-  }
+  // const onStartDateChange = (event: any, date?: Date) => {
+  //   if (event?.type === "dismissed") return setShowStartDatePicker(false)
+  //   if (date) {
+  //     setSelectedStartDate(date)
+  //     if (Platform.OS === "android") setShowStartDatePicker(false)
+  //   }
+  // }
 
-  const onEndDateChange = (event: any, date?: Date) => {
-    if (event?.type === "dismissed") return setShowEndDatePicker(false)
-    if (date) {
-      setSelectedEndDate(date)
-      if (Platform.OS === "android") setShowEndDatePicker(false)
-    }
-  }
+  // const onEndDateChange = (event: any, date?: Date) => {
+  //   if (event?.type === "dismissed") return setShowEndDatePicker(false)
+  //   if (date) {
+  //     setSelectedEndDate(date)
+  //     if (Platform.OS === "android") setShowEndDatePicker(false)
+  //   }
+  // }
 
 
 const addGameToDay = async (game: { id: number; name: string }) => {
@@ -423,12 +423,12 @@ const getInitials = (name: string): string => {
             <View style={styles.dateSection}>
               <View style={styles.dateContainer}>
                 <Text style={styles.dateLabel}>Start date</Text>
-                <Text style={styles.dateValue}>{formatDate(startDate)}</Text>
+                <Text style={styles.dateValue}>{startDate}</Text>
               </View>
 
               <View style={styles.dateContainer}>
                 <Text style={styles.dateLabel}>End date</Text>
-                <Text style={styles.dateValue}>{formatDate(selectedEndDate)}</Text>
+                <Text style={styles.dateValue}>{endDate}</Text>
               </View>
             </View>
           )}

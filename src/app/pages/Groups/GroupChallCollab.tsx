@@ -27,7 +27,8 @@ type Props = { navigation: NavigationProp<any> }
 // Config 
 const DAYS = ["M", "T", "W", "TH", "F", "S", "SU"]
 // const TIMES = Array.from({ length: 12 }, (_, i) => `${i + 6}:00`); // 6am - 5pm 
-const TIMES = Array.from({ length: 44 }, (_, i) => {
+
+const TIMES = Array.from({ length: 80 }, (_, i) => {
   const totalMinutes = 4 * 60 + i * 15; // start at 4:00
   const hours24 = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
@@ -37,6 +38,17 @@ const TIMES = Array.from({ length: 44 }, (_, i) => {
 
   return `${hours12}:${String(minutes).padStart(2, "0")} ${period}`;
 });
+
+// const TIMES = Array.from({ length: 44 }, (_, i) => {
+//   const totalMinutes = 4 * 60 + i * 15; // start at 4:00
+//   const hours24 = Math.floor(totalMinutes / 60);
+//   const minutes = totalMinutes % 60;
+
+//   const period = hours24 >= 12 ? "PM" : "AM";
+//   const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
+
+//   return `${hours12}:${String(minutes).padStart(2, "0")} ${period}`;
+// });
 
 
 type SelectedCell = { day: number; time: number }; // day: 0-6, time: 0-11 

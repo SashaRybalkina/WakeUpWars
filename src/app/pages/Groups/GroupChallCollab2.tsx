@@ -119,17 +119,18 @@ const GroupChallCollab2: React.FC<Props> = ({ navigation }) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // normalize to start of today
 
-    for (let i = 1; i <= 7; i++) { // check the next 7 days
-        const candidate = new Date(today);
-        candidate.setDate(today.getDate() + i);
+    // for (let i = 1; i <= 7; i++) { // check the next 7 days
+    //     const candidate = new Date(today);
+    //     candidate.setDate(today.getDate() + i);
 
-        const jsDay = candidate.getDay(); // 0 = Sunday, 1 = Monday, ...
-        const dayOfWeek = jsDay === 0 ? 7 : jsDay; // convert to 1–7
+    //     const jsDay = candidate.getDay(); // 0 = Sunday, 1 = Monday, ...
+    //     const dayOfWeek = jsDay === 0 ? 7 : jsDay; // convert to 1–7
 
-        if (alarmDays.includes(dayOfWeek)) {
-        return candidate;
-        }
-    }
+    //     if (alarmDays.includes(dayOfWeek)) {
+    //     return candidate;
+    //     }
+    // }
+    return today
 
     // fallback, should never reach here if alarmDays is not empty
     throw new Error("No valid alarm days provided");
