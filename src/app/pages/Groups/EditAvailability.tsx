@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { scheduleAlarms } from '../../Alarm';
+import { Dimensions } from 'react-native';
+
 import {
   View,
   Text,
@@ -18,6 +20,7 @@ import { scheduleAlarmsForUser } from '../../alarmService';
 
 const DAYS = ["M", "T", "W", "TH", "F", "S", "SU"];
 const DayOfWeekLabels: Record<number, string> = { 1: "M", 2: "T", 3: "W", 4: "TH", 5: "F", 6: "S", 7: "SU" }
+
 // Zero-pad to match API format like "06:00"
 // const TIMES = Array.from({ length: 12 }, (_, i) => `${String(i + 6).padStart(2, '0')}:00`);
 
@@ -31,7 +34,20 @@ const DayOfWeekLabels: Record<number, string> = { 1: "M", 2: "T", 3: "W", 4: "TH
 
 //   return `${hours12}:${String(minutes).padStart(2, "0")} ${period}`;
 // });
-const TIMES = Array.from({ length: 44 }, (_, i) => {
+
+
+// const TIMES = Array.from({ length: 61 }, (_, i) => {
+//   const totalMinutes = 4 * 60 + i * 15; // start at 4:00
+//   const hours24 = Math.floor(totalMinutes / 60);
+//   const minutes = totalMinutes % 60;
+
+//   const period = hours24 >= 12 ? "PM" : "AM";
+//   const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
+
+//   return `${hours12}:${String(minutes).padStart(2, "0")} ${period}`;
+// });
+
+const TIMES = Array.from({ length: 80 }, (_, i) => {
   const totalMinutes = 4 * 60 + i * 15; // start at 4:00
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;

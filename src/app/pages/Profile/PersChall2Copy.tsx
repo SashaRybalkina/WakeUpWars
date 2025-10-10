@@ -78,32 +78,58 @@ const PersChall2Copy: React.FC<Props> = ({ navigation }) => {
   //   if (time) setTempTime(time)
   // }
 
-  // Android + IOS version
+  // // Android + IOS version
+  // const onTimeChange = (event: any, time?: Date) => {
+  //   if (event?.type === "dismissed") {
+  //     setShowTimePicker(false)
+  //     return
+  //   }
+  
+  //   if (time) {
+  //     if (Platform.OS === "android") {
+  //       let formattedTime = formatTime(time)
+  //       formattedTime = cleanTime(formattedTime)
+  
+  //       const updatedMapping = { ...dayTimeMapping }
+  //       selectedDays.forEach((day) => {
+  //         updatedMapping[day] = formattedTime
+  //       })
+  
+  //       setDayTimeMapping(updatedMapping)
+  //       setSelectedDays([])
+  //       setShowTimePicker(false)
+  //     } else {
+  //       // for ios
+  //       setTempTime(time)
+  //     }
+  //   }
+  // }
+
   const onTimeChange = (event: any, time?: Date) => {
+
+  if (Platform.OS === "android") {
     if (event?.type === "dismissed") {
-      setShowTimePicker(false)
-      return
+      setShowTimePicker(false);
+      return;
     }
-  
-    if (time) {
-      if (Platform.OS === "android") {
-        let formattedTime = formatTime(time)
-        formattedTime = cleanTime(formattedTime)
-  
-        const updatedMapping = { ...dayTimeMapping }
-        selectedDays.forEach((day) => {
-          updatedMapping[day] = formattedTime
-        })
-  
-        setDayTimeMapping(updatedMapping)
-        setSelectedDays([])
-        setShowTimePicker(false)
-      } else {
-        // for ios
-        setTempTime(time)
-      }
+    setShowTimePicker(false);
+
+    if (event?.type === "set" && time) {
+      let formattedTime = formatTime(time);
+      formattedTime = cleanTime(formattedTime);
+
+      const updatedMapping = { ...dayTimeMapping };
+      selectedDays.forEach((day) => {
+        updatedMapping[day] = formattedTime;
+      });
+
+      setDayTimeMapping(updatedMapping);
+      setSelectedDays([]);
+      // setShowTimePicker(false);
     }
   }
+};
+
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], {
