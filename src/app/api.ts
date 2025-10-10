@@ -1,4 +1,4 @@
-export const BASE_URL = 'https://960a95335fa2.ngrok-free.app';
+export const BASE_URL = 'https://a380e2debf50.ngrok-free.app';
 
 export const endpoints = {
   // getToken
@@ -80,7 +80,7 @@ export const endpoints = {
   createGroup: `${BASE_URL}/api/create-group/`,
   createSudokuGame: `${BASE_URL}/api/sudoku/create/`,
   validateSudokuMove: `${BASE_URL}/api/sudoku/validate/`,
-  createWordleGame: `${BASE_URL}/api/create-wordle/`,
+  createWordleGame: `${BASE_URL}/api/wordle/create/`,
   validateWordleMove: `${BASE_URL}/api/wordle/validate/`,
 
   createPersonalChallenge: `${BASE_URL}/api/create-personal-challenge/`,
@@ -108,8 +108,8 @@ export const endpoints = {
   declinePersonalChallenge: (userId: number, challId: number) =>`${BASE_URL}/api/decline-personal-challenge/${userId}/${challId}/`,
   shareChallenge: (challId?: number) =>
   challId
-    ? `${BASE_URL}/api/share-challenge/${challId}/` // copy模式
-    : `${BASE_URL}/api/share-challenge/`,          // new模式
+    ? `${BASE_URL}/api/share-challenge/${challId}/` 
+    : `${BASE_URL}/api/share-challenge/`,          
   notifications: (userId: number) => `${BASE_URL}/api/notifications/${userId}/`,
 };
 
