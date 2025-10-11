@@ -5,7 +5,7 @@ variables:
   # Prevents Django from using your production DB
   DATABASE_URL: "sqlite:///db.sqlite3"
   PYTHONPATH: "${CI_PROJECT_DIR}"
-  DJANGO_SETTINGS_MODULE: "api.settings"
+  DJANGO_SETTINGS_MODULE: "myserver.settings"
 
 # Cache dependencies to speed up CI
 cache:
@@ -22,7 +22,7 @@ test_backend:
     - python -m pip install --upgrade pip
     - python -m pip install -r requirements.txt
   script:
-    - python manage.py test api.tests
+    - python manage.py test api.tests --testrunner=xmlrunner.extra.djangotestrunner.XMLTestRunner --output-file=test-results.xml
   artifacts:
     when: always
     reports:
@@ -38,5 +38,5 @@ test_frontend:
     - npm run test:unit -- --ci --coverage
   artifacts:
     paths:
-      - coverage/
+      - src/coverage/
     when: always
