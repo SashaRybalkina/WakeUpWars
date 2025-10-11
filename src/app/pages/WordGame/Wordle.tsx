@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   ImageBackground,
@@ -91,6 +91,8 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
   }>({});
   const [submittedRows, setSubmittedRows] = useState<Set<number>>(new Set());
   const [players, setPlayers] = useState<string[]>([]);
+  const hasShownResultRef = useRef(false);
+  const [isMultiplayer, setIsMultiplayer] = useState(false);
 
   // 🔄 Reset game
   const resetGame = () => {
@@ -103,6 +105,7 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
     setTimeLeft(300);
     setGameOver(false);
     setOpponentRows({});
+    hasShownResultRef.current = false;
     initGame();
   };
 
@@ -150,6 +153,7 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
 
       const { game_state_id, is_multiplayer } = data;
       setGameStateId(game_state_id);
+      setIsMultiplayer(is_multiplayer);
 
       //console.log(`[Wordle] Challenge=${challengeId}, game_state_id=${game_state_id}, answer=${answer}`);
 
@@ -189,11 +193,29 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
           }
 
           if (msg.type === 'game_complete') {
+            if (hasShownResultRef.current) return; // prevent multiple alerts
+            
+            const myScore = msg.scores.find(s => s.username === user?.username);
+            const topScore = Math.max(...msg.scores.map(s => s.score));
+            const isWinner = myScore?.score === topScore;
+            console.log("[DEBUG] Winner check", {
+              user: user?.username,
+              myScore,
+              topScore,
+              isWinner
+            });
             console.log('[WebSocket] Game complete:', msg.scores);
             Alert.alert(
-              '🏆 Game Over',
-              msg.scores.map((s) => `${s.username}: ${s.score}`).join('\n')
+              isWinner ? '🏆 You Win!' : '❌ Game Over',
+              msg.scores.map(s => `${s.username}: ${s.score}`).join('\n'),
+              [
+                {
+                  text: 'OK',                 
+                  onPress: () => navigation.goBack(), 
+                },
+              ],
             );
+            hasShownResultRef.current = true;
           }
         };
 
@@ -302,19 +324,23 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
 
       if (data.is_correct || data.is_complete) {
         setGameOver(true);
+        
 
-         const leaderboard = data.scores
-          ?.map((p: { username: string; score: number }) => `${p.username}: ${p.score}`)
-          .join('\n') || 'No scores yet';
+        if (!hasShownResultRef.current) {
+          const leaderboard = data.scores
+            ?.map((p: { username: string; score: number }) => `${p.username}: ${p.score}`)
+            .join('\n') || 'No scores yet';
 
-        Alert.alert(
-          data.is_correct ? '🎉 You Win!' : '❌ Game Over',
-          `Leaderboard:\n${leaderboard}`,
-          [
-            { text: 'Play Again', onPress: resetGame },
-            { text: 'Exit', onPress: () => navigation.goBack() },
-          ],
-        );
+          Alert.alert(
+            data.is_correct ? '🎉 You Win!' : '❌ Game Over',
+            `Leaderboard:\n${leaderboard}`,
+            [
+              { text: 'Play Again', onPress: resetGame },
+              { text: 'Exit', onPress: () => navigation.goBack() },
+            ],
+          );
+          hasShownResultRef.current = true;
+        }
       } else {
         setSelectedRow((r) => r + 1);
         setSelectedCol(0);
