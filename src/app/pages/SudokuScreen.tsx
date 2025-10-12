@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+
 import {
   Alert,
   ImageBackground,
@@ -33,6 +34,19 @@ export interface PlayerJoinedMessage {
   player: string; // username or user ID
   color: string;
 }
+interface LobbyStateMessage {
+  type: 'lobby_state';
+  created_at: string;
+  join_deadline_at: string | null;
+  server_now: string;
+  ready_count: number;
+  expected_count: number;
+}
+
+interface JoinWindowClosedMessage {
+  type: 'join_window_closed';
+  server_now?: string;
+}
 
 type PlayerScore = {
   username: string;
@@ -59,7 +73,9 @@ export interface MakeMoveMessage {
 export type ServerToClientMessage =
   | BroadcastMoveMessage
   | PlayerJoinedMessage
-  | GameCompleteMessage;
+  | GameCompleteMessage
+  | LobbyStateMessage
+  | JoinWindowClosedMessage;
 
 // Client to server
 export type ClientToServerMessage = MakeMoveMessage;
@@ -100,6 +116,42 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
   const [gameCompleted, setGameCompleted] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   // const [pendingInput, setPendingInput] = useState<string>('');
+  // Multiplayer waiting room state
+  const [waitingActive, setWaitingActive] = useState<boolean>(false);
+  const [joinDeadlineISO, setJoinDeadlineISO] = useState<string | null>(null);
+  const [readyCount, setReadyCount] = useState<number>(1);
+  const [expectedCount, setExpectedCount] = useState<number>(1);
+  const [remainingSec, setRemainingSec] = useState<number>(0);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const canStartNow = useMemo(() => {
+    // allow start if 2+ players present (best-effort)
+    const playersOnline = Object.keys(playerColors).length; // include self
+    return playersOnline >= 1 || readyCount >= 1;
+  }, [playerColors, readyCount]);
+
+  const startLocalCountdown = (deadlineISO: string | null) => {
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+      countdownRef.current = null;
+    }
+    if (!deadlineISO) {
+      setRemainingSec(0);
+      return;
+    }
+    const deadline = new Date(deadlineISO).getTime();
+    const tick = () => {
+      const now = Date.now();
+      const diffMs = Math.max(0, deadline - now);
+      setRemainingSec(Math.floor(diffMs / 1000));
+    };
+    tick();
+    countdownRef.current = setInterval(tick, 1000);
+  };
+
+  useEffect(() => () => {
+    if (countdownRef.current) clearInterval(countdownRef.current);
+  }, []);
 
   // const formatTime = (sec: number) => `${Math.floor(sec / 60)}:${sec % 60 < 10 ? '0' + sec % 60 : sec % 60}`;
 
@@ -178,7 +230,7 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
       const data = await res.json();
       console.log("Response data:", data); // Check the response from the server
 
-      const { game_id, game_state_id, puzzle, is_multiplayer } = data;
+      const { game_id, game_state_id, puzzle, is_multiplayer, created_at, join_deadline_at } = data;
 
       const board = puzzle as number[][];
       if (!Array.isArray(board)) {
@@ -203,6 +255,11 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
 
       // WebSocket connection for multiplayer
       if (is_multiplayer) {
+        setWaitingActive(true);
+        if (join_deadline_at) {
+          setJoinDeadlineISO(join_deadline_at);
+          startLocalCountdown(join_deadline_at);
+        }
         const ws = new WebSocket(`${BASE_URL.replace(/^http/, 'ws')}/ws/sudoku/${game_state_id}/?token=${accessToken}`);
 
         ws.onopen = () => console.log("[WebSocket] connected");
@@ -255,7 +312,25 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
                 ...prev,
                 [data.player]: data.color,
               }));
+              setReadyCount(rc => Math.max(rc, Object.keys(playerColors).length + 1));
 
+              break;
+            }
+            case 'lobby_state': {
+              const d = data as LobbyStateMessage;
+              setExpectedCount(d.expected_count);
+              setReadyCount(d.ready_count);
+              setJoinDeadlineISO(d.join_deadline_at);
+              startLocalCountdown(d.join_deadline_at);
+              break;
+            }
+            
+            case 'join_window_closed': {
+              setWaitingActive(false);
+              if (countdownRef.current) {
+                clearInterval(countdownRef.current);
+                countdownRef.current = null;
+              }
               break;
             }
 
@@ -491,6 +566,25 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <ImageBackground source={require('../images/cgpt.png')} style={styles.background} resizeMode="cover">
       <View style={styles.container}>
+        {waitingActive && (
+        <View style={styles.waitingOverlay}>
+          <Text style={styles.waitingTitle}>Waiting Room</Text>
+            <Text style={styles.waitingText}>
+              Players: {readyCount}/{expectedCount}
+            </Text>
+          <Text style={styles.waitingText}>
+            Time remaining: {Math.floor(remainingSec / 60)}:{(remainingSec % 60).toString().padStart(2, '0')}
+          </Text>
+            {canStartNow && socket && (
+              <TouchableOpacity
+                style={styles.startBtn}
+                onPress={() => socket?.send(JSON.stringify({ type: 'start_game' }))}
+              >
+                <Text style={styles.startBtnText}>Start Game</Text>
+              </TouchableOpacity>
+            )}
+        </View>
+      )}
         <View style={styles.header}>
           <TouchableOpacity style={styles.exitButton} onPress={() => {
             if (gameCompleted) navigation.navigate('ChallDetails', {
@@ -677,7 +771,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'white',
   },
-
+  // waiting room styles
+  waitingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingTop: 40,
+    paddingBottom: 16,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  waitingTitle: { color: 'white', fontSize: 20, fontWeight: '700', marginBottom: 8 },
+  waitingText: { color: 'white', fontSize: 14, marginBottom: 4 },
+  startBtn: { marginTop: 8, backgroundColor: '#FFD700', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
+  startBtnText: { color: '#333', fontWeight: '700' },
 
   // Sudoku grid styles
   gridContainer: { backgroundColor: 'black' },

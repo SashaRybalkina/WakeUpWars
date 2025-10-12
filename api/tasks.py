@@ -1,4 +1,6 @@
 from django.utils import timezone
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 import logging
 from django.contrib.auth import get_user_model
 from celery import shared_task, uuid
@@ -124,3 +126,23 @@ def close_join_window(model_name, gs_id):
         )
     gs.joins_closed = True
     gs.save(update_fields=["joins_closed"])
+
+    # Notify connected clients via Channels to auto-start
+    try:
+        prefix = {
+            'SudokuGameState': 'sudoku',
+            'WordleGameState': 'wordle',
+            'PatternMemorizationGameState': 'pattern',
+        }[model_name]
+        group = f"{prefix}_{gs.id}"
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            group,
+            {
+                'type': 'join.window.closed',
+                'server_now': timezone.now().isoformat(),
+            }
+        )
+    except Exception:
+        # best-effort notify; do not crash task
+        logger.exception("Failed to broadcast join_window_closed for %s %s", model_name, gs_id)
