@@ -346,7 +346,7 @@ class SudokuConsumer(AsyncWebsocketConsumer):
         }))
 
     async def join_window_closed(self, event):
-        # Background task or another peer closed the join window
+        print("[Sudoku] broadcasting join_window_closed")
         await self.send(text_data=json.dumps({
             'type': 'join_window_closed',
             'server_now': event.get('server_now'),

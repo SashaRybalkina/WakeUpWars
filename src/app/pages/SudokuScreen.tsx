@@ -155,9 +155,8 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
 
   const canStartNow = useMemo(() => {
     // allow start if 2+ players present (best-effort)
-    const playersOnline = Object.keys(playerColors).length; // include self
-    return playersOnline >= 1 || readyCount >= 1;
-  }, [playerColors, readyCount]);
+    return readyCount >= 1;
+  }, [readyCount]);
 
   const startLocalCountdown = (deadlineISO: string | null) => {
     if (countdownRef.current) {
@@ -628,7 +627,11 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
             {canStartNow && socket && (
               <TouchableOpacity
                 style={styles.startBtn}
-                onPress={() => socket?.send(JSON.stringify({ type: 'start_game' }))}
+                onPress={() => {
+                  console.log("[Sudoku] Starting game");
+                  setWaitingActive(false);
+                  socket?.send(JSON.stringify({ type: 'start_game' }))}
+                }
               >
                 <Text style={styles.startBtnText}>Start Game</Text>
               </TouchableOpacity>
