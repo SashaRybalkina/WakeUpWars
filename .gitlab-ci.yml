@@ -27,6 +27,10 @@ test_backend:
     - python manage.py test api.tests --noinput
   artifacts:
     when: always
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: always
+    - when: never
 
 test_frontend:
   stage: test
@@ -40,3 +44,7 @@ test_frontend:
     paths:
       - src/coverage/
     when: always
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: always
+    - when: never 

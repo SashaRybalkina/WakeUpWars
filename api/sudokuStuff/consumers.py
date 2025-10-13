@@ -107,6 +107,7 @@ class SudokuConsumer(AsyncWebsocketConsumer):
             'server_now': timezone.now().isoformat(),
             'ready_count': len(conns),
             'expected_count': expected_count,
+            'online_ids': list(conns),
         }))
 
         # Also broadcast lobby state to others so their counters update
@@ -119,6 +120,7 @@ class SudokuConsumer(AsyncWebsocketConsumer):
                 'server_now': timezone.now().isoformat(),
                 'ready_count': len(conns),
                 'expected_count': expected_count,
+                'online_ids': list(conns),
             }
         )
 
@@ -137,15 +139,23 @@ class SudokuConsumer(AsyncWebsocketConsumer):
         )
         # broadcast updated lobby state after someone leaves
         expected_count = await self._get_expected_count()
+        # Preserve the actual join deadline if available
+        try:
+            gs = await sync_to_async(SudokuGameState.objects.get)(id=self.game_state_id)
+            deadline_iso = gs.join_deadline_at.isoformat() if gs.join_deadline_at else None
+        except SudokuGameState.DoesNotExist:
+            deadline_iso = None
+
         await self.channel_layer.group_send(
             self.group_name,
             {
                 'type': 'lobby.state',
                 'created_at': timezone.now().isoformat(),
-                'join_deadline_at': None,
+                'join_deadline_at': deadline_iso,
                 'server_now': timezone.now().isoformat(),
                 'ready_count': len(conns),
                 'expected_count': expected_count,
+                'online_ids': list(conns),
             }
         )
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
@@ -330,6 +340,7 @@ class SudokuConsumer(AsyncWebsocketConsumer):
             'server_now': event.get('server_now'),
             'ready_count': event.get('ready_count'),
             'expected_count': event.get('expected_count'),
+            'online_ids': event.get('online_ids'),
         }))
 
     async def player_left(self, event):

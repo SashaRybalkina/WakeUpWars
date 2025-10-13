@@ -26,8 +26,8 @@ type Props = { navigation: NavigationProp<any> }
 // Config 
 const DAYS = ["M", "T", "W", "TH", "F", "S", "SU"]
 // const TIMES = Array.from({ length: 12 }, (_, i) => `${i + 6}:00`); // 6am - 5pm 
-const START_MIN = 24 * 60; // 10:00 PM
-const END_MIN = 25 * 60;   // 12:00 AM next day
+const START_MIN = 17 * 60; // 10:00 PM
+const END_MIN = 19 * 60;   // 12:00 AM next day
 const STEP_MIN = 1;
 
 const TIMES = Array.from(

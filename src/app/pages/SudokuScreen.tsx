@@ -42,6 +42,7 @@ interface LobbyStateMessage {
   server_now: string;
   ready_count: number;
   expected_count: number;
+  online_ids?: number[];
 }
 
 interface JoinWindowClosedMessage {
@@ -155,6 +156,8 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
   // 3-2-1 countdown overlay
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdownValue, setCountdownValue] = useState<number | null>(null);
+  const [members, setMembers] = useState<{ id: number; name: string }[]>([]);
+  const [onlineIds, setOnlineIds] = useState<number[]>([]);
 
   const canStartNow = useMemo(() => {
     return readyCount >= 1;
@@ -219,7 +222,7 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
           setShowCountdown(false);
           setCountdownValue(null);
         }
-        setWaitingActive(false);
+        // setWaitingActive(false);
         // Ask server to close joins (safe even if close task fires too)
         socketRef.current?.send(JSON.stringify({ type: 'start_game' }));
       } else {
@@ -313,6 +316,11 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
 
       // WebSocket connection for multiplayer
       if (is_multiplayer) {
+        const resDetail = await fetch(endpoints.challengeDetail(challengeId), {
+          headers: { 'Authorization': `Bearer ${accessToken}` },
+        });
+        const detail = await resDetail.json();
+        setMembers(detail.members || []); // [{id, name}]
         setWaitingActive(true);
         if (join_deadline_at) {
           setJoinDeadlineISO(join_deadline_at);
@@ -401,8 +409,16 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
               const d = data as LobbyStateMessage;
               setExpectedCount(d.expected_count);
               setReadyCount(d.ready_count);
-              setJoinDeadlineISO(d.join_deadline_at);
-              startLocalCountdown(d.join_deadline_at);
+              if (d.join_deadline_at) {
+                setJoinDeadlineISO(d.join_deadline_at);
+                startLocalCountdown(d.join_deadline_at);
+              }
+              if (Array.isArray(d.online_ids)) {
+                setOnlineIds(d.online_ids);
+              }
+
+              console.log('online_ids from socket:', d.online_ids);
+              console.log('member ids:', (members || []).map(x => x.id));
               break;
             }
             
@@ -647,29 +663,82 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <ImageBackground source={require('../images/cgpt.png')} style={styles.background} resizeMode="cover">
       <View style={styles.container}>
-        {waitingActive && (
-        <View style={styles.waitingOverlay}>
+      {waitingActive && (
+      <View style={styles.waitingOverlay}>
+        <View style={styles.waitingCard}>
           <Text style={styles.waitingTitle}>Waiting Room</Text>
-            <Text style={styles.waitingText}>
-              Players: {readyCount}/{expectedCount}
-            </Text>
-          <Text style={styles.waitingText}>
-            Time remaining: {Math.floor(remainingSec / 60)}:{(remainingSec % 60).toString().padStart(2, '0')}
-          </Text>
-            {canStartNow && socketRef.current && (
-              <TouchableOpacity
-                style={styles.startBtn}
-                onPress={() => {
-                  console.log("[Sudoku] Starting game");
-                  setWaitingActive(false);
-                  socketRef.current?.send(JSON.stringify({ type: 'start_game' }))
+
+          <View style={{ marginTop: 8 }}>
+          {members.map(m => {
+          const isOnline = onlineIds?.some(id => String(id) === String(m.id)); // robust compare
+          const initials = (m.name || '')
+            .split(' ')
+            .filter(Boolean)
+            .slice(0, 2)
+            .map(s => s[0])
+            .join('')
+            .toUpperCase();
+
+          return (
+            <View
+              key={m.id}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingVertical: 6,
+                opacity: isOnline ? 1 : 0.5,
+              }}
+            >
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  marginRight: 10,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  backgroundColor: isOnline ? '#FFD700' : '#999',
+                  borderWidth: isOnline ? 2 : 1,
+                  borderColor: isOnline ? '#fff' : '#666',
                 }}
               >
-                <Text style={styles.startBtnText}>Start Game</Text>
-              </TouchableOpacity>
-            )}
+                <Text style={{ color: isOnline ? '#333' : '#eee', fontWeight: '700' }}>
+                  {initials || '?'}
+                </Text>
+              </View>
+              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+                {m.name}
+              </Text>
+              {isOnline && (
+                <View style={{ marginLeft: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: '#00E676' }} />
+              )}
+            </View>
+          );
+        })}
         </View>
-      )}
+
+          <Text style={styles.waitingText}>
+            Players: {readyCount}/{expectedCount}
+          </Text>
+          <Text style={styles.waitingText}>
+            Starts in {Math.floor(Math.max(0, remainingSec) / 60)}:
+            {(Math.max(0, remainingSec) % 60).toString().padStart(2, '0')}
+          </Text>
+
+          {canStartNow && socketRef.current && (
+            <TouchableOpacity
+              style={styles.startBtn}
+              onPress={() => {
+                console.log('[Sudoku] Starting game');
+                socketRef.current?.send(JSON.stringify({ type: 'start_game' }));
+              }}
+            >
+              <Text style={styles.startBtnText}>Start Game</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    )}
         {showCountdown && (
           <View style={styles.countdownOverlay}>
             <Text style={styles.countdownText}>{countdownValue}</Text>
@@ -904,31 +973,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 20,
   },
-  countdownText: {
-    fontSize: 96,
-    color: '#FFD700',
-    fontWeight: '900',
-    textShadowColor: 'rgba(0,0,0,0.6)',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 8,
-  },
   // waiting room styles
   waitingOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    paddingTop: 40,
-    paddingBottom: 16,
+    bottom: 0,              // full-screen
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
   },
-  waitingTitle: { color: 'white', fontSize: 20, fontWeight: '700', marginBottom: 8 },
-  waitingText: { color: 'white', fontSize: 14, marginBottom: 4 },
-  startBtn: { marginTop: 8, backgroundColor: '#FFD700', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
+  waitingCard: {
+    width: '85%',
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.1)',  // glass-like
+    borderColor: 'rgba(255,255,255,0.25)',
+    borderWidth: 1,
+  }, 
+  // Big 3-2-1
+  countdownText: {
+    fontSize: 72,
+    color: '#FFD700',
+    fontWeight: '900',
+    textAlign: 'center',
+    marginVertical: 12,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 8,
+  },
+  waitingTitle: { color: 'white', fontSize: 22, fontWeight: '700', textAlign: 'center', marginBottom: 8 },
+  waitingText: { color: 'white', fontSize: 14, textAlign: 'center', marginBottom: 6 },
+  startBtn: { marginTop: 12, backgroundColor: '#FFD700', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, alignSelf: 'center' },
   startBtnText: { color: '#333', fontWeight: '700' },
-
   // Sudoku grid styles
   gridContainer: { backgroundColor: 'black' },
   row: { flexDirection: 'row' },

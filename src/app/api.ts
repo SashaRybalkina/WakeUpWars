@@ -1,4 +1,4 @@
-export const BASE_URL = 'http://192.168.0.191:8000';
+export const BASE_URL = 'http://10.18.12.226:8000';
 
 export const endpoints = {
   // getToken

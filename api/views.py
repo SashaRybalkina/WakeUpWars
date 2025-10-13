@@ -1108,7 +1108,7 @@ class ChallengeDetailView(APIView):
             return Response({'error': 'Challenge not found'}, status=status.HTTP_404_NOT_FOUND)
 
         memberships = ChallengeMembership.objects.filter(challengeID=challenge)
-        members = [{'id': m.uID.id, 'name': m.uID.name} for m in memberships]
+        members = [{'id': m.uID.id, 'name': m.uID.name, 'username': m.uID.username} for m in memberships]
 
         serializer = ChallengeSummarySerializer(challenge, context={'user': request.user})
         
