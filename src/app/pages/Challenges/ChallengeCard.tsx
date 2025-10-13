@@ -5,11 +5,14 @@ import { Ionicons } from "@expo/vector-icons"
 import { DayOfWeek, DayOfWeekLabels } from "./DayOfWeek"
 
 interface ChallengeCardProps {
-  title: string
-  icon: ImageSourcePropType
-  daysComplete: number
-  totalDays: number
+  title: string,
+  icon: ImageSourcePropType,
+  startDate: string
+  endDate: string
   daysOfWeek: string[]
+  daysCompleted: number
+  totalDays: number
+  isCompleted: boolean
   alarmSchedule?: { dayOfWeek: number; alarmTime: string; userName: string }[] // Add optional prop for alarm schedule
 }
 
@@ -26,14 +29,17 @@ export const orderedDayLabels = (): string[] => [
 const ChallengeCard: React.FC<ChallengeCardProps> = ({ 
   title, 
   icon, 
-  daysComplete, 
+  startDate,
+  endDate,
+  daysCompleted, 
   totalDays, 
   daysOfWeek,
+  isCompleted,
   // alarmSchedule = [] // Default to empty array if not provided
 }) => {
   
   const dayMap = orderedDayLabels();
-  const progressPercentage = (daysComplete / totalDays) * 100
+  const progressPercentage = (daysCompleted / totalDays) * 100
 
   return (
     <LinearGradient colors={["#FFFFFF", "#F8F9FE"]} style={styles.container}>
@@ -83,7 +89,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
               <View style={[styles.progressBarFill, { width: `${progressPercentage}%` }]} />
             </View>
             <Text style={styles.progressText}>
-              {daysComplete}/{totalDays} Days Complete
+              {daysCompleted}/{totalDays} Days Complete
             </Text>
           </View>
         </View>

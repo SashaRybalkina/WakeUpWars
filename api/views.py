@@ -376,11 +376,20 @@ class GroupDetailsView(APIView):
             ).values_list("dayOfWeek", flat=True).distinct()
 
             days_of_week = sorted([numeric_to_label[day] for day in alarm_schedules if day in numeric_to_label])
-
+            
             summary_data = next((item for item in serializer.data if item["id"] == chall.id), {})
             summary_data["daysOfWeek"] = days_of_week
+            
+            if chall.startDate and chall.endDate:
+                summary_data["totalDays"] = (chall.endDate - chall.startDate).days + 1
+            else:
+                summary_data["totalDays"] = 0
+            
+            summary_data["daysCompleted"] = chall.daysCompleted
+            summary_data["isCompleted"] = chall.isCompleted
+            summary_data["isGroupChallenge"] = bool(chall.isCompleted)
             enriched_challenges.append(summary_data)
-
+    
         memberships = GroupMembership.objects.filter(groupID=group)
         members = [{'id': m.uID.id, 'name': m.uID.name} for m in memberships]
 

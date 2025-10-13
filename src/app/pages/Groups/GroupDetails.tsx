@@ -87,13 +87,13 @@ const GroupDetails: React.FC<Props> = ({ navigation }) => {
               });
 
           const data = await response.json()
-  
+          console.log(data)
           // Add totalDays if not present and determine if challenge is completed
           if (data.challenges) {
             const now = new Date()
             data.challenges = data.challenges.map((challenge: Challenge) => ({
               ...challenge,
-              totalDays: challenge.totalDays || 30,
+              totalDays: challenge.totalDays ?? 30,
               isCompleted: challenge.isCompleted || false,
             }))
           }
@@ -289,6 +289,7 @@ const GroupDetails: React.FC<Props> = ({ navigation }) => {
               ) : (
                 <View style={styles.challengeCardsContainer}>
                   {currentChallenges.map((challenge) => (
+                    console.log(challenge),
                     <TouchableOpacity
                       key={challenge.id}
                       style={styles.challengeCardWrapper}
@@ -303,9 +304,12 @@ const GroupDetails: React.FC<Props> = ({ navigation }) => {
                       <ChallengeCard
                         title={challenge.name}
                         icon={require("../../images/school.png")}
-                        daysComplete={challenge.daysCompleted}
-                        totalDays={challenge.totalDays || 30}
+                        startDate={challenge.startDate}
+                        endDate={challenge.endDate}
                         daysOfWeek={challenge.daysOfWeek}
+                        daysCompleted={challenge.daysCompleted}
+                        totalDays={challenge.totalDays || 30}
+                        isCompleted={challenge.isCompleted || false}
                       />
                     </TouchableOpacity>
                   ))}
@@ -357,9 +361,12 @@ const GroupDetails: React.FC<Props> = ({ navigation }) => {
                       <ChallengeCard
                         title={challenge.name}
                         icon={require("../../images/school.png")}
-                        daysComplete={challenge.daysCompleted}
+                        daysCompleted={challenge.daysCompleted}
                         totalDays={challenge.totalDays || 30}
                         daysOfWeek={challenge.daysOfWeek}
+                        startDate={challenge.startDate}
+                        endDate={challenge.endDate}
+                        isCompleted={challenge.isCompleted || false}
                       />
                     </TouchableOpacity>
                   ))}
