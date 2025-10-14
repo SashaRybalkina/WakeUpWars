@@ -1,4 +1,5 @@
 from django.utils import timezone
+from datetime import date
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 import logging
@@ -14,9 +15,10 @@ from .models import (
     WordleGameState,
     PatternMemorizationGameState,
     Challenge,
-    ChallengeMembership,
     GamePerformance,
     Game,
+    GameSchedule,
+    GameScheduleGameAssociation,
 )
 
 # ---------- helper ----------
@@ -144,5 +146,59 @@ def close_join_window(model_name, gs_id):
             }
         )
     except Exception:
-        # best-effort notify; do not crash task
         logger.exception("Failed to broadcast join_window_closed for %s %s", model_name, gs_id)
+
+    # Schedule a leaderboard broadcast 5 minutes after joins close
+    try:
+        broadcast_leaderboard.apply_async(
+            args=[Model.__name__, gs.id],
+            kwargs={"for_date_iso": today.isoformat()},
+            eta=timezone.now() + timezone.timedelta(minutes=5),
+            taREDACTEDid=f"leaderboard-{Model.__name__}-{gs.id}-{uuid()}",
+        )
+    except Exception:
+        logger.exception("Failed to schedule leaderboard broadcast for %s %s", model_name, gs_id)
+
+@shared_task
+def broadcast_leaderboard(model_name: str, gs_id: int, for_date_iso: str | None = None):
+    """
+    Compute and broadcast today's leaderboard for a specific game state.
+    This is invoked some time after joins are closed to finalize scores, and
+    ensures clients receive a definitive leaderboard even if games were abandoned.
+    """
+    try:
+        Model = globals()[model_name]
+    except KeyError:
+        return
+
+    gs = Model.objects.select_related("challenge", "game").get(pk=gs_id)
+    try:
+        play_date = date.fromisoformat(for_date_iso) if for_date_iso else timezone.localdate()
+    except Exception:
+        play_date = timezone.localdate()
+
+    leaderboard = list(
+        GamePerformance.objects
+        .filter(challenge=gs.challenge, game=gs.game, date=play_date)
+        .select_related("user")
+        .values("user_id", "score")
+    )
+
+    try:
+        prefix = {
+            'SudokuGameState': 'sudoku',
+            'WordleGameState': 'wordle',
+            'PatternMemorizationGameState': 'pattern',
+        }[model_name]
+        group = f"{prefix}_{gs.id}"
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            group,
+            {
+                'type': 'leaderboard.update',
+                'leaderboard': leaderboard,
+                'server_now': timezone.now().isoformat(),
+            }
+        )
+    except Exception:
+        logger.exception("Failed to broadcast leaderboard for %s %s", model_name, gs_id)

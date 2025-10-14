@@ -2079,6 +2079,27 @@ class CreateSudokuGameView(APIView):
         except Challenge.DoesNotExist:
             return Response({'error': 'Challenge not found'}, status=status.HTTP_404_NOT_FOUND)
 
+        # Gate if the join window is closed or the game already ended
+        try:
+            gs = SudokuGameState.objects.filter(challenge_id=challenge_id).order_by('-id').first()
+            if gs:
+                today = timezone.localdate()
+                # If any GamePerformance exists for today for this challenge+game, consider it ended
+                if GamePerformance.objects.filter(challenge_id=challenge_id, game_id=gs.game_id, date=today).exists():
+                    return Response(
+                        {'code': 'GAME_ENDED', 'detail': 'This game has already finished for today.'},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+                now = timezone.now()
+                if gs.joins_closed or (gs.join_deadline_at and now > gs.join_deadline_at):
+                    return Response(
+                        {'code': 'JOINS_CLOSED', 'detail': 'The join window has closed. Please join next time.'},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+        except Exception:
+            # best-effort gating; proceed if checks fail
+            pass
+
         game_data = get_or_create_game(challenge_id, user)
 
         # Add game id so that inside the db, they are unique (Right now they're all just 'sudoku')
@@ -2107,6 +2128,26 @@ class ValidateSudokuMoveView(APIView):
             game_state = SudokuGameState.objects.get(id=game_id)
         except SudokuGameState.DoesNotExist:
             return Response({'error': 'Game not found'}, status=404)
+        
+        try:
+            gs = SudokuGameState.objects.filter(challenge_id=challenge_id).order_by('-id').first()
+            if gs:
+                today = timezone.localdate()
+                # If any GamePerformance exists for today for this challenge+game, consider it ended
+                if GamePerformance.objects.filter(challenge_id=challenge_id, game_id=gs.game_id, date=today).exists():
+                    return Response(
+                        {'code': 'GAME_ENDED', 'detail': 'This game has already finished for today.'},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+                now = timezone.now()
+                if gs.joins_closed or (gs.join_deadline_at and now > gs.join_deadline_at):
+                    return Response(
+                        {'code': 'JOINS_CLOSED', 'detail': 'The join window has closed. Please join next time.'},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+        except Exception:
+            # best-effort gating; proceed if checks fail
+            pass
 
         # result = validate_sudoku_move(game_state, user, index, value)
         result = async_to_sync(validate_sudoku_move)(game_state.id, user, index, value)
@@ -2227,6 +2268,26 @@ class CreatePatternGameView(APIView):
             return Response({'success': False, 'error': 'Challenge not found'}, status=status.HTTP_404_NOT_FOUND)
 
         try:
+            gs = PatternMemorizationGameState.objects.filter(challenge_id=challenge_id).order_by('-id').first()
+            if gs:
+                today = timezone.localdate()
+                # If any GamePerformance exists for today for this challenge+game, consider it ended
+                if GamePerformance.objects.filter(challenge_id=challenge_id, game_id=gs.game_id, date=today).exists():
+                    return Response(
+                        {'code': 'GAME_ENDED', 'detail': 'This pattern memorization game has already finished for today.'},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+                now = timezone.now()
+                if gs.joins_closed or (gs.join_deadline_at and now > gs.join_deadline_at):
+                    return Response(
+                        {'code': 'JOINS_CLOSED', 'detail': 'The join window has closed. Please join next time.'},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+        except Exception:
+            # best-effort gating; proceed if checks fail
+            pass
+        
+        try:
             payload = get_or_create_pattern_game(int(challenge_id), user)
             # utils returns: game_state_id, pattern_sequence, current_round, max_rounds, is_multiplayer
             return Response({
@@ -2273,6 +2334,26 @@ class ValidatePatternMoveView(APIView):
         except Exception as e:
             return Response({'success': False, 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+        try:
+            gs = PatternMemorizationGameState.objects.filter(challenge_id=challenge_id).order_by('-id').first()
+            if gs:
+                today = timezone.localdate()
+                # If any GamePerformance exists for today for this challenge+game, consider it ended
+                if GamePerformance.objects.filter(challenge_id=challenge_id, game_id=gs.game_id, date=today).exists():
+                    return Response(
+                        {'code': 'GAME_ENDED', 'detail': 'This game has already finished for today.'},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+                now = timezone.now()
+                if gs.joins_closed or (gs.join_deadline_at and now > gs.join_deadline_at):
+                    return Response(
+                        {'code': 'JOINS_CLOSED', 'detail': 'The join window has closed. Please join next time.'},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+        except Exception:
+            # best-effort gating; proceed if checks fail
+            pass
+        
         # Map known error cases from utils
         if result.get("error"):
             return Response({'success': False, 'error': result["error"]}, status=status.HTTP_400_BAD_REQUEST)
@@ -2328,6 +2409,26 @@ class CreateWordleGameView(APIView):
         except Challenge.DoesNotExist:
             return Response({"error": "Challenge not found"}, status=status.HTTP_404_NOT_FOUND)
 
+        try:
+            gs = WordleGameState.objects.filter(challenge_id=challenge_id).order_by('-id').first()
+            if gs:
+                today = timezone.localdate()
+                # If any GamePerformance exists for today for this challenge+game, consider it ended
+                if GamePerformance.objects.filter(challenge_id=challenge_id, game_id=gs.game_id, date=today).exists():
+                    return Response(
+                        {'code': 'GAME_ENDED', 'detail': 'This game has already finished for today.'},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+                now = timezone.now()
+                if gs.joins_closed or (gs.join_deadline_at and now > gs.join_deadline_at):
+                    return Response(
+                        {'code': 'JOINS_CLOSED', 'detail': 'The join window has closed. Please join next time.'},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+        except Exception:
+            # best-effort gating; proceed if checks fail
+            pass
+        
         # Use utils to create or get a Wordle game state
         game_data = get_or_create_game_wordle(challenge_id, user)
 
@@ -2365,6 +2466,25 @@ class ValidateWordleMoveView(APIView):
         except WordleGameState.DoesNotExist:
             return Response({"error": "Game not found"}, status=status.HTTP_404_NOT_FOUND)
 
+        try:
+            gs = WordleGameState.objects.filter(challenge_id=challenge_id).order_by('-id').first()
+            if gs:
+                today = timezone.localdate()
+                # If any GamePerformance exists for today for this challenge+game, consider it ended
+                if GamePerformance.objects.filter(challenge_id=challenge_id, game_id=gs.game_id, date=today).exists():
+                    return Response(
+                        {'code': 'GAME_ENDED', 'detail': 'This game has already finished for today.'},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+                now = timezone.now()
+                if gs.joins_closed or (gs.join_deadline_at and now > gs.join_deadline_at):
+                    return Response(
+                        {'code': 'JOINS_CLOSED', 'detail': 'The join window has closed. Please join next time.'},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+        except Exception:
+            # best-effort gating; proceed if checks fail
+            pass
         # Call utils to validate the move and update state
         # result = async_to_sync(validate_wordle_move)(game_id, user, guess, row)
         result = validate_wordle_move(game_id, user, guess, row)

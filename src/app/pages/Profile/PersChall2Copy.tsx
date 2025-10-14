@@ -738,7 +738,7 @@ const styles = StyleSheet.create({
   choiceButtonSelected: { backgroundColor: 'rgba(255,215,0,0.3)', borderColor: '#FFD700' },
   choiceText: { color: '#FFF', fontSize: 14, fontWeight: '600' },
   choiceTextSelected: { color: '#FFD700' },
-  rewardHeader:{flexDirection:'row',alignItems:'center',marginBottom:12},
+  // rewardHeader:{flexDirection:'row',alignItems:'center',marginBottom:12},
 
   activeNavText: {
     color: "#FFD700",

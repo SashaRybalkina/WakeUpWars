@@ -29,13 +29,13 @@ type Props = {
 const DAYS = ["M", "T", "W", "TH", "F", "S", "SU"]
 
 // reward types allowed by backend
-const REWARD_TYPES = [
-  { key: 'money', label: 'Money $' },
-  { key: 'points', label: 'Points' },
-  { key: 'custom', label: 'Custom' },
-] as const;
+// const REWARD_TYPES = [
+//   { key: 'money', label: 'Money $' },
+//   { key: 'points', label: 'Points' },
+//   { key: 'custom', label: 'Custom' },
+// ] as const;
 
-type RewardTypeKey = typeof REWARD_TYPES[number]['key'];
+// type RewardTypeKey = typeof REWARD_TYPES[number]['key'];
 
 const CreatePublicChall2: React.FC<Props> = ({ navigation }) => {
   const route = useRoute()
@@ -62,9 +62,9 @@ const CreatePublicChall2: React.FC<Props> = ({ navigation }) => {
   const [dayTimeMapping, setDayTimeMapping] = useState<Record<string, string>>({})
   const [gamesByDay, setGamesByDay] = useState<Record<string, [string, string][]>>({})
   // reward state
-  const [rewardType, setRewardType] = useState<RewardTypeKey>('money');
-  const [rewardAmount, setRewardAmount] = useState('5');
-  const [rewardNote, setRewardNote] = useState('');
+  // const [rewardType, setRewardType] = useState<RewardTypeKey>('money');
+  // const [rewardAmount, setRewardAmount] = useState('5');
+  // const [rewardNote, setRewardNote] = useState('');
 
   const goToMessages = () => navigation.navigate("Messages")
   const goToGroups = () => navigation.navigate("Groups")

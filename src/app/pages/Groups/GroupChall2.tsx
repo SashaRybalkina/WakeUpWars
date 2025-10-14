@@ -28,13 +28,13 @@ type Props = {
 
 const DAYS = ["M", "T", "W", "TH", "F", "S", "SU"]
 
-const REWARD_TYPES = [
-  { key: 'money', label: 'Money' },
-  { key: 'points', label: 'Points' },
-  { key: 'custom', label: 'Custom' },
-] as const;
+// const REWARD_TYPES = [
+//   { key: 'money', label: 'Money' },
+//   { key: 'points', label: 'Points' },
+//   { key: 'custom', label: 'Custom' },
+// ] as const;
 
-type RewardTypeKey = typeof REWARD_TYPES[number]['key'];
+// type RewardTypeKey = typeof REWARD_TYPES[number]['key'];
 
 const GroupChall2: React.FC<Props> = ({ navigation }) => {
   const route = useRoute()
@@ -58,9 +58,9 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
   const [dayTimeMapping, setDayTimeMapping] = useState<Record<string, string>>({})
   const [gamesByDay, setGamesByDay] = useState<Record<string, [string, string][]>>({})
   // reward state
-  const [rewardType, setRewardType] = useState<RewardTypeKey>('money');
-  const [rewardAmount, setRewardAmount] = useState('5');
-  const [rewardNote, setRewardNote] = useState('');
+  // const [rewardType, setRewardType] = useState<RewardTypeKey>('money');
+  // const [rewardAmount, setRewardAmount] = useState('5');
+  // const [rewardNote, setRewardNote] = useState('');
 
   const goToMessages = () => navigation.navigate("Messages")
   const goToGroups = () => navigation.navigate("Groups")
@@ -223,21 +223,21 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
     console.log("Day-Time Mapping:", dayTimeMapping)
     console.log("Games By Day:", JSON.stringify(gamesByDay, null, 2))
     // reward validation
-    let reward: any = null;
-    if (rewardType === 'custom') {
-      if (!rewardNote.trim()) {
-        Alert.alert('Error', 'Please enter a description for the custom reward');
-        return;
-      }
-      reward = { type: 'custom', note: rewardNote.trim() };
-    } else {
-      const amt = parseFloat(rewardAmount);
-      if (isNaN(amt) || amt <= 0) {
-        Alert.alert('Error', 'Enter a valid positive amount for the reward');
-        return;
-      }
-      reward = { type: rewardType, amount: amt };
-    }
+    // let reward: any = null;
+    // if (rewardType === 'custom') {
+    //   if (!rewardNote.trim()) {
+    //     Alert.alert('Error', 'Please enter a description for the custom reward');
+    //     return;
+    //   }
+    //   reward = { type: 'custom', note: rewardNote.trim() };
+    // } else {
+    //   const amt = parseFloat(rewardAmount);
+    //   if (isNaN(amt) || amt <= 0) {
+    //     Alert.alert('Error', 'Enter a valid positive amount for the reward');
+    //     return;
+    //   }
+    //   reward = { type: rewardType, amount: amt };
+    // }
     
     const alarmSchedule: { dayOfWeek: number; time: string }[] = Object.entries(dayTimeMapping)
       .filter(([day, time]) => time && dayToInt[day] !== undefined)
@@ -324,7 +324,7 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
       members: groupMembers.map(m => m.id),
       alarm_schedule: alarmSchedule,
       game_schedules: gameSchedules,
-      reward,
+      // reward,
     };
 
     try {
@@ -523,13 +523,13 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
           )}
 
           <View style={styles.formSection}>
-            <View style={styles.rewardHeader}>
+            {/* <View style={styles.rewardHeader}>
               <Text style={styles.sectionTitle}>Set Reward</Text>
               <TouchableOpacity style={{marginLeft:6, marginBottom: 13}} onPress={showRewardInfo}>
                 <Ionicons name="help-circle-outline" size={22} color="#FFD700" />
               </TouchableOpacity>
-            </View>
-            <View style={styles.choiceRow}>
+            </View> */}
+            {/* <View style={styles.choiceRow}>
               {REWARD_TYPES.map(rt => (
                 <TouchableOpacity
                   key={rt.key}
@@ -539,8 +539,8 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
                   <Text style={[styles.choiceText, rewardType === rt.key && styles.choiceTextSelected]}>{rt.label}</Text>
                 </TouchableOpacity>
               ))}
-            </View>
-            {(rewardType === 'money' || rewardType === 'points') && (
+            </View> */}
+            {/* {(rewardType === 'money' || rewardType === 'points') && (
               <TextInput
                 style={[styles.input, { marginTop: 10 }]}
                 placeholder="Amount"
@@ -558,7 +558,7 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
                 value={rewardNote}
                 onChangeText={setRewardNote}
               />
-            )}
+            )} */}
           </View>
 
           <View style={styles.formSection}>

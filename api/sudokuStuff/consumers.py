@@ -415,10 +415,10 @@ class SudokuConsumer(AsyncWebsocketConsumer):
             gs = SudokuGameState.objects.select_related('challenge').get(id=self.game_state_id)
         except SudokuGameState.DoesNotExist:
             return 1
-        if gs.challenge and gs.challenge.groupID_id is not None:
-            n = ChallengeMembership.objects.filter(challengeID=gs.challenge).count()
-            return max(1, n)
-        return 1
+        if not gs.challenge_id:
+            return 1
+        n = ChallengeMembership.objects.filter(challengeID=gs.challenge_id).count()
+        return max(1, n)
 
     @sync_to_async
     def _can_start_now(self) -> bool:

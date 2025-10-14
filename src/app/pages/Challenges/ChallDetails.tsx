@@ -85,13 +85,13 @@ const ChallDetails: React.FC<Props> = ({ navigation }) => {
   const [daysOfWeek, setDaysOfWeek] = useState<string[]>([])
   const [isFavorite, setIsFavorite] = useState(false)
   const [progressAnim] = useState(new Animated.Value(0))
-  type Obligation = {
-    id:number; challenge:number; payer:any; payee:any; currency:string; amount:string; remaining:string; status:string;
-    reward_type?:string; reward_note?:string;
-  };
-  const [toPay, setToPay] = useState<Obligation[]>([]);
-  const [toReceive, setToReceive] = useState<Obligation[]>([]);
-  const [canEditReward,setCanEditReward]=useState<boolean>(false);
+  // type Obligation = {
+  //   id:number; challenge:number; payer:any; payee:any; currency:string; amount:string; remaining:string; status:string;
+  //   reward_type?:string; reward_note?:string;
+  // };
+  // const [toPay, setToPay] = useState<Obligation[]>([]);
+  // const [toReceive, setToReceive] = useState<Obligation[]>([]);
+  // const [canEditReward,setCanEditReward]=useState<boolean>(false);
   
   // leaderboard setup
   type LeaderRow = { name: string; points: number; rank: number }
@@ -157,9 +157,9 @@ const ChallDetails: React.FC<Props> = ({ navigation }) => {
         setTotalDays(data.totalDays ?? 30)
         console.log('total days??', data.totalDays)
         setMembers(data.members);
-        setCanEditReward(!!data.initiator_id);
-        setReward(data.reward_setting);
-        console.log('reward setting??',!!data.reward_setting)
+        // setCanEditReward(!!data.initiator_id);
+        // setReward(data.reward_setting);
+        // console.log('reward setting??',!!data.reward_setting)
       } catch (err) {
         console.error(err)
       }
@@ -299,51 +299,51 @@ const loadPerformances = async () => {
       return data;
     }
 
-    useEffect(() => {
-      (async () => {
-        try {
-          const obligations = await loadMyObligations();
-          setToPay(obligations.to_pay);
-          setToReceive(obligations.to_receive);
-        } catch (err:any) {
-          Alert.alert('Error: ', err.message);
-        }
-      })();
-    }, []);
+    // useEffect(() => {
+    //   (async () => {
+    //     try {
+    //       const obligations = await loadMyObligations();
+    //       setToPay(obligations.to_pay);
+    //       setToReceive(obligations.to_receive);
+    //     } catch (err:any) {
+    //       Alert.alert('Error: ', err.message);
+    //     }
+    //   })();
+    // }, []);
 
-    const showRewardInfo = () => {
-    Alert.alert('Rewards', 'Choose the reward the winner will get. \n\nMoney: Send a USD amount. \nPoints: In-app points. \nCustom: Any creative prize. \n\nAfter saving, rewards are locked.');
-  };
+  //   const showRewardInfo = () => {
+  //   Alert.alert('Rewards', 'Choose the reward the winner will get. \n\nMoney: Send a USD amount. \nPoints: In-app points. \nCustom: Any creative prize. \n\nAfter saving, rewards are locked.');
+  // };
 
-  const finalizeChallenge = async (challId: number) => {
-      try {
+  // const finalizeChallenge = async (challId: number) => {
+  //     try {
 
-      const accessToken = await getAccessToken();
-      if (!accessToken) {
-        throw new Error("Not authenticated");
-      }
+  //     const accessToken = await getAccessToken();
+  //     if (!accessToken) {
+  //       throw new Error("Not authenticated");
+  //     }
 
-        const res = await fetch(`${BASE_URL}/api/challenges/${challId}/finalize/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            "Authorization": `Bearer ${accessToken}`,
-          },
-        });
+  //       const res = await fetch(`${BASE_URL}/api/challenges/${challId}/finalize/`, {
+  //         method: 'POST',
+  //         headers: {
+  //           'Content-Type': 'application/json',
+  //           "Authorization": `Bearer ${accessToken}`,
+  //         },
+  //       });
 
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err?.detail || err?.message || `Finalize failed (${res.status})`);
-        }
+  //       if (!res.ok) {
+  //         const err = await res.json().catch(() => ({}));
+  //         throw new Error(err?.detail || err?.message || `Finalize failed (${res.status})`);
+  //       }
 
-        await loadMyObligations();
-        navigation.navigate("Rewards", { challengeId: challId });
+  //       // await loadMyObligations();
+  //       // navigation.navigate("Rewards", { challengeId: challId });
 
-        Alert.alert('Finalized', 'Obligations created. You can settle up now.');
-      } catch (e: any) {
-        Alert.alert('Finalize failed', e.message);
-      }
-    };
+  //       //Alert.alert('Finalized', 'Obligations created. You can settle up now.');
+  //     } catch (e: any) {
+  //       Alert.alert('Finalize failed', e.message);
+  //     }
+  //   };
 
   useEffect(() => {
     // Animate progress bar
@@ -563,80 +563,6 @@ const loadPerformances = async () => {
   </View>
 )}
 
-
-          {/* Reward config (only if collaborative and not set) */}
-          {reward === null && canEditReward && (
-            <View style={styles.rewardCard}>
-              <View style={styles.rewardHeader}>
-              <Text style={styles.sectionTitle}>Set Reward</Text>
-              <TouchableOpacity style={styles.infoIcon} onPress={showRewardInfo}>
-                <Ionicons name="help-circle-outline" size={22} color="#FFD700" />
-              </TouchableOpacity>
-            </View>
-              <View style={styles.choiceRow}>
-                {['money','points','custom'].map(rt=> (
-                  <TouchableOpacity key={rt}
-                     style={[styles.choiceButton, rewardType===rt && styles.choiceButtonSelected]}
-                     onPress={()=>setRewardType(rt as any)}>
-                     <Text style={[styles.choiceText, rewardType===rt && styles.choiceTextSelected]}>{rt}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              {rewardType!=='custom' && (
-                <TextInput
-                  style={styles.input}
-                  placeholder="Amount"
-                  keyboardType="numeric"
-                  value={rewardAmount}
-                  onChangeText={setRewardAmount}
-                  placeholderTextColor="#ccc"
-                />
-              )}
-              {rewardType==='custom' && (
-                <TextInput
-                  style={styles.input}
-                  placeholder="Describe reward"
-                  value={rewardNote}
-                  onChangeText={setRewardNote}
-                  placeholderTextColor="#ccc"
-                />
-              )}
-              <TouchableOpacity style={styles.saveBtn} onPress={async()=>{
-                try{
-      const accessToken = await getAccessToken();
-      if (!accessToken) {
-        throw new Error("Not authenticated");
-      }
-                  const payload:any={ type:rewardType };
-                  if(rewardType!=='custom') payload.amount=parseFloat(rewardAmount||'0');
-                  if(rewardNote) payload.note=rewardNote;
-                  const res = await fetch(endpoints.challengeReward(challId),{
-                    method:'PUT',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      "Authorization": `Bearer ${accessToken}`,
-                    },
-                    body: JSON.stringify(payload)
-                  });
-                  if(!res.ok){const e=await res.json(); throw new Error(e.detail||'Failed');}
-                  const saved=await res.json();
-                  setReward(saved);
-                  Alert.alert('Saved','Reward configured');
-                }catch(e:any){Alert.alert('Error',e.message)}
-              }}>
-                <LinearGradient
-                  colors={["#FFD700", "#FFA500"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.saveBtnGradient}
-                >
-                  <Ionicons name="checkmark" size={18} color="#000" style={styles.scheduleIcon} />
-                  <Text style={styles.saveBtnText}>Save Reward</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          )}
-
           {/* Challenge Stats */}
           <View style={styles.statsCard}>
             <Text style={styles.statsTitle}>Challenge Stats</Text>
@@ -670,7 +596,7 @@ const loadPerformances = async () => {
           </LinearGradient>
         </TouchableOpacity>
 
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={[styles.scheduleButton, { marginTop: 14 }]}
           onPress={() => finalizeChallenge(challId)}>
           <LinearGradient
@@ -679,7 +605,7 @@ const loadPerformances = async () => {
             <Ionicons name="wallet" size={18} color="#FFF" style={styles.scheduleIcon} />
             <Text style={styles.scheduleButtonText}>Finalize Challenge</Text>
           </LinearGradient>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
           {/* Bottom Spacing */}
           <View style={styles.bottomSpacing} />
@@ -993,18 +919,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "rgba(255, 255, 255, 0.7)",
   },
-  rewardCard:{backgroundColor:'rgba(50,50,60,0.3)',borderRadius:20,padding:20,marginBottom:20,borderWidth:1,borderColor:'rgba(255,255,255,0.2)'},
-  choiceRow:{flexDirection:'row',marginTop:10},
-  choiceButton:{paddingVertical:8,paddingHorizontal:14,borderColor:'#fff',borderWidth:1,borderRadius:18,marginRight:8, marginTop: -23},
-  choiceButtonSelected:{backgroundColor:'#FFD700',borderColor:'#FFD700'},
-  choiceText:{color:'#fff'},
-  choiceTextSelected:{color:'#000',fontWeight:'700'},
-  rewardHeader:{flexDirection:'row',alignItems:'center',marginBottom:12},
-  infoIcon:{marginLeft:6, marginBottom: 13},
-  input:{borderWidth:1,borderColor:'rgba(255,255,255,0.3)',borderRadius:10,color:'#fff',padding:10,marginTop:12,backgroundColor:'rgba(255,255,255,0.1)'},
-  saveBtn:{width:'100%',height:45,borderRadius:22.5,overflow:'hidden',marginTop:16},
-  saveBtnGradient:{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center'},
-  saveBtnText:{color:'#000',fontWeight:'600',fontSize:16},
   bottomSpacing: {
     height: 100,
   },

@@ -278,18 +278,27 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
         body: JSON.stringify({ challenge_id: challengeId }),
       });
 
+      // Friendly message if game cannot be joined
       if (res.status === 403) {
-        const data = await res.json();
-        console.log("Response data:", data.code); // Check the response from the server
-
-        if (data.code === 'JOINS_CLOSED' || data.code === 'GAME_ENDED') {
-            Alert.alert('Join closed', 'This game can no longer be joined.');
-            navigation.goBack();
-            return;
+        const errData = await res.json().catch(() => ({} as any));
+        const code = (errData as any)?.code as string | undefined;
+        const detail = (errData as any)?.detail as string | undefined;
+        let title = 'Game Unavailable';
+        let message = detail || 'This game is closed. \nPlease join next time.';
+        if (code === 'JOINS_CLOSED') {
+          title = 'Join Window Closed';
+          message = detail || 'The join window has closed. \nPlease join next time.';
+        } else if (code === 'GAME_ENDED') {
+          title = 'Game Finished';
+          message = detail || 'This game has already finished for today.';
         }
-    }
+        Alert.alert(title, message);
+        navigation.goBack();
+        return;
+      }
+
       const data = await res.json();
-      console.log("Response data:", data); // Check the response from the server
+      console.log("Response data:", data);
 
       const { game_id, game_state_id, puzzle, is_multiplayer, created_at, join_deadline_at } = data;
 
@@ -409,6 +418,7 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
             case 'lobby_state': {
               const d = data as LobbyStateMessage;
               setExpectedCount(d.expected_count);
+              console.log("expected count: ", d.expected_count);
               setReadyCount(d.ready_count);
               if (d.join_deadline_at) {
                 setJoinDeadlineISO(d.join_deadline_at);
