@@ -1,4 +1,4 @@
-from api.models import SudokuGameState, Challenge, SudokuGamePlayer, User, Game
+from api.models import SudokuGameState, Challenge, SudokuGamePlayer, GameSchedule, GameScheduleGameAssociation, User, Game
 from sudoku import Sudoku
 import time
 import random
@@ -12,26 +12,20 @@ def get_or_create_game(challenge_id, user, allow_join: bool = True):
     challenge = Challenge.objects.get(id=challenge_id)
     # Try to get existing game for this challenge
     game_state = SudokuGameState.objects.filter(challenge=challenge).first()
+    sched_id = GameSchedule.objects.get(challenge_id=challenge_id).id
+    game_id = GameScheduleGameAssociation.objects.get(game_schedule_id=sched_id).game_id
+
+    sudokuGame = Game.objects.get(id=game_id)
+    is_multiplayer = sudokuGame.isMultiplayer
+    print("is multiplayer: ", is_multiplayer)
+
+    game_name = sudokuGame.name
+    print("game name: ", game_name)
+    
+    difficulty = 0.1
 
     if not game_state:
-        # Create a new game state
-        # Prefer Game(id=10), but fall back to a Sudoku-like game or any game
-        sudokuGame = None
-        try:
-            sudokuGame = Game.objects.get(id=10)
-        except Game.DoesNotExist:
-            pass
-        if sudokuGame is None:
-            sudokuGame = Game.objects.filter(name__icontains="sudoku").first()
-        if sudokuGame is None:
-            sudokuGame = Game.objects.order_by("id").first()
-
-        # Determine multiplayer from game, else from challenge membership, else default False
-        is_multiplayer = bool(getattr(sudokuGame, 'isMultiplayer', (challenge.groupID_id is not None)))
-
-        # difficulty can be tuned per mode
-        difficulty = 0.1 if is_multiplayer else 0.1
-
+        
         sudoku = Sudoku(3, 3, seed=int(time.time() * 1000)).difficulty(difficulty)
         puzzle = sudoku.board
         solution = sudoku.solve().board
@@ -43,7 +37,7 @@ def get_or_create_game(challenge_id, user, allow_join: bool = True):
             solution=solution,
         )
         # set join deadline to 2 minutes after creation
-        game_state.join_deadline_at = timezone.now() + timedelta(minutes=2)
+        game_state.join_deadline_at = timezone.now() + timedelta(seconds=10)
         game_state.save(update_fields=["join_deadline_at"])
     else:
         # Existing state, infer multiplayer from its game safely

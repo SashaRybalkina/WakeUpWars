@@ -315,6 +315,7 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
       // setPendingInput('');
 
       // WebSocket connection for multiplayer
+      console.log("Is multiplayer:", is_multiplayer);
       if (is_multiplayer) {
         const resDetail = await fetch(endpoints.challengeDetail(challengeId), {
           headers: { 'Authorization': `Bearer ${accessToken}` },
