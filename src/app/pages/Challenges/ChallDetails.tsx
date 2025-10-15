@@ -585,7 +585,7 @@ const loadPerformances = async () => {
             </View>
           </View>
 
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={[styles.scheduleButton, { marginTop: 14 }]}
           onPress={() => navigation.navigate("Rewards", { challengeId: challId })}>
           <LinearGradient
@@ -594,7 +594,7 @@ const loadPerformances = async () => {
             <Ionicons name="wallet" size={18} color="#FFF" style={styles.scheduleIcon} />
             <Text style={styles.scheduleButtonText}>Settle Up</Text>
           </LinearGradient>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         {/* <TouchableOpacity
           style={[styles.scheduleButton, { marginTop: 14 }]}

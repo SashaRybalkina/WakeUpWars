@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
     alignSelf: "center", marginTop: 20, marginBottom: 5,
     borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.3)",
   },
-  addNewButtonText: { color: "#FFF", fontSize: 16, fontWeight: "600", textAlign: "center" },
+  addNewButtonText: { color: "#000", fontSize: 16, fontWeight: "600", textAlign: "center" },
   navBar: {
     backgroundColor: "#211F26", flexDirection: "row", height: 80,
     justifyContent: "space-around", alignItems: "center", paddingBottom: 15,

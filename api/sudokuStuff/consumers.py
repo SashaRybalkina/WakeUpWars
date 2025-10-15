@@ -9,6 +9,7 @@ from django.utils import timezone
 from api.models import GamePerformance
 from asgiref.sync import sync_to_async
 from django.core.cache import cache
+from api.tasks import close_join_window
 
 ALL_COLORS = [
     'hotpink', 'coral', 'orange', 'lawngreen', 'aqua',
@@ -363,6 +364,14 @@ class SudokuConsumer(AsyncWebsocketConsumer):
             'server_now': event.get('server_now'),
         }))
 
+    async def leaderboard_update(self, event):
+        # Forward leaderboard updates broadcast by Celery task
+        await self.send(text_data=json.dumps({
+            'type': 'leaderboard_update',
+            'leaderboard': event.get('leaderboard', []),
+            'server_now': event.get('server_now'),
+        }))
+
     # Color assignment (thread-safe)
     @sync_to_async
     def assign_color(self):
@@ -437,6 +446,8 @@ class SudokuConsumer(AsyncWebsocketConsumer):
             return
         # broadcast to group
         from asgiref.sync import async_to_sync
+        from api.tasks import close_join_window
+        close_join_window.delay('SudokuGameState', self.game_state_id)
         async_to_sync(self.channel_layer.group_send)(
             self.group_name,
             {

@@ -14,6 +14,7 @@ from .models import (
     SudokuGameState,
     WordleGameState,
     PatternMemorizationGameState,
+    SudokuGamePlayer,
     Challenge,
     GamePerformance,
     Game,
@@ -130,6 +131,7 @@ def close_join_window(model_name, gs_id):
     gs.save(update_fields=["joins_closed"])
 
     # Notify connected clients via Channels to auto-start
+    # Broadcast join window closed (best-effort)
     try:
         prefix = {
             'SudokuGameState': 'sudoku',
@@ -141,23 +143,29 @@ def close_join_window(model_name, gs_id):
         async_to_sync(channel_layer.group_send)(
             group,
             {
-                'type': 'join.window.closed',
+                'type': 'join_window_closed',
                 'server_now': timezone.now().isoformat(),
             }
         )
+        logger.info("Passing......")
     except Exception:
         logger.exception("Failed to broadcast join_window_closed for %s %s", model_name, gs_id)
 
-    # Schedule a leaderboard broadcast 5 minutes after joins close
+    # Schedule leaderboard regardless of broadcast success
     try:
-        broadcast_leaderboard.apply_async(
+        logger.info("i'm passing too so it should work.")
+        async_result = broadcast_leaderboard.apply_async(
             args=[Model.__name__, gs.id],
             kwargs={"for_date_iso": today.isoformat()},
-            eta=timezone.now() + timezone.timedelta(minutes=5),
+            eta=timezone.now() + timezone.timedelta(minutes=2),
             taREDACTEDid=f"leaderboard-{Model.__name__}-{gs.id}-{uuid()}",
         )
+        logger.info(
+            "Scheduled broadcast_leaderboard for %s %s (taREDACTEDid=%s) in %s seconds",
+            model_name, gs_id, getattr(async_result, 'id', None), 120,
+        )
     except Exception:
-        logger.exception("Failed to schedule leaderboard broadcast for %s %s", model_name, gs_id)
+        logger.exception("Failed to schedule broadcast_leaderboard for %s %s", model_name, gs_id)
 
 @shared_task
 def broadcast_leaderboard(model_name: str, gs_id: int, for_date_iso: str | None = None):
@@ -176,6 +184,47 @@ def broadcast_leaderboard(model_name: str, gs_id: int, for_date_iso: str | None 
         play_date = date.fromisoformat(for_date_iso) if for_date_iso else timezone.localdate()
     except Exception:
         play_date = timezone.localdate()
+
+    # Reconcile/finalize Sudoku scores if not already present
+    if model_name == 'SudokuGameState':
+        try:
+            # Compute scores from SudokuGamePlayer stats
+            players = (
+                SudokuGamePlayer.objects
+                .select_related('player')
+                .filter(gameState_id=gs_id)
+            )
+            submitted_ids = set()
+            for p in players:
+                correct = int(getattr(p, 'accuracyCount', 0) or 0)
+                incorrect = int(getattr(p, 'inaccuracyCount', 0) or 0)
+                attempts = max(1, correct + incorrect)
+                score = round((correct / attempts) * 100, 2)
+                GamePerformance.objects.update_or_create(
+                    challenge=gs.challenge,
+                    game=gs.game,
+                    user=p.player,
+                    date=play_date,
+                    defaults={"score": score},
+                )
+                submitted_ids.add(p.player_id)
+
+            # Fill zeros for remaining participants
+            participant_ids = set(
+                ChallengeMembership.objects
+                .filter(challengeID=gs.challenge)
+                .values_list('uID_id', flat=True)
+            )
+            for uid in participant_ids - submitted_ids:
+                GamePerformance.objects.update_or_create(
+                    challenge=gs.challenge,
+                    game=gs.game,
+                    user_id=uid,
+                    date=play_date,
+                    defaults={"score": 0, "auto_generated": True},
+                )
+        except Exception:
+            logger.exception("Failed to reconcile Sudoku scores before broadcasting for %s %s", model_name, gs_id)
 
     leaderboard = list(
         GamePerformance.objects

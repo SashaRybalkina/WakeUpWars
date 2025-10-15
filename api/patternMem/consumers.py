@@ -7,6 +7,7 @@ from datetime import date
 
 from api.models import PatternMemorizationGameState, User, ChallengeMembership, GamePerformance
 from api.patternMem.utils import validate_pattern_move
+from api.tasks import close_join_window
 
 # ---- Cache keys ----
 def _ready_key(game_state_id: int) -> str:
@@ -160,6 +161,8 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
                     "type": "game.start",
                 })
                 print("[DEBUG From Consumers] group_send → game.start has been sent", flush=True)
+                # Ensure server-side close logic runs (populate zeros, schedule leaderboard)
+                close_join_window.delay('PatternMemorizationGameState', self.game_state_id)
 
     async def _handle_player_answer(self, data):
         # NEW: reject any answers during the freeze window (3-second global pause)
@@ -266,6 +269,14 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             "type": "game_over",
             "scores": event["scores"]
+        }))
+
+    async def leaderboard_update(self, event):
+        # Forward leaderboard updates triggered by Celery
+        await self.send(text_data=json.dumps({
+            "type": "leaderboard_update",
+            "leaderboard": event.get("leaderboard", []),
+            "server_now": event.get("server_now"),
         }))
 
     # ---------------- HELPERS ----------------
