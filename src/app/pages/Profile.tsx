@@ -167,7 +167,7 @@ const handleLogout = async () => {
               <Ionicons name="trophy" size={40} color={'#FFD700'} style={styles.iconWithShadow} />
             </View>
             <Text style={[styles.profileButtonText, { color: '#FF0' }]}>
-              Challenges
+              {"  "}Personal {"\n"}Challenges
             </Text>
           </TouchableOpacity>
         </View>
@@ -430,6 +430,7 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.75)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
+    marginTop: 2,
   },
   menu: {
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
