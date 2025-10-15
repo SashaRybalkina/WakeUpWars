@@ -33,3 +33,26 @@ class NotificationConsumer(AsyncWebsocketConsumer):
     def save_notification(self, user_id, title, body, type, screen):
         user = User.objects.get(id=user_id)
         return UserNotification.objects.create(user=user, title=title, body=body, type=type, screen=screen)
+
+class UserNotificationConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.user_id = self.scope['url_route']['kwargs'].get('user_id')
+        if not self.user_id:
+            await self.close()
+            return
+        self.room_groupname = f'notifications{self.user_id}'
+        await self.channel_layer.group_add(
+            self.room_groupname,
+            self.channel_name
+        )
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(
+            self.room_groupname,
+            self.channel_name
+        )
+
+    async def receive(self, text_data):
+        # Optionally handle client-initiated events (e.g., mark as read)
+        pass

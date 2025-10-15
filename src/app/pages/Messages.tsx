@@ -157,11 +157,11 @@ const Messages: React.FC<Props> = ({ navigation }) => {
   useEffect(() => {
     if (!user?.id) return;
     // Notifications WebSocket
-    const wsUrlNotif = `${BASE_URL.replace(/^http/, "ws")}/ws/notifications/${user.id}/`;
+    const wsUrlNotif = `${BASE_URL.replace(/^http/, "ws")}/ws/user/notifications/${user.id}/`;
     wsNotification.current = new WebSocket(wsUrlNotif);
     wsNotification.current.onmessage = (event: any) => {
       try {
-        const data = JSON.parse(event.data);
+        const data: any = JSON.parse(event.data as string);
         if (data.type === "notification_event") {
           setNotifications((prev) => [data, ...prev]);
         }
@@ -179,7 +179,7 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     wsPrivate.current = new WebSocket(wsUrlPrivate);
     wsPrivate.current.onmessage = (event: any) => {
       try {
-        const data = JSON.parse(event.data);
+        const data: any = JSON.parse(event.data as string);
         fetchMessages();
         setFriendMessages((prev) => [...prev, data]);
 
@@ -209,7 +209,7 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     wsGroups.current = new WebSocket(wsUrlGroups);
     wsGroups.current.onmessage = (event: any) => {
       try {
-        const data = JSON.parse(event.data);
+        const data: any = JSON.parse(event.data as string);
         fetchGroupConversations();
         setGroupConversations((prev) => [...prev, data]);
 
