@@ -90,7 +90,8 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 15,
+    marginLeft: 20,
+    marginBottom: 10,
   },
   titleContainer: {
     marginTop: 10,

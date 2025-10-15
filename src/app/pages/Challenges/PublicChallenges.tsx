@@ -192,7 +192,10 @@ const PublicChallenges: React.FC<Props> = ({ navigation }) => {
             navigation.navigate("VerifyAvailability");
           }}
         >
-          <Text style={styles.addNewButtonText}>Search for Public Challenge</Text>
+          <View style={styles.searchButtonContent}>
+            <Ionicons name="search" size={18} color="#000" style={{ marginRight: 8 }} />
+            <Text style={styles.addNewButtonText}>Search for Public Challenge</Text>
+          </View>
         </TouchableOpacity>
 
 
@@ -499,6 +502,11 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.3)",
+  },
+  searchButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   addNewButtonText: {
     color: "#000",
