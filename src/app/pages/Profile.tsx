@@ -240,7 +240,7 @@ const handleLogout = async () => {
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.logoutButton}
           activeOpacity={0.8}
           onPress={() =>
@@ -253,17 +253,17 @@ const handleLogout = async () => {
             )
           }
         >
-          <Ionicons
+          {/* <Ionicons
             name="game-controller"
             size={22}
             color="#FFF"
             style={styles.logoutIcon}
           />
-          <Text style={styles.logoutText}>Notification</Text>
-        </TouchableOpacity>
+          <Text style={styles.logoutText}>Notification</Text> */}
 
 
-        <TouchableOpacity
+
+        {/* <TouchableOpacity
           style={styles.logoutButton}
           activeOpacity={0.8}
           onPress={() =>
@@ -281,9 +281,9 @@ const handleLogout = async () => {
             style={styles.logoutIcon}
           />
           <Text style={styles.logoutText}>Multiplayer Wordle</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.logoutButton}
           activeOpacity={0.8}
           onPress={() =>
@@ -307,9 +307,9 @@ const handleLogout = async () => {
             style={styles.logoutIcon}
           />
           <Text style={styles.logoutText}>Alarm</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.logoutButton}
           activeOpacity={0.8}
           onPress={setUserAlarms}
@@ -321,7 +321,7 @@ const handleLogout = async () => {
             style={styles.logoutIcon}
           />
           <Text style={styles.logoutText}>Test Schedule Alarms</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         {/* Add padding at the bottom to ensure content isn't hidden behind the nav bar */}
         <View style={styles.bottomPadding} />
