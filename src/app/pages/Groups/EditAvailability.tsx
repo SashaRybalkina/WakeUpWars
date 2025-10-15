@@ -51,7 +51,7 @@ const DayOfWeekLabels: Record<number, string> = { 1: "M", 2: "T", 3: "W", 4: "TH
 const TIMES = Array.from({ length: 80 }, (_, i) => {
   const totalMinutes = 4 * 60 + i * 15; // start at 4:00
   const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
+    const minutes = totalMinutes % 60;
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 });
 
@@ -466,69 +466,69 @@ const handleSubmit = async () => {
       const todayStr = today.toISOString().split("T")[0];
       const startStr = start.toISOString().split("T")[0];
 
-      console.log(todayStr)
+      console.log("today: ", todayStr)
       console.log(startStr)
 
-      if (todayStr > startStr) {
-        alert("Start date already passed.");
-        return;
+      // if (todayStr > startStr) {
+      //   alert("Start date already passed.");
+      //   return;
+      // }
+
+      try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        throw new Error("Not authenticated");
       }
 
-      // try {
-      // const accessToken = await getAccessToken();
-      // if (!accessToken) {
-      //   throw new Error("Not authenticated");
-      // }
+        const res = await fetch(endpoints.finalizeCollaborativeGroupChallengeSchedule(pendingChallengeId), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            "Authorization": `Bearer ${accessToken}`,
+          },
+        });
+        if (!res.ok) throw new Error(`Failed to finalize schedule. (${res.status})`);
 
-      //   const res = await fetch(endpoints.finalizeCollaborativeGroupChallengeSchedule(pendingChallengeId), {
-      //     method: 'POST',
-      //     headers: {
-      //       'Content-Type': 'application/json',
-      //       "Authorization": `Bearer ${accessToken}`,
-      //     },
-      //   });
-      //   if (!res.ok) throw new Error(`Failed to finalize schedule. (${res.status})`);
+        // let challenge_id: number | null = null;
+        // const text = await res.text();
+        // if (text) {
+        //   try {
+        //     const json = JSON.parse(text);
+        //     challenge_id = json?.challenge_id ?? null;
+        //   } catch {
+        //     // not JSON — ignore; we’ll fall back to pending id
+        //   }
+        // }
 
-      //   // let challenge_id: number | null = null;
-      //   // const text = await res.text();
-      //   // if (text) {
-      //   //   try {
-      //   //     const json = JSON.parse(text);
-      //   //     challenge_id = json?.challenge_id ?? null;
-      //   //   } catch {
-      //   //     // not JSON — ignore; we’ll fall back to pending id
-      //   //   }
-      //   // }
+        // try {
+        //     console.log("setting user alarms for challenge:")
+        //     console.log(pendingChallengeId)
+        //     // await scheduleAlarmsForUser(pendingChallengeId, pendingChallengeName, Number(user?.id));
+        // } catch (e) {
+        //     console.warn('Failed to schedule alarms for new challenge', e);
+        // }
 
-      //   // try {
-      //   //     console.log("setting user alarms for challenge:")
-      //   //     console.log(pendingChallengeId)
-      //   //     // await scheduleAlarmsForUser(pendingChallengeId, pendingChallengeName, Number(user?.id));
-      //   // } catch (e) {
-      //   //     console.warn('Failed to schedule alarms for new challenge', e);
-      //   // }
-
-      //   // const targetId = challenge_id ?? pendingChallengeId;
-      //   Alert.alert('Success', 'Schedule finalized.', [
-      //     {
-      //       text: 'OK',
-      //       // onPress: () =>
-      //       //   navigation.navigate('ChallDetails', {
-      //       //     challId: pendingChallengeId,
-      //       //     challName: pendingChallengeName,
-      //       //     whichChall: 'Group',
-      //       //   }),
-      //       onPress: () =>
-      //         navigation.navigate('ChallSchedule', {
-      //           challId: pendingChallengeId,
-      //           challName: pendingChallengeName,
-      //           fromSearch: false,
-      //         }),
-      //     },
-      //   ]);
-      // } catch (err: any) {
-      //   Alert.alert('Error', err.message);
-      // }
+        // const targetId = challenge_id ?? pendingChallengeId;
+        Alert.alert('Success', 'Schedule finalized.', [
+          {
+            text: 'OK',
+            // onPress: () =>
+            //   navigation.navigate('ChallDetails', {
+            //     challId: pendingChallengeId,
+            //     challName: pendingChallengeName,
+            //     whichChall: 'Group',
+            //   }),
+            onPress: () =>
+              navigation.navigate('ChallSchedule', {
+                challId: pendingChallengeId,
+                challName: pendingChallengeName,
+                fromSearch: false,
+              }),
+          },
+        ]);
+      } catch (err: any) {
+        Alert.alert('Error', err.message);
+      }
     };
 
 return (

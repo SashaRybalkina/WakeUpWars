@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   ImageBackground,
@@ -61,6 +61,22 @@ type ServerToClientMessage =
       }[];
     };
 
+// Waiting room/lobby messages (mirroring Sudoku)
+type LobbyStateMessage = {
+  type: 'lobby_state';
+  created_at: string;
+  join_deadline_at: string | null;
+  server_now: string;
+  ready_count: number;
+  expected_count: number;
+  online_ids?: number[];
+};
+
+type JoinWindowClosedMessage = {
+  type: 'join_window_closed';
+  server_now?: string;
+};
+
 const WordleScreen: React.FC<Props> = ({ navigation }) => {
   const route = useRoute();
   const { challengeId, challName, whichChall } = (route.params as {
@@ -84,6 +100,7 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
   const [timeLeft, setTimeLeft] = useState(300);
   const [gameOver, setGameOver] = useState(false);
   const [socket, setSocket] = useState<WebSocket | null>(null);
+  const socketRef = useRef<WebSocket | null>(null);
   const [first, setFirst] = useState(true);
   const [gameStateId, setGameStateId] = useState<number | null>(null);
   const [opponentRows, setOpponentRows] = useState<{
@@ -94,8 +111,50 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
   const hasShownResultRef = useRef(false);
   const [isMultiplayer, setIsMultiplayer] = useState(false);
 
+  // Waiting room state (mirroring Sudoku)
+  const [waitingActive, setWaitingActive] = useState<boolean>(false);
+  const [joinDeadlineISO, setJoinDeadlineISO] = useState<string | null>(null);
+  const [readyCount, setReadyCount] = useState<number>(1);
+  const [expectedCount, setExpectedCount] = useState<number>(1);
+  const [remainingSec, setRemainingSec] = useState<number | null>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [showCountdown, setShowCountdown] = useState(false);
+  const [countdownValue, setCountdownValue] = useState<number | null>(null);
+  const [members, setMembers] = useState<{ id: number; name: string }[]>([]);
+  const [onlineIds, setOnlineIds] = useState<number[]>([]);
+
+  const canStartNow = useMemo(() => readyCount >= 1, [readyCount]);
+
+  const startLocalCountdown = (deadlineISO: string | null) => {
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+      countdownRef.current = null;
+    }
+    if (!deadlineISO) {
+      setRemainingSec(null);
+      return;
+    }
+    const deadline = new Date(deadlineISO).getTime();
+    const tick = () => {
+      const now = Date.now();
+      const diffMs = Math.max(0, deadline - now);
+      setRemainingSec(Math.floor(diffMs / 1000));
+    };
+    tick();
+    countdownRef.current = setInterval(tick, 1000);
+  };
+
   // 🔄 Reset game
   const resetGame = () => {
+    // Safely close any existing socket before re-initializing
+    try {
+      const ws = socketRef.current;
+      if (ws && ws.readyState !== WebSocket.CLOSING && ws.readyState !== WebSocket.CLOSED) {
+        ws.close();
+      }
+    } catch (e) {
+      console.log('[WebSocket] error closing during reset:', e);
+    }
     setGrid(
       Array.from({ length: MAX_ATTEMPTS }, () => Array(GRID_SIZE).fill('')),
     );
@@ -151,13 +210,30 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
       const data = await res.json();
       console.log("[Wordle] Game created:", data);
 
-      const { game_state_id, is_multiplayer } = data;
+      const { game_state_id, is_multiplayer, join_deadline_at } = data as any;
       setGameStateId(game_state_id);
       setIsMultiplayer(is_multiplayer);
 
       //console.log(`[Wordle] Challenge=${challengeId}, game_state_id=${game_state_id}, answer=${answer}`);
 
       if (is_multiplayer) {
+        // If backend supplied a join deadline, start the local countdown immediately
+        if (join_deadline_at) {
+          setJoinDeadlineISO(join_deadline_at);
+          startLocalCountdown(join_deadline_at);
+          setWaitingActive(true);
+        }
+        // Load challenge members for waiting room display
+        try {
+          const detailRes = await fetch(endpoints.challengeDetail(challengeId), {
+            headers: { 'Authorization': `Bearer ${accessToken}` },
+          });
+          const detail = await detailRes.json();
+          setMembers(detail?.members || []);
+          setWaitingActive(true);
+        } catch (e) {
+          console.warn('[Wordle] Failed to load challenge members', e);
+        }
         // ✅ Added: include token in WebSocket connection URL
         const wsUrl = `${BASE_URL.replace(/^http/, 'ws')}/ws/wordle/${game_state_id}/?token=${accessToken}`;
         console.log("[WebSocket] Connecting to:", wsUrl); // ✅ Added: debug log
@@ -168,7 +244,7 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
         ws.onerror = (e) => console.error('[WebSocket] ❌ error:', e);
 
         ws.onmessage = (event) => {
-          const msg: ServerToClientMessage = JSON.parse(event.data);
+          const msg = JSON.parse(event.data) as any;
 
           if (msg.type === 'player_list') {
             console.log('[WebSocket] Current players:', msg.players);
@@ -192,11 +268,36 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
             console.log(`[WebSocket] Player left: ${msg.player}`);
           }
 
+          // Waiting room events
+          if (msg.type === 'lobby_state') {
+            const d = msg as LobbyStateMessage;
+            setExpectedCount(d.expected_count);
+            setReadyCount(d.ready_count);
+            if (d.join_deadline_at) {
+              setJoinDeadlineISO(d.join_deadline_at);
+              startLocalCountdown(d.join_deadline_at);
+            }
+            if (Array.isArray(d.online_ids)) setOnlineIds(d.online_ids);
+            // Show overlay on first lobby state
+            setWaitingActive(true);
+          }
+
+          if (msg.type === 'join_window_closed') {
+            setWaitingActive(false);
+            if (countdownRef.current) {
+              clearInterval(countdownRef.current);
+              countdownRef.current = null;
+            }
+            setShowCountdown(false);
+            setCountdownValue(null);
+          }
+
           if (msg.type === 'game_complete') {
             if (hasShownResultRef.current) return; // prevent multiple alerts
             
-            const myScore = msg.scores.find(s => s.username === user?.username);
-            const topScore = Math.max(...msg.scores.map(s => s.score));
+            const scoresArr: { username: string; score: number; accuracy?: number; inaccuracy?: number }[] = Array.isArray(msg.scores) ? msg.scores : [];
+            const myScore = scoresArr.find((s: { username: string; score: number }) => s.username === (user?.username ?? ''));
+            const topScore = scoresArr.length ? Math.max(...scoresArr.map((s: { username: string; score: number }) => s.score)) : 0;
             const isWinner = myScore?.score === topScore;
             console.log("[DEBUG] Winner check", {
               user: user?.username,
@@ -204,10 +305,10 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
               topScore,
               isWinner
             });
-            console.log('[WebSocket] Game complete:', msg.scores);
+            console.log('[WebSocket] Game complete:', scoresArr);
             Alert.alert(
               isWinner ? '🏆 You Win!' : '❌ Game Over',
-              msg.scores.map(s => `${s.username}: ${s.score}`).join('\n'),
+              scoresArr.map((s: { username: string; score: number }) => `${s.username}: ${s.score}`).join('\n'),
               [
                 {
                   text: 'OK',                 
@@ -220,6 +321,7 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
         };
 
         ws.onclose = () => console.log('[WebSocket] disconnected');
+        socketRef.current = ws;
         setSocket(ws);
       }
     } catch (err) {
@@ -237,15 +339,63 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
 
     return () => {
       if (socket) {
-        console.log('[WebSocket] closing on unmount...');
-        socket.close();
+        try {
+          if (socket.readyState !== WebSocket.CLOSING && socket.readyState !== WebSocket.CLOSED) {
+            console.log('[WebSocket] closing on unmount...');
+            socket.close();
+          }
+        } catch (e) {
+          console.log('[WebSocket] close skipped due to error:', e);
+        }
       }
     };
   }, [socket]);
-  
-  // ⏳ Timer
+
+  // Countdown display and auto-start like Sudoku
   useEffect(() => {
-    if (gameOver) return;
+    if (!waitingActive || remainingSec === null) {
+      if (showCountdown) {
+        setShowCountdown(false);
+        setCountdownValue(null);
+      }
+      return;
+    }
+    if (remainingSec <= 3 && remainingSec > 0) {
+      setShowCountdown(true);
+      setCountdownValue(remainingSec);
+    } else if (remainingSec <= 0) {
+      if (showCountdown) {
+        setShowCountdown(false);
+        setCountdownValue(null);
+      }
+      const ws = socketRef.current;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'start_game' }));
+      } else {
+        console.log('[WebSocket] start_game skipped: socket not open');
+      }
+      // Dismiss waiting room locally in case the server message is delayed
+      setWaitingActive(false);
+      setJoinDeadlineISO(null);
+      setRemainingSec(null);
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+        countdownRef.current = null;
+      }
+    } else {
+      if (showCountdown) {
+        setShowCountdown(false);
+        setCountdownValue(null);
+      }
+    }
+  }, [remainingSec, waitingActive]);
+
+  // Cleanup countdown on unmount
+  useEffect(() => () => { if (countdownRef.current) clearInterval(countdownRef.current); }, []);
+  
+  // ⏳ Timer — paused while waiting room is active
+  useEffect(() => {
+    if (gameOver || waitingActive) return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -266,7 +416,7 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [gameOver]);
+  }, [gameOver, waitingActive]);
 
   //  validate API
   const submitGuess = async () => {
@@ -275,7 +425,8 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
     console.log(`[Wordle] Row ${selectedRow} already submitted, skipping`);
     return;
   }
-    const guess = grid[selectedRow].join('');
+    const rowArr = Array.isArray(grid[selectedRow]) ? grid[selectedRow] : [];
+    const guess = rowArr.join('');
     setSubmittedRows(prev => new Set(prev).add(selectedRow));
     console.log(`[Wordle] Submitting guess row=${selectedRow}, guess="${guess}"`);
 
@@ -309,7 +460,7 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
       const data = await res.json();
       setResults((prev) => [...prev, data.feedback]);
 
-      if (socket) {
+      if (socket && socket.readyState === WebSocket.OPEN) {
         console.log("[WebSocket] Sending my move:", guess);
         socket.send(
           JSON.stringify({
@@ -320,6 +471,8 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
             evaluation: data.feedback,
           }),
         );
+      } else {
+        console.log('[WebSocket] Skipping send; socket not open');
       }
 
       if (data.is_correct || data.is_complete) {
@@ -383,6 +536,62 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
       style={styles.background}
       resizeMode="cover"
     >
+      {waitingActive && (
+        <View style={styles.waitingOverlay}>
+          <View style={styles.waitingCard}>
+            <Text style={styles.waitingTitle}>Waiting Room</Text>
+            <View style={{ marginTop: 8 }}>
+              {members.map(m => {
+                const isOnline = onlineIds?.some(id => String(id) === String(m.id));
+                const initials = (m.name || '')
+                  .split(' ')
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .map(s => s[0])
+                  .join('')
+                  .toUpperCase();
+                return (
+                  <View key={m.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, opacity: isOnline ? 1 : 0.5 }}>
+                    <View style={{ width: 36, height: 36, borderRadius: 18, marginRight: 10, justifyContent: 'center', alignItems: 'center', backgroundColor: isOnline ? '#FFD700' : '#999', borderWidth: isOnline ? 2 : 1, borderColor: isOnline ? '#fff' : '#666' }}>
+                      <Text style={{ color: isOnline ? '#333' : '#eee', fontWeight: '700' }}>{initials || '?'}</Text>
+                    </View>
+                    <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>{m.name}</Text>
+                    {isOnline && <View style={{ marginLeft: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: '#00E676' }} />}
+                  </View>
+                );
+              })}
+            </View>
+            <Text style={styles.waitingText}>Players: {readyCount}/{expectedCount}</Text>
+            <Text style={styles.waitingText}>
+              {remainingSec != null
+                ? `Starts in ${Math.floor(Math.max(0, remainingSec) / 60)}:${(Math.max(0, remainingSec) % 60)
+                    .toString()
+                    .padStart(2, '0')}`
+                : 'Starts soon'}
+            </Text>
+            {canStartNow && socketRef.current && (
+              <TouchableOpacity
+                style={styles.startBtn}
+                onPress={() => {
+                  const ws = socketRef.current;
+                  if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'start_game' }));
+                  } else {
+                    console.log('[WebSocket] Start Game tapped but socket not open');
+                  }
+                }}
+              >
+                <Text style={styles.startBtnText}>Start Game</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      )}
+      {showCountdown && (
+        <View style={styles.countdownOverlay}>
+          <Text style={styles.countdownText}>{String(countdownValue ?? '')}</Text>
+        </View>
+      )}
       <ScrollView contentContainerStyle={styles.container}>
         <TouchableOpacity
           style={styles.exitButton}
@@ -571,7 +780,53 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginHorizontal: 1,
     backgroundColor: 'white',  
-  }
+  },
+  // Waiting room styles (mirroring Sudoku)
+  waitingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,              // full-screen
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  waitingCard: {
+    width: '85%',
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.1)',  // glass-like
+    borderColor: 'rgba(255,255,255,0.25)',
+    borderWidth: 1,
+  }, 
+  countdownText: {
+    fontSize: 72,
+    color: '#FFD700',
+    fontWeight: '900',
+    textAlign: 'center',
+    marginVertical: 12,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 8,
+  },
+  countdownOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 20,
+  },
+  waitingTitle: { color: 'white', fontSize: 22, fontWeight: '700', textAlign: 'center', marginBottom: 8 },
+  waitingText: { color: 'white', fontSize: 14, textAlign: 'center', marginBottom: 6 },
+  startBtn: { marginTop: 12, backgroundColor: '#FFD700', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, alignSelf: 'center' },
+  startBtnText: { color: '#333', fontWeight: '700' },
 });
 
 export default WordleScreen;

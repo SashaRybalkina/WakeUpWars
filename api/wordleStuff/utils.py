@@ -3,6 +3,8 @@ import random
 from django.db import transaction
 from asgiref.sync import sync_to_async
 from api.words_array import words
+from django.utils import timezone
+from datetime import timedelta
 
 MAX_ATTEMPTS = 5  # frontend also defines 5 rows
 
@@ -19,7 +21,7 @@ def compute_multiplayer_score(rank: int, total_players: int) -> int:
 
 
 @transaction.atomic
-def get_or_create_game_wordle(challenge_id, user):
+def get_or_create_game_wordle(challenge_id, user, allow_join: bool = True):
     """
     Create or reuse a WordleGameState for a given challenge.
     Ensure the user is recorded as a player.
@@ -46,18 +48,71 @@ def get_or_create_game_wordle(challenge_id, user):
             #joins_closed=False,
         )
         print(f"[WORDLE][create] chall={challenge.id} gs={game_state.id} answer={target_word}", flush=True)
+        # Set a join deadline window (e.g., 2 minutes) similar to Sudoku
+        game_state.join_deadline_at = timezone.now() + timedelta(seconds=30)
+        game_state.save(update_fields=["join_deadline_at"])
+    else:
+        # Existing state → derive is_multiplayer safely from the stored game
+        gs_game = getattr(game_state, 'game', None)
+        is_multiplayer = bool(getattr(gs_game, 'isMultiplayer', False))
+
+        # Normalize legacy/malformed state
+        updated_fields = []
+
+        # Ensure solution is a list of chars
+        sol = game_state.solution
+        if not sol:
+            if getattr(game_state, 'answer', None):
+                game_state.solution = list(str(game_state.answer))
+                updated_fields.append("solution")
+        elif isinstance(sol, str):
+            game_state.solution = list(sol)
+            updated_fields.append("solution")
+
+        # Ensure answer exists
+        if not getattr(game_state, 'answer', None):
+            sol2 = game_state.solution
+            if isinstance(sol2, list) and sol2:
+                game_state.answer = "".join(sol2)
+                updated_fields.append("answer")
+
+        # Ensure puzzle is a list of underscores with correct length
+        puz = game_state.puzzle
+        length = (
+            len(game_state.solution) if isinstance(game_state.solution, list) and game_state.solution
+            else (len(game_state.answer) if getattr(game_state, 'answer', None) else 5)
+        )
+        if not puz:
+            game_state.puzzle = ["_"] * length
+            updated_fields.append("puzzle")
+        elif isinstance(puz, str):
+            # Legacy string like "_____" → convert to list of underscores of same length
+            game_state.puzzle = ["_"] * max(len(puz), length)
+            updated_fields.append("puzzle")
+
+        # Ensure a join deadline exists
+        if not getattr(game_state, 'join_deadline_at', None):
+            game_state.join_deadline_at = timezone.now() + timedelta(seconds=30)
+            updated_fields.append("join_deadline_at")
+
+        if updated_fields:
+            game_state.save(update_fields=updated_fields)
 
     # Ensure user is recorded as a player
-    WordleGamePlayer.objects.get_or_create(
-        gameState=game_state,
-        player=user,
-        defaults={'accuracyCount': 0, 'inaccuracyCount': 0, 'color': None}
-    )
+    if allow_join:
+        WordleGamePlayer.objects.get_or_create(
+            gameState=game_state,
+            player=user,
+            defaults={'accuracyCount': 0, 'inaccuracyCount': 0, 'color': None}
+        )
 
     return {
         "game_state_id": game_state.id,
         "puzzle": game_state.puzzle,
         "is_multiplayer": is_multiplayer,
+        # expose timings for waiting room like Sudoku
+        "created_at": (game_state.created_at.isoformat() if game_state.created_at else None),
+        "join_deadline_at": (game_state.join_deadline_at.isoformat() if game_state.join_deadline_at else None),
         "answer": game_state.answer,  # ⚠️ for debugging only
     }
 

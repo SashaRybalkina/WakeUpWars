@@ -311,7 +311,7 @@ const addGameToDay = async (game: { id: number; name: string }) => {
             try {
                 if (challId) {
                 console.log(challId)
-                // await scheduleAlarmsForUser(challId, challName, Number(user?.id));
+                await scheduleAlarmsForUser(challId, challName, Number(user?.id));
                 setHasSetAlarms(true)
                 }
             } catch (e) {

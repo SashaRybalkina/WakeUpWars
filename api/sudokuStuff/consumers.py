@@ -451,7 +451,7 @@ class SudokuConsumer(AsyncWebsocketConsumer):
         async_to_sync(self.channel_layer.group_send)(
             self.group_name,
             {
-                'type': 'join.window.closed',
+                'type': 'join_window_closed',
                 'server_now': timezone.now().isoformat(),
             }
         )

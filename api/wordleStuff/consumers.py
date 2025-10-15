@@ -91,6 +91,29 @@ class WordleConsumer(AsyncWebsocketConsumer):
         )
         print(f"[WebSocket][BROADCAST] {self.user.username} joined game_state={self.game_state_id}")
 
+        # Send initial lobby state for waiting room UI
+        try:
+            expected_count = await sync_to_async(ChallengeMembership.objects.filter(challengeID=gs.challenge).count)()
+        except Exception:
+            expected_count = len(all_players)
+
+        try:
+            created_at = gs.created_at.isoformat() if getattr(gs, 'created_at', None) else None
+            join_deadline_at = gs.join_deadline_at.isoformat() if getattr(gs, 'join_deadline_at', None) else None
+        except Exception:
+            created_at = None
+            join_deadline_at = None
+
+        await self.send(text_data=json.dumps({
+            'type': 'lobby_state',
+            'created_at': created_at,
+            'join_deadline_at': join_deadline_at,
+            'server_now': timezone.now().isoformat(),
+            'ready_count': len(conns),
+            'expected_count': expected_count,
+            'online_ids': list(conns),
+        }))
+
 
     async def disconnect(self, close_code):
         username = self.user.username
@@ -185,6 +208,24 @@ class WordleConsumer(AsyncWebsocketConsumer):
                 print(f"[WebSocket][GAME COMPLETE] game_state={self.game_state_id}, scores={result['scores']}")
                 await self._persist_scores_once(result['scores'])
 
+        elif data.get('type') == 'start_game':
+            # Close join window and notify all clients to dismiss lobby
+            try:
+                gs = await sync_to_async(WordleGameState.objects.get)(id=self.game_state_id)
+                gs.joins_closed = True
+                await sync_to_async(gs.save)(update_fields=["joins_closed"])
+            except Exception:
+                pass
+            await self.channel_layer.group_send(
+                self.group_name,
+                {
+                    'type': 'join_window_closed'
+                }
+            )
+            await self.send(text_data=json.dumps({
+                'type': 'join_window_closed',
+            }))
+
 
     # ===== Group event handlers =====
     async def player_left(self, event):
@@ -227,6 +268,12 @@ class WordleConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'type': 'game_complete',
             'scores': event['scores'],
+        }))
+
+    async def join_window_closed(self, event):
+        # Group event -> notify this client to close lobby
+        await self.send(text_data=json.dumps({
+            'type': 'join_window_closed'
         }))
 
 

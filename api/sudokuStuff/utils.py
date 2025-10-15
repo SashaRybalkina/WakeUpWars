@@ -38,7 +38,7 @@ def get_or_create_game(challenge_id, user, allow_join: bool = True):
             solution=solution,
         )
         # set join deadline to 2 minutes after creation
-        game_state.join_deadline_at = timezone.now() + timedelta(minutes=2)
+        game_state.join_deadline_at = timezone.now() + timedelta(seconds=30)
         game_state.save(update_fields=["join_deadline_at"])
     else:
         # Existing state, infer multiplayer from its game safely

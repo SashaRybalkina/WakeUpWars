@@ -73,27 +73,22 @@ def open_join_window(challenge_id, game_id, game_code, user_id=None):
             gs = SudokuGameState.objects.get(pk=gs_dict["game_state_id"])
 
         elif game_code == "wordle":
-            blank = "_____"
-            gs, _ = WordleGameState.objects.get_or_create(
-                challenge=ch,
-                game=game,
-                defaults={"puzzle": blank, "solution": blank,
-                          "created_at": timezone.now()},
-            )
+            if user is None:
+                user = User.objects.order_by("id").first()
+            gs_dict = wordle_init(ch.id, user, allow_join=False)
+            gs = WordleGameState.objects.get(pk=gs_dict["game_state_id"])
 
         elif game_code == "pattern":
-            gs, _ = PatternMemorizationGameState.objects.get_or_create(
-                challenge=ch,
-                game=game,
-                defaults={"pattern_sequence": [],
-                          "created_at": timezone.now()},
-            )
+            if user is None:
+                user = User.objects.order_by("id").first()
+            gs_dict = pattern_init(ch.id, user, allow_join=False)
+            gs = PatternMemorizationGameState.objects.get(pk=gs_dict["game_state_id"])
         else:
             return  # unknown game type
 
     # continue with join-window timing
     if not gs.join_deadline_at:
-        gs.join_deadline_at = timezone.now() + timezone.timedelta(minutes=2)
+        gs.join_deadline_at = timezone.now() + timezone.timedelta(seconds=30)
         gs.save(update_fields=["join_deadline_at"])
     close_join_window.apply_async(
         args=[Model.__name__, gs.id],
