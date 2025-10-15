@@ -21,6 +21,7 @@ import { scheduleAlarmsForChallenge, scheduleAlarmsForUser } from "../../alarmSe
 import { useUser } from "../../context/UserContext"
 import { getAccessToken } from "../../auth"
 import { getNextAlarmDate } from "../../../utils/dateUtils"
+import axios from "axios";
 
 type Props = {
   navigation: NavigationProp<any>
@@ -38,8 +39,7 @@ type GameSchedule = {
 
 const PersChall3: React.FC<Props> = ({ navigation }) => {
   const route = useRoute();
-  const { first_possible_start_date, name, alarm_schedule, game_schedule, chall_type, group_id, members, sing_or_mult, category_ids } =
-    route.params as {
+  const { first_possible_start_date, name, alarm_schedule, game_schedule, chall_type, group_id, members, sing_or_mult, category_ids, chall_id } =    route.params as {
       first_possible_start_date: string;
       name: string;
       alarm_schedule: { dayOfWeek: number; time: string }[];
@@ -49,6 +49,7 @@ const PersChall3: React.FC<Props> = ({ navigation }) => {
       members: { id: number; name: string }[];
       sing_or_mult: string;
       category_ids: number[];
+      chall_id: number;
     };
 
     console.log("PersChall3 route params:", route.params);
@@ -216,6 +217,45 @@ function countAlarmDaysBetween(startDate: Date, endDate: Date, alarmDays: number
                 { text: 'OK', onPress: () => navigation.navigate('PersChall1') },
             ]);
         }
+        
+        else if (chall_type == 'Share') {
+          const payload = {
+            startDate: start_date,
+            endDate: end_date,
+            members, 
+            totalDays: total_days
+          };
+          console.log(JSON.stringify(payload))
+
+          try {
+
+            const accessToken = await getAccessToken();
+            if (!accessToken) {
+              throw new Error("Not authenticated");
+            }
+
+            console.log("[FRONTEND] Share payload:", payload);
+
+            const response = await axios.post(
+              endpoints.shareChallenge(chall_id),
+              payload, // <-- request body
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${accessToken}`,
+                },
+              }
+            );
+
+            console.log("[FRONTEND] Share response:", response.data);
+            Alert.alert("Saved", "Challenge shared successfully!");
+            navigation.navigate('PersChall1');
+          } catch (error: any) {
+            console.error("[FRONTEND] Error sharing:", error.response?.data || error.message);
+            Alert.alert("Error", "Failed to share challenge.");
+          }
+        }
+
 
         else if (chall_type == 'Group') {
             const payload = {

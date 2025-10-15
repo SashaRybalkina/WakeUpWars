@@ -1145,16 +1145,16 @@ class ChallengeDetailView(APIView):
         ).values_list("dayOfWeek", flat=True).distinct()
 
         days_of_week = sorted([numeric_to_label[day] for day in alarm_schedules if day in numeric_to_label])
-        if challenge.startDate and challenge.endDate:
-            totalDays = (challenge.endDate - challenge.startDate).days + 1
-        else:
-            totalDays = 0
+        # if challenge.startDate and challenge.endDate:
+        #     totalDays = (challenge.endDate - challenge.startDate).days + 1
+        # else:
+        #     totalDays = 0
         initiator_id = challenge.initiator_id
         return Response({
             **serializer.data,
             'members': members,
             # 'totalDays': (challenge.endDate - challenge.startDate).days + 1,
-            'totalDays': totalDays,
+            'totalDays': challenge.totalDays,
             'daysOfWeek': days_of_week,
             'initiator_id': initiator_id,
             'reward_setting': RewardSettingSerializer(getattr(challenge,'reward_setting',None)).data if hasattr(challenge,'reward_setting') else None
@@ -3150,9 +3150,11 @@ class ShareChallengeView(APIView):
         try:
             start_date = request.data.get("startDate")
             end_date = request.data.get("endDate")
+            total_days = request.data.get("totalDays")
             friend_ids = request.data.get("members", [])
             challenge_name = request.data.get("name")
             schedule = request.data.get("schedule", [])
+            print(total_days)
 
             if not friend_ids:
                 return Response({"error": "No member provided"}, status=400)
@@ -3171,6 +3173,7 @@ class ShareChallengeView(APIView):
                         initiator=friend,
                         startDate=start_date,
                         endDate=end_date,
+                        totalDays=total_days,
                         isPublic=original.isPublic,
                         isPending=True
                     )
@@ -3206,6 +3209,7 @@ class ShareChallengeView(APIView):
                     start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
                     end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
 
+                    # TODO: fix with new dates/total days
                     new_challenge = Challenge.objects.create(
                         name=challenge_name,
                         initiator=friend,
@@ -3282,6 +3286,14 @@ class AcceptPersonalChallenge(APIView):
         chall = inv.chall
         chall.isPending = False
         chall.save(update_fields=['isPending'])
+
+        membership = get_object_or_404(
+            ChallengeMembership,
+            challengeID_id=chall_id,
+            uID_id=user_id
+        )
+        membership.hasSetAlarms = True
+        membership.save()
 
         inv.status = 1  # accepted
         inv.save(update_fields=['status'])

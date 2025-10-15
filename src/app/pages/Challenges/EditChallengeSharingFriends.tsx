@@ -12,6 +12,7 @@ import { endpoints } from "../../api";
 import { getGameMeta } from "../Games/NewGamesManagement";
 import { useUser } from "../../context/UserContext";
 import { getAccessToken } from "../../auth";
+import { getNextAlarmDate } from "../../../utils/dateUtils";
 
 type Props = {
   navigation: NavigationProp<any>;
@@ -68,6 +69,9 @@ const EditChallengeSharingFriends: React.FC<Props> = ({ navigation, route }) => 
   const { user } = useUser();
   console.log("[FRONTEND] Entering EditChallengeSharingFriends with challId:", challId, "challName:", challName);
 
+  const [alarmSchedule, setAlarmSchedule] = useState<any[]>([])
+  // const [gameSchedule, setGameSchedule] = useState<any[]>([])
+
   // Challenge state
   const [challenge, setChallenge] = useState<any>(null);
   const [loadingChallenge, setLoadingChallenge] = useState(true);
@@ -83,6 +87,17 @@ const EditChallengeSharingFriends: React.FC<Props> = ({ navigation, route }) => 
   const [selectedFriends, setSelectedFriends] = useState<number[]>([]);
   const [loadingFriends, setLoadingFriends] = useState(true);
 
+  // const [members, setMembers] = useState<{ id: number; name: string }[]>([])
+
+  function to24Hour(time12h: string) {
+    const [time, modifier] = time12h.split(' '); // ["07:25", "PM"]
+    let [hours, minutes] = time.split(':').map(Number);
+
+    if (modifier === 'PM' && hours < 12) hours += 12;
+    if (modifier === 'AM' && hours === 12) hours = 0;
+
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  }
   
   useEffect(() => {
     if (!challId) return;
@@ -137,11 +152,43 @@ const EditChallengeSharingFriends: React.FC<Props> = ({ navigation, route }) => 
 
         setChallenge(merged);
 
+        console.log(schedule)
 
-        const sd = detail.startDate ?? scheduleData?.startDate;
-        const ed = detail.endDate ?? scheduleData?.endDate;
-        if (sd) setStartDate(new Date(sd));
-        if (ed) setEndDate(new Date(ed));
+        // Extract all alarms into a single list
+        const alarmSched = schedule.flatMap(dayItem =>
+          dayItem.alarms.map(alarm => ({
+            dayOfWeek: dayItem.dayOfWeek,
+            time: to24Hour(alarm.alarmTime),
+          }))
+        );
+
+        // const gameSched = Object.values(
+        //   schedule.reduce((acc, dayItem) => {
+        //     if (dayItem.games?.length) {
+        //       acc[dayItem.dayOfWeek] = {
+        //         dayOfWeek: dayItem.dayOfWeek,
+        //         games: dayItem.games.map((game, index) => ({
+        //           id: game.id,
+        //           order: game.order ?? index + 1,
+        //         })),
+        //       }
+        //     }
+        //     return acc
+        //   }, {} as Record<number, { dayOfWeek: number; games: { id: number; order: number }[] }>)
+        // )
+
+
+        // console.log("alarmSchedule:", alarmSched);
+        // console.log("gameSchedules:", JSON.stringify(gameSched, null, 2));
+
+        setAlarmSchedule(alarmSched)
+        // setGameSchedule(gameSched)
+
+
+        // const sd = detail.startDate ?? scheduleData?.startDate;
+        // const ed = detail.endDate ?? scheduleData?.endDate;
+        // if (sd) setStartDate(new Date(sd));
+        // if (ed) setEndDate(new Date(ed));
       } catch (err: any) {
         console.error("[FRONTEND] Failed to load challenge/schedule:", err.response?.data || err.message);
       } finally {
@@ -223,39 +270,59 @@ useEffect(() => {
       return;
     }
 
-    try {
+    console.log(alarmSchedule)
 
-      const accessToken = await getAccessToken();
-      if (!accessToken) {
-        throw new Error("Not authenticated");
-      }
-
-      const payload = {
-        startDate: startDate ? toLocalYMD(startDate) : undefined,
-        endDate: endDate ? toLocalYMD(endDate) : undefined,
-        members: selectedFriends, 
-      };
-
-      console.log("[FRONTEND] Share payload:", payload);
-
-      const response = await axios.post(
-        endpoints.shareChallenge(challenge.id),
-        payload, // <-- request body
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
-
-      console.log("[FRONTEND] Share response:", response.data);
-      Alert.alert("Saved", "Challenge shared successfully!");
-      navigation.goBack();
-    } catch (error: any) {
-      console.error("[FRONTEND] Error sharing:", error.response?.data || error.message);
-      Alert.alert("Error", "Failed to share challenge.");
+    // find first valid future start date
+    const nextAlarmDate = getNextAlarmDate(alarmSchedule);
+    if (!nextAlarmDate) {
+      Alert.alert('Error', 'Could not determine start date from schedule');
+      return;
     }
+    console.log(toLocalYMD(nextAlarmDate));
+
+    navigation.navigate('PersChall3', {
+                first_possible_start_date: toLocalYMD(nextAlarmDate),
+                name: challName,
+                alarm_schedule: alarmSchedule,
+                // game_schedule: gameSchedule,
+                chall_type: 'Share',
+                members: selectedFriends,
+                chall_id: challenge.id,
+            })
+
+    // try {
+
+    //   const accessToken = await getAccessToken();
+    //   if (!accessToken) {
+    //     throw new Error("Not authenticated");
+    //   }
+
+    //   const payload = {
+    //     startDate: startDate ? toLocalYMD(startDate) : undefined,
+    //     endDate: endDate ? toLocalYMD(endDate) : undefined,
+    //     members: selectedFriends, 
+    //   };
+
+    //   console.log("[FRONTEND] Share payload:", payload);
+
+    //   const response = await axios.post(
+    //     endpoints.shareChallenge(challenge.id),
+    //     payload, // <-- request body
+    //     {
+    //       headers: {
+    //         "Content-Type": "application/json",
+    //         Authorization: `Bearer ${accessToken}`,
+    //       },
+    //     }
+    //   );
+
+    //   console.log("[FRONTEND] Share response:", response.data);
+    //   Alert.alert("Saved", "Challenge shared successfully!");
+    //   navigation.goBack();
+    // } catch (error: any) {
+    //   console.error("[FRONTEND] Error sharing:", error.response?.data || error.message);
+    //   Alert.alert("Error", "Failed to share challenge.");
+    // }
   };
 
   // --- UI states ---
@@ -351,7 +418,7 @@ useEffect(() => {
           </View>
 
           {/* Start / End Dates */}
-          <View style={styles.formSection}>
+          {/* <View style={styles.formSection}>
             <Text style={styles.sectionTitle}>Start Date</Text>
             <Text style={styles.dateDisplay}>{formatDate(startDate)}</Text>
             <TouchableOpacity style={styles.actionButton} onPress={() => setShowStartPicker(true)}>
@@ -377,7 +444,7 @@ useEffect(() => {
             {showEndPicker && endDate && (
               <DateTimePicker value={endDate} mode="date" display="spinner" onChange={(e, d) => onDateChange("end", e, d)} />
             )}
-          </View>
+          </View> */}
 
           {/* Friends List */}
           <View style={styles.formSection}>
@@ -416,7 +483,7 @@ useEffect(() => {
           {/* Save */}
           <TouchableOpacity style={styles.createButton} onPress={handleSave}>
             <LinearGradient colors={["#FFD700", "#FFC107"]} style={styles.createButtonGradient}>
-              <Text style={styles.createButtonText}>Save Challenge</Text>
+              <Text style={styles.createButtonText}>Next</Text>
             </LinearGradient>
           </TouchableOpacity>
         </ScrollView>

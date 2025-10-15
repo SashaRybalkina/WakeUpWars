@@ -12,6 +12,7 @@ import { endpoints } from "../../api"
 import ChallengeCard from "../Challenges/ChallengeCard"
 import PendingChallengeActionCard from "../Challenges/PersonalPendingChallengeCard"
 import { getAccessToken } from "../../auth"
+import { scheduleAlarmsForUser } from "../../alarmService"
 
 type Props = {
   navigation: NavigationProp<any>
@@ -108,12 +109,14 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
   )
 
   // --- accept challenge ---
-  const handleAccept = async (challId: number) => {
+  const handleAccept = async (challId: number, challName: string) => {
     try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
         throw new Error("Not authenticated");
       }
+
+      await scheduleAlarmsForUser(challId, challName, Number(user?.id));
 
       const res = await fetch(endpoints.acceptPersonalChallenge(Number(user!.id), challId), {
         method: 'POST',
@@ -211,13 +214,13 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
                       key={c.id}
                       title={c.name}
                       icon={require("../../images/school.png")}
-                      onAccept={() => handleAccept(c.id)}
+                      onAccept={() => handleAccept(c.id, c.name)}
                       onDecline={() => handleDecline(c.id)}
                       onPress={() =>
-                        navigation.navigate("ChallDetails", {
+                        navigation.navigate("ChallSchedule", {
                           challId: c.id,
                           challName: c.name,
-                          whichChall: "Personal",   
+                          fromInvite: true,  
                         })
                       }
                     />
@@ -252,11 +255,11 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
                           title={c.name}
                           icon={require("../../images/school.png")}
                           startDate={c.startDate}
-                            endDate={c.endDate || null}
-                          daysCompleted={c.daysCompleted || 0}
-                          totalDays={c.totalDays ?? 30}
-                          daysOfWeek={c.daysOfWeek ?? []}
-                          isCompleted={!!c.isCompleted}
+                          endDate={c.endDate}
+                          daysCompleted={c.daysCompleted}
+                          totalDays={c.totalDays === null ? "?" : c.totalDays}
+                          daysOfWeek={c.daysOfWeek}
+                          isCompleted={c.isCompleted}
                         />
                       </TouchableOpacity>
 
@@ -309,11 +312,11 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
                         title={c.name}
                         icon={require("../../images/school.png")}
                         startDate={c.startDate}
-                        endDate={c.endDate || ""}
+                        endDate={c.endDate}
                         daysCompleted={c.daysCompleted}
-                        totalDays={c.totalDays ?? 30}
+                        totalDays={c.totalDays === null ? "?" : c.totalDays}
                         daysOfWeek={c.daysOfWeek}
-                        isCompleted={!!c.isCompleted}
+                        isCompleted={c.isCompleted}
                       />
                     </TouchableOpacity>
                     </View>

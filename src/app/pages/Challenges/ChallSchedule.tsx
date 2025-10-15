@@ -42,12 +42,13 @@ const DayOfWeekLabels: Record<number, string> = { 1: "M", 2: "T", 3: "W", 4: "TH
 
 const ChallSchedule = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const route = useRoute()
-  const { challId, challName, fromSearch, userAverageSkillLevel, isInitiator } = route.params as { 
+  const { challId, challName, fromSearch, userAverageSkillLevel, isInitiator, fromInvite } = route.params as { 
     challId: number; 
     challName: string, 
     fromSearch: boolean,
     userAverageSkillLevel: number,
     isInitiator: boolean,
+    fromInvite: boolean,
   }
 
   const [startDate, setStartDate] = useState<string>()
@@ -620,7 +621,7 @@ const getInitials = (name: string): string => {
   </TouchableOpacity>
 )} */}
 
-{!isLoading && !isPending && !hasSetAlarms && (
+{!isLoading && !isPending && !hasSetAlarms && !fromInvite && (
   <Button
     title="Set My Alarms"
     onPress={async () => {
@@ -1061,5 +1062,3 @@ const styles = StyleSheet.create({
 })
 
 export default ChallSchedule
-
-
