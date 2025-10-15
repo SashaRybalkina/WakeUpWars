@@ -879,8 +879,12 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
                     }}
                     style={[
                       styles.cell,
-                      { backgroundColor: cellColors[index], borderColor: cellBorderColors[index], borderWidth: cellLocks[index] ? 3 : BORDER_WIDTH_THIN,},
-                      selected && styles.selectedCell,
+                      { 
+                        backgroundColor: cellColors[index], 
+                        // use player color when selected, otherwise keep the border color
+                        borderColor: selected ? playerColor : cellBorderColors[index],
+                        borderWidth: cellLocks[index] ? 3 : BORDER_WIDTH_THIN,
+                      },
                       rowIndex % 3 === 0 && rowIndex !== 0 ? styles.thickTopBorder : {},
                       colIndex % 3 === 0 && colIndex !== 0 ? styles.thickLeftBorder : {},
                     ]}>
