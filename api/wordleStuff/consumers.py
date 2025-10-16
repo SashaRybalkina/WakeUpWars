@@ -114,6 +114,20 @@ class WordleConsumer(AsyncWebsocketConsumer):
             'online_ids': list(conns),
         }))
 
+        # Also broadcast lobby state so other clients update their waiting room UI
+        await self.channel_layer.group_send(
+            self.group_name,
+            {
+                'type': 'lobby.state',
+                'created_at': created_at,
+                'join_deadline_at': join_deadline_at,
+                'server_now': timezone.now().isoformat(),
+                'ready_count': len(conns),
+                'expected_count': expected_count,
+                'online_ids': list(conns),
+            }
+        )
+
 
     async def disconnect(self, close_code):
         username = self.user.username
@@ -152,6 +166,34 @@ class WordleConsumer(AsyncWebsocketConsumer):
             {
                 'type': 'player.list.update',
                 'players': remaining_players,
+            }
+        )
+
+        # Broadcast updated lobby state to all clients so their online indicators update
+        # Preserve the join deadline and creation timestamps if available
+        try:
+            gs = await sync_to_async(WordleGameState.objects.get)(id=self.game_state_id)
+            created_iso = gs.created_at.isoformat() if getattr(gs, 'created_at', None) else None
+            deadline_iso = gs.join_deadline_at.isoformat() if getattr(gs, 'join_deadline_at', None) else None
+            try:
+                expected_count = await sync_to_async(ChallengeMembership.objects.filter(challengeID=gs.challenge).count)()
+            except Exception:
+                expected_count = max(1, len(remaining_players))
+        except WordleGameState.DoesNotExist:
+            created_iso = None
+            deadline_iso = None
+            expected_count = len(conns)
+
+        await self.channel_layer.group_send(
+            self.group_name,
+            {
+                'type': 'lobby.state',
+                'created_at': created_iso,
+                'join_deadline_at': deadline_iso,
+                'server_now': timezone.now().isoformat(),
+                'ready_count': len(conns),
+                'expected_count': expected_count,
+                'online_ids': list(conns),
             }
         )
 
@@ -261,6 +303,18 @@ class WordleConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'type': 'player_list',
             'players': event['players'],
+        }))
+
+    async def lobby_state(self, event):
+        # Forward group lobby state updates to this client
+        await self.send(text_data=json.dumps({
+            'type': 'lobby_state',
+            'created_at': event.get('created_at'),
+            'join_deadline_at': event.get('join_deadline_at'),
+            'server_now': event.get('server_now'),
+            'ready_count': event.get('ready_count'),
+            'expected_count': event.get('expected_count'),
+            'online_ids': event.get('online_ids'),
         }))
 
     async def game_complete(self, event):

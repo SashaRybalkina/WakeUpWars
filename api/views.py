@@ -885,22 +885,22 @@ class GetMatchingChallengesView(APIView):
         # --- query candidate public pending challenges that match category & isMultiplayer ---
         is_multiplayer_flag = True if sing_or_mult == "Multiplayer" else False
 
-        today = timezone.now().date()
-        print("Today's date:", today)
+        # today = timezone.now().date()
+        # print("Today's date:", today)
 
         base_q = PublicChallengeConfiguration.objects.filter(
             isMultiplayer=is_multiplayer_flag,
             challenge__isPublic=True
         ).select_related("challenge")
 
-        if not is_multiplayer_flag:
-            # Exclude singleplayer challenges that already started
-            q = base_q.filter(challenge__startDate__gte=today)
+        # if not is_multiplayer_flag:
+        #     # Exclude singleplayer challenges that already started
+        #     q = base_q.filter(challenge__startDate__gte=today)
 
-        elif is_multiplayer_flag:
+        if is_multiplayer_flag:
             # Annotate with member count for filtering
             q = base_q.annotate(member_count=Count('challenge__challengemembership', distinct=True)).filter(
-                challenge__startDate__gte=today,
+                # challenge__startDate__gte=today,
                 member_count__lt=5  # fewer than 5 members enrolled
             )
         
@@ -1994,6 +1994,8 @@ class SendFriendRequestView(APIView):
         )
 
         return Response({'message': 'Friend request sent successfully'}, status=status.HTTP_201_CREATED)
+    
+    
 
 
 class FriendRequestListView(APIView):
@@ -2782,10 +2784,22 @@ class SubmitGameScoresView(APIView):
                     return Response({"detail": "Each score needs username or user_id."}, status=400)
 
                 sc = int(row.get("score", 0))
-                obj, created = GamePerformance.objects.update_or_create(
-                    challenge=challenge, game=game, user=user, date=play_date,
-                    defaults={"score": sc}
+                qs = GamePerformance.objects.filter(
+                    challenge=challenge, game=game, user=user, date=play_date
                 )
+                updated = qs.update(score=sc, auto_generated=False)
+                if not updated:
+                    try:
+                        GamePerformance.objects.create(
+                            challenge=challenge,
+                            game=game,
+                            user=user,
+                            date=play_date,
+                            score=sc,
+                            auto_generated=False,
+                        )
+                    except IntegrityError:
+                        qs.update(score=sc, auto_generated=False)
                 submitted_ids.add(user.id)
                 created_or_updated += 1
 
@@ -2799,12 +2813,15 @@ class SubmitGameScoresView(APIView):
 
             for uid in missing_ids:
                 u = User.objects.get(id=uid)
-                _, created = GamePerformance.objects.update_or_create(
-                    challenge=challenge, game=game, user=u, date=play_date,
-                    defaults={"score": 0, "auto_generated": True}
-                )
-                if created:
+                try:
+                    GamePerformance.objects.create(
+                        challenge=challenge, game=game, user=u, date=play_date,
+                        score=0, auto_generated=True
+                    )
                     created_or_updated += 1
+                except IntegrityError:
+                    # Row already created (or a real score exists); leave as-is
+                    pass
         return Response({"ok": True, "count": created_or_updated}, status=200)
 
 class ChallengeUpdateView(generics.UpdateAPIView):

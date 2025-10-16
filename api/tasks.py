@@ -88,7 +88,7 @@ def open_join_window(challenge_id, game_id, game_code, user_id=None):
 
     # continue with join-window timing
     if not gs.join_deadline_at:
-        gs.join_deadline_at = timezone.now() + timezone.timedelta(seconds=30)
+        gs.join_deadline_at = timezone.now() + timezone.timedelta(seconds=20)
         gs.save(update_fields=["join_deadline_at"])
     close_join_window.apply_async(
         args=[Model.__name__, gs.id],

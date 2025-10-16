@@ -49,7 +49,7 @@ def get_or_create_game_wordle(challenge_id, user, allow_join: bool = True):
         )
         print(f"[WORDLE][create] chall={challenge.id} gs={game_state.id} answer={target_word}", flush=True)
         # Set a join deadline window (e.g., 2 minutes) similar to Sudoku
-        game_state.join_deadline_at = timezone.now() + timedelta(seconds=30)
+        game_state.join_deadline_at = timezone.now() + timedelta(seconds=20)
         game_state.save(update_fields=["join_deadline_at"])
     else:
         # Existing state → derive is_multiplayer safely from the stored game
@@ -92,7 +92,7 @@ def get_or_create_game_wordle(challenge_id, user, allow_join: bool = True):
 
         # Ensure a join deadline exists
         if not getattr(game_state, 'join_deadline_at', None):
-            game_state.join_deadline_at = timezone.now() + timedelta(seconds=30)
+            game_state.join_deadline_at = timezone.now() + timedelta(seconds=20)
             updated_fields.append("join_deadline_at")
 
         if updated_fields:

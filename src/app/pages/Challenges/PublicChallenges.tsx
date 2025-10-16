@@ -314,13 +314,13 @@ const PublicChallenges: React.FC<Props> = ({ navigation }) => {
                     <TouchableOpacity
                       key={challenge.id}
                       style={styles.challengeCardWrapper}
-                    //   onPress={() =>
-                    //     navigation.navigate("ChallDetails", {
-                    //       challId: challenge.id,
-                    //       challName: challenge.name,
-                    //       whichChall: "Group",
-                    //     })
-                    //   }
+                      onPress={() =>
+                        navigation.navigate("ChallDetails", {
+                          challId: challenge.id,
+                          challName: challenge.name,
+                          whichChall: "Group",
+                        })
+                      }
                     >
                       <PublicChallengeCard
                         title={challenge.name}

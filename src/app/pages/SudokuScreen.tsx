@@ -249,15 +249,23 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
           throw new Error("Not authenticated");
         }
 
-       await fetch(endpoints.submitGameScores(), {
-         method: 'POST',
+        const doPost = async () => fetch(endpoints.submitGameScores(), {
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             "Authorization": `Bearer ${accessToken}`,
           },
-         body: JSON.stringify(payload),
-       });
-
+          body: JSON.stringify(payload),
+        });
+        let res = await doPost();
+        if (!res.ok) {
+          await new Promise(r => setTimeout(r, 150));
+          res = await doPost();
+          if (!res.ok) {
+            const txt = await res.text().catch(() => '');
+            throw new Error(`Submit failed (${res.status}) ${txt}`);
+          }
+        }
      } catch (e) {
        console.error('Failed to submit scores', e);
      }

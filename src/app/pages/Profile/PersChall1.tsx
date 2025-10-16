@@ -116,7 +116,7 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
         throw new Error("Not authenticated");
       }
 
-      await scheduleAlarmsForUser(challId, challName, Number(user?.id));
+      //await scheduleAlarmsForUser(challId, challName, Number(user?.id));
 
       const res = await fetch(endpoints.acceptPersonalChallenge(Number(user!.id), challId), {
         method: 'POST',

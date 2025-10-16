@@ -137,14 +137,14 @@ const FriendsSearch: React.FC<Props> = ({ navigation }) => {
       });
       const data = await res.json();
   
-      const matchingRequest = data.find((r: any) => r.recipient.id === recipientId);
-  
+      const matchingRequest = data.find((r: any) => (r.recipient?.id ?? r.recipient_id) === recipientId);
+
       if (!matchingRequest) {
         Alert.alert("Error", "No friend request found to cancel.");
         return;
       }
   
-  
+
       const response = await fetch(endpoints.cancelFriendRequest(matchingRequest.id), {
         method: "DELETE",
         headers: {
@@ -156,10 +156,21 @@ const FriendsSearch: React.FC<Props> = ({ navigation }) => {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to cancel request");
       }
-  
-      const updatedRequests = await (await fetch(endpoints.sentFriendRequests(Number(user.id)))).json();
-      const updatedIds = updatedRequests.map((r: any) => r.recipient.id);
-  
+
+      // Re-fetch sent requests with token and update state
+      const updatedRequestsResp = await fetch(endpoints.sentFriendRequests(Number(user.id)), {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const updatedRequestsText = await updatedRequestsResp.text();
+      let updatedRequests: any = [];
+      try {
+        updatedRequests = updatedRequestsText ? JSON.parse(updatedRequestsText) : [];
+      } catch {}
+      const updatedList: any[] = Array.isArray(updatedRequests)
+        ? updatedRequests
+        : (Array.isArray((updatedRequests as any)?.results) ? (updatedRequests as any).results : []);
+      const updatedIds = updatedList.map((r: any) => (r.recipient?.id ?? r.recipient_id));
+
       setUsers(users.map((u) => ({
         ...u,
         requestSent: updatedIds.includes(u.id),
