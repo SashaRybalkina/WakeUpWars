@@ -1,7 +1,8 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
-from api.models import Message, User, Group, GroupMembership, Friendship
+from api.models import Friendship, GroupMembership, Message, User, Group
+from api.utils.notifications import send_fcm_notification
 
 ACTIVE_CHAT_USERS = {}
 
@@ -88,12 +89,35 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     'timestamp': timestamp,
                 }
             )
+            
+        if recipient_id:
+            await database_sync_to_async(self.send_push_to_user)(sender, recipient_id, message)
+        elif group_id:
+            await database_sync_to_async(self.send_push_to_group)(sender, group_id, message)
 
     async def chat_message(self, event):
         await self.send(text_data=json.dumps(event))
         
     async def notify(self, event):
         await self.send(text_data=json.dumps(event))
+    
+    def send_push_to_user(self, sender, recipient_id, message):
+        """Send push for a 1:1 chat"""
+        title = sender.username
+        body = message[:100]
+        data = {"screen": "Conversation", "sender_id": str(sender.id)}
+        send_fcm_notification(title, body, data, recipient_id)
+    
+    def send_push_to_group(self, sender, group_id, message):
+        """Send push for group chat"""
+        from api.models import GroupMembership
+        group_members = GroupMembership.objects.filter(groupID_id=group_id).exclude(uID_id=sender.id)
+        group = Group.objects.filter(id=group_id)
+        for member in group_members:
+            title = f"{sender.username}, {group.name}"
+            body = message[:100]
+            data = {"screen": "Conversation", "group_id": str(group_id)}
+            send_fcm_notification(title, body, data, member.uID_id)
 
     @database_sync_to_async
     def get_user_group_ids(self, user_id):

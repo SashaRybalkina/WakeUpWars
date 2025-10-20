@@ -30,11 +30,13 @@ from django.shortcuts import get_object_or_404
 from django.contrib.auth import authenticate, get_user_model
 
 from api.chat_consumer import ACTIVE_CHAT_USERS
+from api.middleware import get_user_from_token
+from api.utils.notifications import send_fcm_notification
 from .serializers import (UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer, MessageSerializer, ChallengeSummarySerializer,
                           CatSerializer, GameSerializer, FriendSerializer, FriendRequestSerializer, CreateGroupSerializer, SkillLevelSerializer,
                           RewardSettingSerializer, ExternalHandleSerializer,ObligationSerializer, CashPaymentCreateSerializer,
                           ExternalPaymentCreateSerializer, PaymentSerializer, PendingPublicChallengeSummarySerializer, PublicChallengeSummarySerializer)
-from .models import (Group, UserNotification, PersonalChallengeInvite, PushToken, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule,
+from .models import (FCMDevice, Group, UserNotification, PersonalChallengeInvite, PushToken, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule,
                      AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest,
                      SkillLevel, PendingGroupChallengeAvailability, GroupChallengeInvite, WordleMove, PublicChallengeConfiguration,
                      UserAvailability, PublicChallengeCategoryAssociation)
@@ -693,6 +695,18 @@ class AddGroupMemberView(APIView):
                 type="group_add",
                 screen="Groups",
             )
+            
+            device = FCMDevice.objects.filter(user=user).first()
+            if device:
+                send_fcm_notification(
+                    token=device.token,
+                    data={
+                        "screen": "Groups",
+                        "type": "group_add",
+                        "title": "Added to Group",
+                        "body": f"You have been added to the group '{group.name}'.",
+                    },
+                )
             
             channel_layer = get_channel_layer()
             async_to_sync(channel_layer.group_send)(
@@ -1994,10 +2008,24 @@ class SendFriendRequestView(APIView):
                 "notification_type": "friend_request"
             }
         )
+        
+        try:
+            device = FCMDevice.objects.filter(user_id=recipient_id).first()
+            if device:
+                send_fcm_notification(
+                    token=device.token,
+                    data={
+                        "screen": "FriendsRequests",
+                        "type": "notification_type",
+                        "title": "Friend Request",
+                        "notification_type": "friend_request",
+                        "body": f"{sender.name or sender.username} sent you a friend request!"
+                    }
+                )
+        except Exception as e:
+            print("Error sending FCM:", e)
 
-        return Response({'message': 'Friend request sent successfully'}, status=status.HTTP_201_CREATED)
-    
-    
+        return Response({'message': 'Friend request sent successfully'}, status=status.HTTP_201_CREATED)  
 
 
 class FriendRequestListView(APIView):
@@ -3340,6 +3368,24 @@ class SendMessageView(APIView):
             message=message_text,
             timestamp=timezone.now()
         )
+        
+        if sender.id != recipient.id:
+            logger.info("reached sender.id != recipient.id", flush=True)
+            user_token = get_user_from_token(recipient.id)
+            logger.info(user_token)
+            if user_token:
+                logger.info("reached user token")
+                send_fcm_notification(
+                    user_token,
+                    {
+                        "screen": "Messages",
+                        "sender_id": sender.id,
+                        "recipient_id": recipient.id,
+                        "message_id": message.id,
+                        "title": "New Message",
+                        "body": f"{sender.name or sender.username}: {message_text}",
+                    }
+                )
 
         # Broadcast message + notification
         channel_layer = get_channel_layer()
@@ -3378,6 +3424,20 @@ class SendMessageView(APIView):
                     "sender_id": sender.id,
                     "message": message.message,
                     "timestamp": message.timestamp.isoformat(),
+                },
+            )
+        
+        device = FCMDevice.objects.filter(user=recipient).first()
+        if device:
+            send_fcm_notification(
+                token=device.token,
+                data={
+                    "screen": "Messages",
+                    "sender_id": sender.id,
+                    "recipient_id": recipient.id,
+                    "message_id": message.id,
+                    "title": "New Message",
+                    "body": f"{sender.name or sender.username}: {message_text}",
                 },
             )
 
@@ -3432,6 +3492,19 @@ class SendMessageGroupView(APIView):
         for uid in member_ids:
             if uid == sender.id:
                 continue
+            user_token = get_user_from_token(uid)
+            if user_token:
+                send_fcm_notification(
+                    user_token,
+                    {
+                        "screen": "Messages",
+                        "group_id": group.id,
+                        "sender_id": sender.id,
+                        "message_id": message.id,
+                        "title": "New Group Message",
+                        "body": f"{sender.name or sender.username}: {message_text}",
+                    }
+                )
             async_to_sync(channel_layer.group_send)(
                 f"notifications_{uid}",
                 {
@@ -3600,3 +3673,29 @@ class DeleteNotificationView(APIView):
             return Response({"success": True})
         except UserNotification.DoesNotExist:
             return Response({"error": "Not found"}, status=404)
+
+
+class SaveFCMTokenView(APIView):
+    def post(self, request):
+        user_id = request.data.get("user_id")
+        token = request.data.get("token")
+        platform = request.data.get("platform")
+
+        print("FCM token request data:", request.data)
+
+        if not user_id or not token or not platform:
+            return Response({"error": "Missing fields"}, status=400)
+
+        user = get_object_or_404(User, id=user_id)
+
+        try:
+            obj, created = FCMDevice.objects.update_or_create(
+                token=token,
+                defaults={'user': user, 'platform': platform}
+            )
+            print("FCM device saved:", obj, "created:", created)
+        except Exception as e:
+            print("Error saving FCM device:", e)
+            return Response({"error": str(e)}, status=500)
+
+        return Response({"success": True})

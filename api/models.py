@@ -668,3 +668,10 @@ class PushToken(models.Model):
 
     def __str__(self):
         return f"ExpoPushToken for {self.user.username}: {self.token}"
+
+
+class FCMDevice(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    token = models.CharField(max_length=255, unique=True)
+    platform = models.CharField(max_length=10, choices=[("ios", "iOS"), ("android", "Android")])
+    updated_at = models.DateTimeField(auto_now=True)

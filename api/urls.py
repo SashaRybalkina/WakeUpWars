@@ -99,6 +99,7 @@ from .views import (
     GetHasSetAlarmsView,
     SetUserHasSetAlarmsView,
     GetPerformancesView,
+    SaveFCMTokenView,
 )
 
 
@@ -167,6 +168,7 @@ urlpatterns = [
     path("notifications/send/", SendNotificationView.as_view(), name="send_notification"),
     path("notifications/", SendNotificationView.as_view(), name="notification"),
     path("push-tokens/", SavePushTokenView.as_view(), name="save_push_token"),
+    path('save-fcm-token/', SaveFCMTokenView.as_view()),
     path('conversation/<int:user_id>/<int:recipient_id>/', ConversationView.as_view(), name='conversation'),
     path('conversation/group/<int:group_id>/', GroupConversationView.as_view(), name='conversation-group'),
     path('profile/all/', AllUsersView.as_view(), name='all-users'),

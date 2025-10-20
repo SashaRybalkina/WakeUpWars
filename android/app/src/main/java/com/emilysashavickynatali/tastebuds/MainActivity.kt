@@ -15,10 +15,26 @@ import com.facebook.react.bridge.Arguments
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import com.facebook.react.ReactApplication
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+
 class MainActivity : ReactActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
-    setTheme(R.style.AppTheme);
+    setTheme(R.style.AppTheme)
     super.onCreate(null)
+
+    // Create notification channel for Android 8.0+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        val channel = NotificationChannel(
+            "default", // Channel ID (should match your FCM payload if you use channel_id)
+            "Default Channel", // Channel name (user visible)
+            NotificationManager.IMPORTANCE_HIGH // Importance
+        )
+        channel.description = "General notifications"
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.createNotificationChannel(channel)
+    }
   }
 
   /**

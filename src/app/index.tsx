@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useEffect, useState } from "react";
 import { NativeEventEmitter, NativeModules } from 'react-native';
 import {
   createNavigationContainerRef,
@@ -8,6 +8,7 @@ import type { ParamListBase } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import * as Notifications from 'expo-notifications';
 import NotificationService from './Notification';
+import { getAccessToken } from "./auth";
 
 import { useUser } from './context/UserContext';
 
@@ -89,11 +90,37 @@ function flushPendingNavigation() {
   }
 }
 
+async function registerForFCM(userId: string) {
+  if (!userId) return;
+
+  try {
+    const token = await messaging().getToken(); // get device FCM token
+    const platform = Platform.OS; // 'ios' or 'android'
+
+    const accessToken = await getAccessToken(); // your auth function
+    if (!accessToken) throw new Error("Not authenticated");
+
+    await fetch(`${BASE_URL}/api/save-fcm-token/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ token, user_id: userId, platform }),
+    });
+
+    console.log('FCM token registered:', token);
+  } catch (err) {
+    console.error('Failed to register FCM token:', err);
+  }
+}
+
+
 function App() {
   const { user } = useUser();
   const wsRef = React.useRef<WebSocket | null>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const subscription = alarmEmitter.addListener('AlarmTriggered', (event) => {
       NotificationService.sendNotification(
         user?.Id,
@@ -111,7 +138,13 @@ function App() {
     return () => subscription.remove();
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    if (user?.id) {
+      registerForFCM(user.id);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
     let subscription: any;
     let notificationListener: any;
 
