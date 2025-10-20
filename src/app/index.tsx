@@ -7,7 +7,6 @@ import {
 import type { ParamListBase } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import * as Notifications from 'expo-notifications';
-import NotificationService from './Notification';
 import { getAccessToken } from "./auth";
 import messaging from '@react-native-firebase/messaging';
 
@@ -70,7 +69,7 @@ messaging().setBackgroundMessageHandler(async remoteMessage => {
   console.log('FCM background message:', remoteMessage);
 });
 
-const { IntentModule, NotificationModule, AlarmModule } = NativeModules;
+const { IntentModule, AlarmModule } = NativeModules;
 const alarmEmitter = new NativeEventEmitter(AlarmModule);
 
 const Stack = createStackNavigator<ParamListBase>();
@@ -126,24 +125,6 @@ function App() {
   const wsRef = React.useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    const subscription = alarmEmitter.addListener('AlarmTriggered', (event) => {
-      NotificationService.sendNotification(
-        user?.Id,
-        "Alarm",
-        "Wake up! Time to start your challenge!",
-        event.screen,
-        {
-          challengeId: event.challengeId,
-          challName: event.challName,
-          whichChall: event.whichChall,
-        }
-      );
-    });
-
-    return () => subscription.remove();
-  }, []);
-
-  useEffect(() => {
     if (user?.id) {
       registerForFCM(user.id);
     }
@@ -152,37 +133,6 @@ function App() {
   useEffect(() => {
     let subscription: any;
     let notificationListener: any;
-
-    // WebSocket notification listener
-    if (user && user.id) {
-      // Replace ws:// with wss:// if using HTTPS
-      const wsUrl = `${BASE_URL.replace(/^http/, "ws")}/ws/notifications/${user.id}/`;
-      wsRef.current = new WebSocket(wsUrl);
-      wsRef.current.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type === 'notification_event') {
-            // Show notification using native module
-            console.log(data.screen);
-            console.log(data);
-            NotificationModule.showNotification(
-              data.title,
-              data.body,
-              data.screen,
-              {}
-            );
-          }
-        } catch (e) {
-          console.error('WebSocket notification parse error:', e);
-        }
-      };
-      wsRef.current.onerror = (err) => {
-        console.error('WebSocket error:', err);
-      };
-      wsRef.current.onclose = () => {
-        console.log('WebSocket closed');
-      };
-    }
 
     // 1) cold-start intent
     IntentModule.getInitialIntent()

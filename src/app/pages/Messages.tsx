@@ -22,7 +22,6 @@ import axios from "axios"
 import { getAccessToken } from "../auth"
 import * as Notifications from 'expo-notifications'
 import {formatDistanceToNow} from 'date-fns'
-const { NotificationModule } = NativeModules;
 
 type Props = {
   navigation: NavigationProp<any>
@@ -183,17 +182,6 @@ const Messages: React.FC<Props> = ({ navigation }) => {
         fetchMessages();
         setFriendMessages((prev) => [...prev, data]);
 
-        if (activeConversationId !== (data.sender.id === user.id ? data.recipient_id : data.sender.id)) {
-          NotificationModule.showNotification(data.sender.name, data.message, 'Messages', {
-            screen: 'Messages',
-            params: {
-              challengeId: null,
-              challName: null,
-              whichChall: null,
-            }
-          });
-        }
-
       } catch (e) {
         console.error("WebSocket private message parse error:", e);
       }
@@ -212,13 +200,6 @@ const Messages: React.FC<Props> = ({ navigation }) => {
         const data: any = JSON.parse(event.data as string);
         fetchGroupConversations();
         setGroupConversations((prev) => [...prev, data]);
-
-        if (activeGroupId !== data.group_id) {
-          NotificationModule.showNotification(data.sender.name + ", " + data.group_name, data.message, 'Messages', {
-            screen: 'Messages',
-            params: {}
-          });
-        }
 
       } catch (e) {
         console.error("WebSocket group message parse error:", e);

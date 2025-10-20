@@ -103,7 +103,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     
     def send_push_to_user(self, sender, recipient_id, message):
         """Send push for a 1:1 chat"""
-        title = sender.username
+        title = sender.name
         body = message[:100]
         data = {"screen": "Conversation", "sender_id": str(sender.id)}
         send_fcm_notification(title, body, data, recipient_id)
@@ -114,7 +114,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         group_members = GroupMembership.objects.filter(groupID_id=group_id).exclude(uID_id=sender.id)
         group = Group.objects.filter(id=group_id)
         for member in group_members:
-            title = f"{sender.username}, {group.name}"
+            title = f"{sender.name}, {group.name}"
             body = message[:100]
             data = {"screen": "Conversation", "group_id": str(group_id)}
             send_fcm_notification(title, body, data, member.uID_id)

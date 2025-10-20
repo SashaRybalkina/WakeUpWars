@@ -16,7 +16,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
 import { NativeModules } from 'react-native';
-const { NotificationModule } = NativeModules;
 
 import { scheduleAlarms } from '../Alarm';
 import { endpoints } from '../api';
@@ -24,7 +23,6 @@ import { useUser } from '../context/UserContext';
 import UserProfileCard from './Components/UserProfileCard';
 const { AlarmModule } = NativeModules;
 import { scheduleAlarmsForUser } from '../alarmService';
-import NotificationService from '../Notification';
 
 type Props = {
   navigation: NavigationProp<any>;
@@ -239,28 +237,6 @@ const handleLogout = async () => {
           />
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
-
-        {/* <TouchableOpacity
-          style={styles.logoutButton}
-          activeOpacity={0.8}
-          onPress={() =>
-            NotificationService.sendNotification(
-              user.id,
-              "Wassupppp",
-              "This is a real push notification!",
-              "FriendsRequests",
-              {}
-            )
-          }
-        >
-          {/* <Ionicons
-            name="game-controller"
-            size={22}
-            color="#FFF"
-            style={styles.logoutIcon}
-          />
-          <Text style={styles.logoutText}>Notification</Text> */}
-
 
 
         {/* <TouchableOpacity

@@ -1924,48 +1924,6 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-     
-
-class SendNotificationView(APIView):
-    def post(self, request):
-        user_id = request.data.get("user_id")
-        title = request.data.get("title", "New Notification")
-        body = request.data.get("body", "")
-        ttype = request.data.get("type", "")
-        screen = request.data.get("screen", "Messages")
-        challengeId = request.data.get("challengeId")
-        challName = request.data.get("challName")
-        whichChall = request.data.get("whichChall")
-
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        # Save to DB
-        notification = UserNotification.objects.create(
-            user=user,
-            title=title,
-            body=body,
-            type=ttype,
-            screen=screen,
-            challengeId=challengeId,
-            challName=challName,
-            whichChall=whichChall,
-        )
-
-        # Send push notification
-        send_expo_push_notification(
-            user,
-            title=title,
-            body=body,
-            data={"notification_id": notification.id}
-        )
-
-        return Response(
-            {"success": True, "notification_id": notification.id},
-            status=status.HTTP_201_CREATED
-        )
         
 
 from channels.layers import get_channel_layer
@@ -3353,6 +3311,7 @@ class DeclinePersonalChallenge(APIView):
         inv.chall.delete()
         return Response({"ok": True}, status=200)
 
+
 class SendMessageView(APIView):
     def post(self, request, user_id):
         sender = request.user
@@ -3369,64 +3328,6 @@ class SendMessageView(APIView):
             timestamp=timezone.now()
         )
         
-        if sender.id != recipient.id:
-            logger.info("reached sender.id != recipient.id", flush=True)
-            user_token = get_user_from_token(recipient.id)
-            logger.info(user_token)
-            if user_token:
-                logger.info("reached user token")
-                send_fcm_notification(
-                    user_token,
-                    {
-                        "screen": "Messages",
-                        "sender_id": sender.id,
-                        "recipient_id": recipient.id,
-                        "message_id": message.id,
-                        "title": "New Message",
-                        "body": f"{sender.name or sender.username}: {message_text}",
-                    }
-                )
-
-        # Broadcast message + notification
-        channel_layer = get_channel_layer()
-        ids = sorted([sender.id, recipient.id])
-        room_name = f"chat_user_{ids[0]}_{ids[1]}"
-
-        # Send message event to chat room
-        async_to_sync(channel_layer.group_send)(
-            room_name,
-            {
-                "type": "chat_message",
-                "message": message.message,
-                "sender": {
-                    "id": sender.id,
-                    "name": sender.name,
-                    "username": sender.username,
-                },
-                "recipient_id": recipient.id,
-                "group_id": None,
-                "timestamp": message.timestamp.isoformat(),
-            },
-        )
-        
-        recipient_active = (
-            room_name in ACTIVE_CHAT_USERS
-            and recipient.id in ACTIVE_CHAT_USERS[room_name]
-        )
-
-        if not recipient_active:
-            async_to_sync(channel_layer.group_send)(
-                f"notifications_{recipient.id}",
-                {
-                    "type": "notify",
-                    "event": "new_message",
-                    "sender": sender.username,
-                    "sender_id": sender.id,
-                    "message": message.message,
-                    "timestamp": message.timestamp.isoformat(),
-                },
-            )
-        
         device = FCMDevice.objects.filter(user=recipient).first()
         if device:
             send_fcm_notification(
@@ -3436,8 +3337,8 @@ class SendMessageView(APIView):
                     "sender_id": sender.id,
                     "recipient_id": recipient.id,
                     "message_id": message.id,
-                    "title": "New Message",
-                    "body": f"{sender.name or sender.username}: {message_text}",
+                    "title": sender.name,
+                    "body": f"{message_text}",
                 },
             )
 
@@ -3501,7 +3402,7 @@ class SendMessageGroupView(APIView):
                         "group_id": group.id,
                         "sender_id": sender.id,
                         "message_id": message.id,
-                        "title": "New Group Message",
+                        "title": sender.name + ", " + group.name,
                         "body": f"{sender.name or sender.username}: {message_text}",
                     }
                 )
@@ -3565,65 +3466,6 @@ def send_expo_push_notification(user, title, body, data=None):
         print(f"Expo push notification error: {e}")
         return False
 
-
-class SendNotificationView(APIView):
-    def post(self, request):
-        """
-        Send a notification to a specific user:
-        - Saves it to DB
-        - Sends Expo push notification
-        """
-        timezone.activate(pytz.timezone("America/Denver"))
-        user_id = request.data.get("user_id")
-        title = request.data.get("title", "New Notification")
-        body = request.data.get("body", "")
-        ttype = request.data.get("type", "")
-        screen = request.data.get("screen", "")
-        challengeId = request.data.get("challengeId", "")
-        challName = request.data.get("challName", "")
-        whichChall = request.data.get("whichChall", "")
-
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        # Save to DB
-        notification = UserNotification.objects.create(
-            user=user,
-            title=title,
-            body=body,
-            type=ttype,
-            screen=screen,
-            challengeId=challengeId,
-            challName=challName,
-            whichChall=whichChall,
-        )
-
-        return Response(
-            {"success": True, "notification_id": notification.id},
-            status=status.HTTP_201_CREATED
-        )
-
-    def get(self, request):
-        """
-        Get all notifications for a given user.
-        Expects ?user_id=<id> in query params.
-        """
-        user_id = request.query_params.get("user_id")
-        if not user_id:
-            return Response({"error": "Missing user_id"}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        notifications = user.notifications.order_by("-created_at").values(
-            "id", "title", "body", "created_at", "read"
-        )
-
-        return Response({"notifications": list(notifications)}, status=status.HTTP_200_OK)
 
 class SavePushTokenView(APIView):
     def post(self, request):

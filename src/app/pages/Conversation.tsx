@@ -15,6 +15,8 @@ import { Ionicons } from "@expo/vector-icons"
 import { BASE_URL } from "../api"
 import { useUser } from "../context/UserContext"
 import { getAccessToken } from "../auth"
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import SharedPreferences from 'react-native-shared-preferences';
 
 type Props = {
   route: any
@@ -32,6 +34,25 @@ const Conversation: React.FC<Props> = ({ route }) => {
 
   const ws = useRef<WebSocket | null>(null)
   const flatListRef = useRef<FlatList>(null)
+
+  useEffect(() => {
+    const updateActiveChat = async () => {
+      if (groupId) {
+        await AsyncStorage.setItem("activeGroupId", groupId.toString());
+        await AsyncStorage.removeItem("activeConversationId");
+      } else if (otherUserId) {
+        await AsyncStorage.setItem("activeConversationId", otherUserId.toString());
+        await AsyncStorage.removeItem("activeGroupId");
+      } else {
+        await AsyncStorage.multiRemove(["activeConversationId", "activeGroupId"]);
+      }
+    };
+    updateActiveChat();
+
+    return () => {
+      AsyncStorage.multiRemove(["activeConversationId", "activeGroupId"]);
+    };
+  }, [groupId, otherUserId]);
 
   // Connect WebSocket
   useEffect(() => {
@@ -108,6 +129,21 @@ const Conversation: React.FC<Props> = ({ route }) => {
       setActiveGroupId(null)
     }
   }, [groupId, otherUserId, setActiveConversationId, setActiveGroupId])
+
+  useEffect(() => {
+    if (groupId) {
+      SharedPreferences.setItem("activeGroupId", groupId.toString());
+      SharedPreferences.removeItem("activeConversationId");
+    } else if (otherUserId) {
+      SharedPreferences.setItem("activeConversationId", otherUserId.toString());
+      SharedPreferences.removeItem("activeGroupId");
+    }
+
+    return () => {
+      SharedPreferences.removeItem("activeConversationId");
+      SharedPreferences.removeItem("activeGroupId");
+    };
+  }, [groupId, otherUserId]);
 
   // Scroll to bottom when messages update
   useEffect(() => {

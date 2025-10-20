@@ -13,12 +13,12 @@ def send_fcm_notification(title, body, data, recipient_id):
 
     for token in tokens:
         message = messaging.Message(
+            data={
+                "title": title,
+                "body": body,
+                **data,
+            },
             token=token,
-            notification=messaging.Notification(
-                title=title,
-                body=body
-            ),
-            data=data
         )
         try:
             response = messaging.send(message)
