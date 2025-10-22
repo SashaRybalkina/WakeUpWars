@@ -117,18 +117,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
         sender_name = sender.name
         title = sender_name
         body = message[:100]
-        data = {"screen": "Conversation", "sender_id": str(sender.id)}
+        data = {
+            "screen": "Messages",
+        }
         send_fcm_notification(title, body, data, recipient_id)
     
     def send_push_to_group(self, sender, group_id, message):
         """Send push for group chat"""
         from api.models import GroupMembership
         group_members = GroupMembership.objects.filter(groupID_id=group_id).exclude(uID_id=sender.id)
-        group = Group.objects.filter(id=group_id)
+        group = Group.objects.filter(id=group_id).first()
         for member in group_members:
             title = f"{sender.name}, {group.name}"
             body = message[:100]
-            data = {"screen": "Conversation", "group_id": str(group_id)}
+            data = {"screen": "Messages"}
             send_fcm_notification(title, body, data, member.uID_id)
 
     @database_sync_to_async

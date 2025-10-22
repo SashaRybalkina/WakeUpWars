@@ -670,8 +670,6 @@ class AddGroupMemberView(APIView):
     @transaction.atomic
     def post(self, request, group_id):
         data = request.data
-        sender_id = request.data.get("sender_id")
-        recipient_id = request.data.get("recipient_id")
         try:
             friend_id = data.get("friend_id")
             if not friend_id:
@@ -696,30 +694,19 @@ class AddGroupMemberView(APIView):
                 screen="Groups",
             )
             
-            device = FCMDevice.objects.filter(user=user).first()
+            device = FCMDevice.objects.filter(user=user.id).first()
+            print(device)
+            print(user)
+            print(user.id)
+            recipient_id = user.id
             if device:
-                send_fcm_notification(
-                    token=device.token,
-                    data={
-                        "screen": "Groups",
-                        "type": "group_add",
-                        "title": "Added to Group",
-                        "body": f"You have been added to the group '{group.name}'.",
-                    },
-                )
-            
-            channel_layer = get_channel_layer()
-            async_to_sync(channel_layer.group_send)(
-                f"notifications_{friend_id}",
-                {
-                    "type": "notification_event",
-                    "title": "Group Invite",
-                    "body": f"You have been invited to group {group.name}!",
-                    "sender_id": sender_id,
+                title = "Added to Group"
+                body = f"You have been added to the group '{group.name}'."
+                data={
                     "screen": "Groups",
-                    "notification_type": "group_invite"
+                    "type": "group_add",
                 }
-            )
+                send_fcm_notification(title, body, data, recipient_id)
 
             return Response({"message": "User added to group successfully."}, status=status.HTTP_201_CREATED)
 
@@ -1952,34 +1939,18 @@ class SendFriendRequestView(APIView):
             type="friend_request",
             screen="FriendsRequests",
         )
-
-        # Send notification via WebSocket
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            f"notifications_{recipient_id}",
-            {
-                "type": "notification_event",
-                "title": "Friend Request",
-                "body": f"{sender.name or sender.username} sent you a friend request!",
-                "sender_id": sender_id,
-                "screen": "FriendsRequests",
-                "notification_type": "friend_request"
-            }
-        )
         
         try:
             device = FCMDevice.objects.filter(user_id=recipient_id).first()
             if device:
-                send_fcm_notification(
-                    token=device.token,
-                    data={
-                        "screen": "FriendsRequests",
-                        "type": "notification_type",
-                        "title": "Friend Request",
-                        "notification_type": "friend_request",
-                        "body": f"{sender.name or sender.username} sent you a friend request!"
-                    }
-                )
+                title = "Friend Request"
+                body = sender.name + " (" + sender.username + ") sent you a friend request!"
+                data={
+                    "screen": "FriendsRequests",
+                    "type": "notification_type",
+                    "notification_type": "friend_request",
+                }
+                send_fcm_notification(title, body, data, recipient_id)
         except Exception as e:
             print("Error sending FCM:", e)
 
