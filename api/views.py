@@ -517,8 +517,19 @@ class JoinPublicChallengeView(APIView):
             print(new_avg)
             cfg.averageSkillLevel = new_avg
             cfg.save()
+
+            # take away coins from joiner
+            uc1, _ = UserCoin.objects.get_or_create(user=user)
+            uc1.numCoins -= challenge.participationFee
+            uc1.save(update_fields=["numCoins"])
+            # also take away coins from the initiator if this is the first person joining
+            if ChallengeMembership.objects.filter(challengeID=challenge).count() == 2:
+                uc2, _ = UserCoin.objects.get_or_create(user=challenge.initiator)
+                uc2.numCoins -= challenge.participationFee
+                uc2.save(update_fields=["numCoins"])
+                
             
-                    # Build (time, game_id) pairs from schedule
+            # Build (time, game_id) pairs from schedule
             slot_tasks = set()
             for cas in ChallengeAlarmSchedule.objects.filter(challenge=challenge)\
                                                     .select_related("alarm_schedule"):
@@ -897,6 +908,8 @@ class GetMatchingChallengesView(APIView):
 
         # --- query candidate public pending challenges that match category & isMultiplayer ---
         is_multiplayer_flag = True if sing_or_mult == "Multiplayer" else False
+        
+        user_coin = get_object_or_404(UserCoin, user_id=user_id)
 
         # today = timezone.now().date()
         # print("Today's date:", today)
@@ -934,6 +947,10 @@ class GetMatchingChallengesView(APIView):
         q = q.exclude(
             challenge__challengemembership__uID_id=user_id
         )
+        # only include challenges the user can afford to join
+        q = q.filter(challenge__participationFee__lte=user_coin.numCoins)
+
+
 
         # Prefetch ChallengeAlarmSchedule with related AlarmSchedule and user
         q = q.prefetch_related(
@@ -1567,7 +1584,8 @@ class CreatePublicChallengeView(APIView):
                 endDate=data['end_date'],
                 totalDays=data['total_days'],
                 isPublic=True,
-                isPending=True
+                isPending=True,
+                particiationFee=data['participation_fee'],
             )
 
             # # ─── Reward config ──────────────────────────────

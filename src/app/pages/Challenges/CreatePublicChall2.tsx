@@ -61,6 +61,9 @@ const CreatePublicChall2: React.FC<Props> = ({ navigation }) => {
   const [selectedDays, setSelectedDays] = useState<string[]>([])
   const [dayTimeMapping, setDayTimeMapping] = useState<Record<string, string>>({})
   const [gamesByDay, setGamesByDay] = useState<Record<string, [string, string][]>>({})
+  const [numUserCoins, setNumUserCoins] = useState<number>(0)
+  const [participationFee, setParticipationFee] = useState('');
+
   // reward state
   // const [rewardType, setRewardType] = useState<RewardTypeKey>('money');
   // const [rewardAmount, setRewardAmount] = useState('5');
@@ -80,6 +83,23 @@ const CreatePublicChall2: React.FC<Props> = ({ navigation }) => {
     S: 6,
     SU: 7,
   }
+
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        const access = await getAccessToken();
+        const res = await fetch(endpoints.getNumCoins(Number(user?.id)), {
+          headers: {
+            Authorization: `Bearer ${access}`
+          }
+        });
+        const data = await res.json()
+        setNumUserCoins(data.numCoins);
+      } catch {}
+    })();
+  }, [user]);
 
   const toggleDay = (day: string) => {
     if (selectedDays.includes(day)) {
@@ -252,6 +272,26 @@ const onTimeChange = (event: any, time?: Date) => {
     console.log("Day-Time Mapping:", dayTimeMapping)
     console.log("Games By Day:", JSON.stringify(gamesByDay, null, 2))
 
+      const trimmed = participationFee.trim();
+      console.log(trimmed)
+      if (!/^\d+$/.test(trimmed)) {
+        Alert.alert('Error', 'Enter a valid positive whole number for the reward');
+        return;
+      }
+
+      const fee = parseInt(trimmed, 10);
+      console.log(fee)
+
+      if (fee <= 0) {
+        Alert.alert('Error', 'Enter a valid positive amount for the reward');
+        return;
+      }
+
+      if (fee > numUserCoins) {
+        Alert.alert('Error', `You do not have enough coins! You currently have ${numUserCoins} coins.`);
+        return;
+      }
+
 
     // // reward validation
     // let reward: any = null;
@@ -340,6 +380,7 @@ const onTimeChange = (event: any, time?: Date) => {
                     chall_type: 'Public',
                     sing_or_mult: singOrMult,
                     category_ids: categories.map(c => c.id),
+                    participation_fee: fee,
                 })
   
   }
@@ -586,62 +627,22 @@ const onTimeChange = (event: any, time?: Date) => {
             </View>
           )} */}
 
-          {/* <View style={styles.formSection}>
-            <Text style={styles.sectionTitle}>Reward</Text>
-            <View style={styles.choiceRow}>
-              {REWARD_TYPES.map(rt => (
-                <TouchableOpacity
-                  key={rt.key}
-                  style={[styles.choiceButton, rewardType === rt.key && styles.choiceButtonSelected]}
-                  onPress={() => setRewardType(rt.key as RewardTypeKey)}
-                >
-                  <Text style={[styles.choiceText, rewardType === rt.key && styles.choiceTextSelected]}>{rt.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            {(rewardType === 'money' || rewardType === 'points') && (
+
+          <View style={styles.rewardHeader}>
+            <Text style={styles.sectionTitle}>Set Reward</Text>
+
+            <View style={styles.inputRow}>
               <TextInput
-                style={[styles.input, { marginTop: 10 }]}
+                style={[styles.input, { flex: 1 }]}
                 placeholder="Amount"
                 placeholderTextColor="rgba(255,255,255,0.6)"
                 keyboardType="numeric"
-                value={rewardAmount}
-                onChangeText={setRewardAmount}
+                value={participationFee}
+                onChangeText={setParticipationFee}
               />
-            )}
-            {rewardType === 'custom' && (
-              <TextInput
-                style={[styles.input, { marginTop: 10 }]}
-                placeholder="Describe reward"
-                placeholderTextColor="rgba(255,255,255,0.6)"
-                value={rewardNote}
-                onChangeText={setRewardNote}
-              />
-            )}
-          </View>
-
-
-          <View style={styles.formSection}>
-            <Text style={styles.sectionTitle}>Challenge Duration</Text>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <TextInput
-                style={[styles.input, { flex: 1, marginRight: 10 }]}
-                keyboardType="numeric"
-                value={String(durationValue)}
-                onChangeText={text => setDurationValue(Number(text) || 0)}
-              />
-
-              <Picker
-                selectedValue={durationUnit}
-                style={{ flex: 1 }}
-                onValueChange={(itemValue) => setDurationUnit(itemValue)}
-              >
-                <Picker.Item label="Weeks" value="weeks" />
-                <Picker.Item label="Months" value="months" />
-                <Picker.Item label="Years" value="years" />
-              </Picker>
+              <Text style={styles.coinEmoji}>🪙</Text>
             </View>
-          </View> */}
+          </View>
 
 
           <TouchableOpacity
@@ -946,6 +947,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
     fontWeight: "600",
+  },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 10,
+    backgroundColor: "#222",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+  },
+  coinEmoji: {
+    fontSize: 20,
+    marginLeft: 6,
   },
 })
 

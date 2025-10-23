@@ -303,6 +303,7 @@ function countAlarmDaysBetween(startDate: Date, endDate: Date, alarmDays: number
                 game_schedules: game_schedule,
                 sing_or_mult,
                 category_ids,
+                participation_fee,
             }
             console.log(payload)
 
