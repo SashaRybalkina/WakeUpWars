@@ -39,7 +39,7 @@ type GameSchedule = {
 
 const PersChall3: React.FC<Props> = ({ navigation }) => {
   const route = useRoute();
-  const { first_possible_start_date, name, alarm_schedule, game_schedule, chall_type, group_id, members, sing_or_mult, category_ids, chall_id } =    route.params as {
+  const { first_possible_start_date, name, alarm_schedule, game_schedule, chall_type, group_id, members, sing_or_mult, category_ids, chall_id, participation_fee } =    route.params as {
       first_possible_start_date: string;
       name: string;
       alarm_schedule: { dayOfWeek: number; time: string }[];
@@ -50,6 +50,7 @@ const PersChall3: React.FC<Props> = ({ navigation }) => {
       sing_or_mult: string;
       category_ids: number[];
       chall_id: number;
+      participation_fee: number;
     };
 
     console.log("PersChall3 route params:", route.params);
@@ -267,7 +268,8 @@ function countAlarmDaysBetween(startDate: Date, endDate: Date, alarmDays: number
                 total_days,
                 members,
                 alarm_schedule,
-                game_schedules: game_schedule
+                game_schedules: game_schedule,
+                participation_fee,
             };
             console.log(JSON.stringify(payload))
 

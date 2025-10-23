@@ -32,6 +32,14 @@ class User(AbstractUser):
         return self.username
 
 
+class UserCoin(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    numCoins = models.IntegerField(default=0)
+    
+    class Meta:
+        db_table = 'UserCoins'
+
+
 # Friendships: representing Many-to-many relationship between users
 class Friendship(models.Model):
     uID1 = models.ForeignKey(User, related_name='friendships_initiated', on_delete=models.CASCADE)
@@ -144,6 +152,7 @@ class Challenge(models.Model):
     name        = models.CharField(max_length=255, default='Challenge')
     isCompleted = models.BooleanField(default=False)
     daysCompleted = models.IntegerField(default=0)
+    participationFee = models.IntegerField(default=0) # can't be null, if don't want fee, set to 0
 
     # ──────── NEW convenience helpers ────────────────────────────────────────
     members = models.ManyToManyField(

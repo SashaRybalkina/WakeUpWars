@@ -25,6 +25,8 @@ export const endpoints = {
   profile: (userId: number) => `${BASE_URL}/api/profile/${userId}/`,
   getInitiator: (challId: number) =>
     `${BASE_URL}/api/get-initiator/${challId}/`,
+  getNumCoins: (userId: number) =>
+    `${BASE_URL}/api/get-num-coins/${userId}/`,
   groupProfile: (groupId: number) => `${BASE_URL}/api/groups/${groupId}/`,
   addGroupMember: (groupId: number) =>
     `${BASE_URL}/api/group-member-add/${groupId}/`,
@@ -61,8 +63,8 @@ export const endpoints = {
   // challengeInvites: (userId: number, groupId: number) => `${BASE_URL}/api/challenge-invites/${userId}/${groupId}/`,
 
   // pendingChallenges: (groupId: number) => `${BASE_URL}/api/get-pending-challenges/${groupId}/`,
-  getAvailabilities: (challId: number) =>
-    `${BASE_URL}/api/get-availabilities/${challId}/`,
+  getAvailabilities: (challId: number, userId: number) =>
+    `${BASE_URL}/api/get-availabilities/${challId}/${userId}/`,
   setUserAvailability: (userId: number) => `${BASE_URL}/api/set-user-availability/${userId}/`,
   getUserAvailability: (userId: number) => `${BASE_URL}/api/get-user-availability/${userId}/`,
   setChallAvailability: (userId: number, challId: number) =>

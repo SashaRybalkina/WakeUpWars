@@ -182,7 +182,7 @@ const convertTo24Hour = (time12: string) => {
           name,
           groupId,
           members: groupMembers.map((member) => member.id),
-          alarmSchedule
+          alarmSchedule,
         })
 
     }

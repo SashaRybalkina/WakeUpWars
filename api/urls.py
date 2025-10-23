@@ -99,6 +99,7 @@ from .views import (
     GetHasSetAlarmsView,
     SetUserHasSetAlarmsView,
     GetPerformancesView,
+    GetNumCoinsView,
 )
 
 
@@ -133,6 +134,7 @@ urlpatterns = [
     path('hello/', HelloWorldView.as_view(), name='hello'),
     path('profile/<int:user_id>/', UserProfileView.as_view(), name='user-profile'),
     path('get-initiator/<int:chall_id>/', GetChallengeInitiatorView.as_view(), name='get-initiator'),
+    path('get-num-coins/<int:user_id>/', GetNumCoinsView.as_view(), name='get-num-coins'),
     path('messages/<int:user_id>/', UserMessagesView.as_view()),
     path('groups/<int:group_id>/', GroupDetailsView.as_view(), name='group-details'),
     path('user/<int:user_id>/group-conversations/', UserGroupConversationsView.as_view(), name='user-group-conversations'),
@@ -157,7 +159,7 @@ urlpatterns = [
     # path('challenge-invites/<int:user_id>/<int:group_id>/', ChallengeInvitesListView.as_view(), name='challenge-invites'),
     
     # path('get-pending-challenges/<int:group_id>/', GetPendingChallengesView.as_view(), name='get-pending-challenges'),
-    path('get-availabilities/<int:chall_id>/', GetAvailabilitiesView.as_view(), name='get-availabilities'),
+    path('get-availabilities/<int:chall_id>/<int:user_id>/', GetAvailabilitiesView.as_view(), name='get-availabilities'),
     path('set-user-availability/<int:user_id>/', SetUserAvailabilityView.as_view(), name='set-user-availability'),
     path('get-user-availability/<int:user_id>/', GetUserAvailabilityView.as_view(), name='get-user-availability'),
     path('set-chall-availability/<int:user_id>/<int:chall_id>/', SetChallAvailabilityView.as_view(), name='set-chall-availability'),

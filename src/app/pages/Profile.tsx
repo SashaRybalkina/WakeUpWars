@@ -42,6 +42,7 @@ const Profile: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('Profile');
   };
   const [profileData, setProfileData] = useState<any>(null);
+  const [numCoins, setNumCoins] = useState<number>(0);
   const { user, setUser, setSkillLevels } = useUser();
 
   // const handleLogout = () => {
@@ -110,7 +111,10 @@ const handleLogout = async () => {
           }
         });
           const data = await res.json();
-          if (!cancelled) setSkillLevels(data);
+          if (!cancelled) {
+            setSkillLevels(data.skillLevels);
+            setNumCoins(data.numCoins);
+          }
         } catch (e) {
           console.error('refresh skills failed', e);
         }
@@ -171,6 +175,12 @@ const handleLogout = async () => {
             </Text>
           </TouchableOpacity>
         </View>
+
+    <View style={styles.container}>
+      <Ionicons name="cash-outline" size={22} color="#FFD700" />
+      <Text style={styles.coinText}>{numCoins}</Text>
+      <Text style={styles.coinEmoji}>🪙</Text>
+    </View>
 
         <View style={styles.menu}>
           <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
@@ -375,6 +385,16 @@ const styles = StyleSheet.create({
   profileContainer: {
     alignItems: 'center',
     marginTop: 50,
+  },
+  coinText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+  coinEmoji: {
+    fontSize: 18,
+    marginLeft: 4,
   },
   avatar: {
     width: 120,

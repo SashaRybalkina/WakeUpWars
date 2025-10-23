@@ -121,6 +121,8 @@ const EditAvailability: React.FC<Props> = ({ navigation }) => {
   const [declinedList, setDeclinedList] = useState<string[]>([])
   const [loading, setLoading] = useState(true);
   const [isInitiator, setIsInitiator] = useState(false);
+  const [participationFee, setParticipationFee] = useState<number>(0);
+  const [numCoins, setNumCoins] = useState<number>(0);
   // const [challengeStartDate, setChallengeStartDate] = useState<string | null>(
   //   pendingChallengeStartDate ?? null
   // );
@@ -174,7 +176,7 @@ const fetchAvailabilities = async () => {
           if (!accessToken) {
             throw new Error("Not authenticated");
           }
-    const res = await fetch(endpoints.getAvailabilities(pendingChallengeId), {
+    const res = await fetch(endpoints.getAvailabilities(pendingChallengeId, Number(user.id)), {
                 headers: {
                   Authorization: `Bearer ${accessToken}`
                 }
@@ -187,6 +189,13 @@ const fetchAvailabilities = async () => {
     setIsInitiator(data.initiator_id === user?.id);
     // setChallengeStartDate(data.start_date);
     setDeclinedList(data.declined_list)
+    setParticipationFee(data.participation_fee)
+    setNumCoins(data.num_user_coins)
+    if (numCoins < participationFee) {
+      Alert.alert('You do not have enough coins!', `You need ${participationFee} coins, you have ${numCoins} coins.`, [
+        { text: 'OK', onPress: () => navigation.navigate('GroupDetails', { groupId }) },
+      ]);
+    }
 
     const dedupedSchedule: DaySchedule[] = data.gameSchedule.map((day: DaySchedule) => ({
         ...day,
@@ -555,6 +564,12 @@ return (
         <Text style={styles.challengeEndDate}>Starts: {pendingChallengeStartDate}</Text>
         <Text style={styles.challengeEndDate}>Ends: {pendingChallengeEndDate}</Text>
       </View>
+
+
+    <View style={styles.container}>
+      <Text style={styles.coinText}>Participation fee: {participationFee}</Text>
+      <Text style={styles.coinEmoji}>🪙</Text>
+    </View>
 
 
 
@@ -1033,6 +1048,16 @@ challengeEndDate: {
     textShadowColor: "rgba(0, 0, 0, 0.3)",
     textShadowOffset: { width: 0.5, height: 0.5 },
     textShadowRadius: 1,
+  },
+  coinText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+  coinEmoji: {
+    fontSize: 18,
+    marginLeft: 4,
   },
 });
 

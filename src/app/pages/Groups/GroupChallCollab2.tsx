@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NavigationProp, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import DateTimePicker from "@react-native-community/datetimepicker"
 import { useUser } from "../../context/UserContext"
 import {
@@ -43,6 +43,8 @@ const GroupChallCollab2: React.FC<Props> = ({ navigation }) => {
 
   const [selectedDays, setSelectedDays] = useState<string[]>([])
   const [gamesByDay, setGamesByDay] = useState<Record<string, [string, string][]>>({})
+  const [numUserCoins, setNumUserCoins] = useState<number>(0)
+  const [participationFee, setParticipationFee] = useState('5');
 
   const dayToInt: Record<string, number> = {
     M: 1,
@@ -70,6 +72,22 @@ const GroupChallCollab2: React.FC<Props> = ({ navigation }) => {
   );
 
   console.log(DAYS); // ["M", "T"]
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        const access = await getAccessToken();
+        const res = await fetch(endpoints.getNumCoins(Number(user?.id)), {
+          headers: {
+            Authorization: `Bearer ${access}`
+          }
+        });
+        const data = await res.json()
+        setNumUserCoins(data.numCoins);
+      } catch {}
+    })();
+  }, [user]);
 
 
   const toggleDay = (day: string) => {
@@ -140,6 +158,27 @@ const GroupChallCollab2: React.FC<Props> = ({ navigation }) => {
 
     const handleNext = async() => {
 
+      const trimmed = participationFee.trim();
+      console.log(trimmed)
+      if (!/^\d+$/.test(trimmed)) {
+        Alert.alert('Error', 'Enter a valid positive whole number for the reward');
+        return;
+      }
+
+      const fee = parseInt(trimmed, 10);
+      console.log(fee)
+
+      if (fee <= 0) {
+        Alert.alert('Error', 'Enter a valid positive amount for the reward');
+        return;
+      }
+
+      if (fee > numUserCoins) {
+        Alert.alert('Error', `You do not have enough coins! You currently have ${numUserCoins} coins.`);
+        return;
+      }
+
+
         console.log("Games By Day:", JSON.stringify(gamesByDay, null, 2))
 
 
@@ -207,7 +246,8 @@ const GroupChallCollab2: React.FC<Props> = ({ navigation }) => {
                     game_schedule: gameSchedules,
                     chall_type: 'Group',
                     group_id: groupId,
-                    members
+                    members,
+                    participation_fee: fee,
                 })
             } catch {
                 console.log("failed to find first valid date")
@@ -395,6 +435,26 @@ const GroupChallCollab2: React.FC<Props> = ({ navigation }) => {
               </View>
             </View>
           )} */}
+
+
+
+
+          <View style={styles.rewardHeader}>
+            <Text style={styles.sectionTitle}>Set Reward</Text>
+
+            <View style={styles.inputRow}>
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                placeholder="Amount"
+                placeholderTextColor="rgba(255,255,255,0.6)"
+                keyboardType="numeric"
+                value={participationFee}
+                onChangeText={setParticipationFee}
+              />
+              <Text style={styles.coinEmoji}>🪙</Text>
+            </View>
+          </View>
+            
 
 
 
@@ -647,6 +707,19 @@ const styles = StyleSheet.create({
   },
   dayTextSelected: {
     color: "#FFD700",
+  },
+  rewardHeader:{flexDirection:'row',alignItems:'center',marginBottom:12},
+    inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 10,
+    backgroundColor: "#222",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+  },
+  coinEmoji: {
+    fontSize: 20,
+    marginLeft: 6,
   },
 })
 
