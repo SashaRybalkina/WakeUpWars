@@ -2,10 +2,11 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import (Group, User, SkillLevel, GameCategory, Challenge, GamePerformance, GameSchedule, Message, ChallengeMembership, Game,
                      FriendRequest,RewardSetting, ExternalHandle, Obligation, Payment, PaymentProvider, PaymentMethod, RewardType, PublicChallengeCategoryAssociation,
-                     PublicChallengeConfiguration, )
+                     PublicChallengeConfiguration, ChallengeBet,)
 from django.contrib.auth.hashers import make_password
 import calendar
 from django.utils import timezone
+from django.db.models import Sum
 
 User = get_user_model()
 
@@ -25,6 +26,39 @@ class RegisterSerializer(serializers.ModelSerializer):
         validated_data['password'] = User.objects.make_random_password() if not validated_data['password'] else validated_data['password']
         validated_data['password'] = make_password(validated_data['password'])
         return super().create(validated_data)
+
+
+class ChallengeBetSerializer(serializers.ModelSerializer):
+    initiator_name = serializers.CharField(source='initiator.username', read_only=True)
+    recipient_name = serializers.CharField(source='recipient.username', read_only=True)
+    initiatorId = serializers.IntegerField(source='initiator.id', read_only=True)
+    recipientId = serializers.IntegerField(source='recipient.id', read_only=True)
+    initiator_points = serializers.SerializerMethodField()
+    recipient_points = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ChallengeBet
+        fields = [
+            'id', 'initiatorId', 'recipientId',
+            'initiator_name', 'recipient_name',
+            'initiator_points', 'recipient_points',
+            'betAmount', 'isPending'
+        ]
+
+    def get_initiator_points(self, obj):
+        challenge = obj.challenge
+        total = GamePerformance.objects.filter(challenge=challenge, user=obj.initiator).aggregate(
+            total_points=Sum("score")
+        )["total_points"] or 0
+        return total
+
+    def get_recipient_points(self, obj):
+        challenge = obj.challenge
+        total = GamePerformance.objects.filter(challenge=challenge, user=obj.recipient).aggregate(
+            total_points=Sum("score")
+        )["total_points"] or 0
+        return total
+
 
 class GroupSerializer(serializers.ModelSerializer):
     class Meta:

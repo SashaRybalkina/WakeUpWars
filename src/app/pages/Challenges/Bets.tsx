@@ -17,12 +17,15 @@ type Props = {
 }
 
 type Bet = {
-  id: number
-  initiatorName: string
-  recipientName: string
-  initiatorPoints: number
-  recipientPoints: number
-  betAmount: number
+  id: number;
+  initiatorId: number;
+  recipientId: number;
+  initiatorName: string;
+  recipientName: string;
+  initiatorPoints: number;
+  recipientPoints: number;
+  betAmount: number;
+  isPending: boolean;
 }
 
 type Member = {
@@ -44,6 +47,11 @@ const Bets: React.FC<Props> = ({ navigation }) => {
 
   const [isLoading, setIsLoading] = useState(true)
   const [bets, setBets] = useState<Bet[]>([]);
+  const [myBets, setMyBets] = useState<Bet[]>([]);
+  const [myPendingBets, setPendingMyBets] = useState<Bet[]>([]);
+  const [selectedTab, setSelectedTab] = useState<"all" | "mine">("all");
+
+
 
   useFocusEffect(
     useCallback(() => {
@@ -63,33 +71,45 @@ const Bets: React.FC<Props> = ({ navigation }) => {
                 if (!accessToken) {
                   throw new Error("Not authenticated");
                 }
-          const response = await fetch(endpoints.getChallengeBets(challId), {
+          const response = await fetch(endpoints.getChallengeBets(challId, Number(user.id)), {
                 headers: {
                   Authorization: `Bearer ${accessToken}`
                 }
               });
           const data = await response.json()
-        //   fields = [
-        //   'id',
-        //   'initiator_name',
-        //   'recipient_name',
-        //   'initiator_points',
-        //   'recipient_points',
-        //   'bet_amount''
-        //   ]
-        console.log(data)
-        const formattedData = data.map(
-            (item: Bet) => ({
-                id: item.id,
-                initiatorName: item.initiatorName,
-                recipientName: item.recipientName,
-                initiatorPoints: item.initiatorPoints,
-                recipientPoints: item.recipientPoints,
-                betAmount: item.betAmount
-            })
-        )
+        // fields = [
+        //     'id', 'initiatorId', 'recipientId',
+        //     'initiator_name', 'recipient_name',
+        //     'initiator_points', 'recipient_points',
+        //     'betAmount', 'isPending'
+        // ]
+        
+        const formattedData: Bet[] = data.map((item: any) => ({
+        id: item.id,
+        initiatorId: item.initiatorId,
+        recipientId: item.recipientId,
+        initiatorName: item.initiator_name,
+        recipientName: item.recipient_name,
+        initiatorPoints: item.initiator_points,
+        recipientPoints: item.recipient_points,
+        betAmount: item.betAmount,
+        isPending: item.isPending,
+        }));
+        console.log(formattedData)
   
-          setBets(formattedData)
+        const allNonPending = formattedData.filter(bet => !bet.isPending);
+
+        const myNonPending = formattedData.filter(
+        bet => !bet.isPending && (bet.initiatorId === user.id || bet.recipientId === user.id)
+        );
+
+        const myPending = formattedData.filter(
+        bet => bet.isPending && (bet.initiatorId === user.id || bet.recipientId === user.id)
+        );
+
+        setBets(allNonPending);
+        setMyBets(myNonPending);
+        setPendingMyBets(myPending);
 
         } catch (error) {
           console.error("Failed to fetch bets:", error)
@@ -110,14 +130,91 @@ return (
           <Ionicons name="arrow-back" size={28} color="#FFF" />
         </TouchableOpacity>
 
-        <TouchableOpacity
+<View style={styles.tabRow}>
+  <TouchableOpacity
+    style={[
+      styles.tabButton,
+      selectedTab === "mine" && styles.tabButtonActive,
+    ]}
+    onPress={() => setSelectedTab("mine")}
+  >
+    <Text style={styles.tabText}>My Bets</Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    style={[
+      styles.tabButton,
+      selectedTab === "all" && styles.tabButtonActive,
+    ]}
+    onPress={() => setSelectedTab("all")}
+  >
+    <Text style={styles.tabText}>All Bets</Text>
+  </TouchableOpacity>
+</View>
+
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#FFD700" />
+            <Text style={styles.loadingText}>Loading bets...</Text>
+          </View>
+        ) : (
+
+<ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
+  {selectedTab === "all" ? (
+    bets.length === 0 ? (
+      <Text style={styles.noBetsText}>No bets yet.</Text>
+    ) : (
+      bets.map((bet) => <BetCard key={bet.id} bet={bet} />)
+    )
+  ) : (
+    <>
+    
+    <TouchableOpacity
         style={styles.addNewButton}
-        // onPress={() => {
-        //   navigation.navigate("GroupChall1", {
-        //     groupId: groupData.id,
-        //     groupMembers: groupData.members,
-        //   })
-        // }}
+        onPress={() => {
+            navigation.navigate("MakeBet", {
+            challId,
+            challName,
+            challengeMembers,
+            })
+        }}
+        >
+        <Text style={styles.addNewButtonText}>Make A Bet</Text>
+    </TouchableOpacity>
+
+      {myPendingBets.length > 0 && (
+        <>
+          {myPendingBets.map((bet) => (
+            <View key={bet.id} style={styles.pendingBetCard}>
+              <Text style={styles.pendingText}>
+                {bet.initiatorName} vs {bet.recipientName} 💰 {bet.betAmount}
+              </Text>
+            </View>
+          ))}
+        </>
+      )}
+      {myBets.length === 0 && myPendingBets.length === 0 ? (
+        <Text style={styles.noBetsText}>No bets yet.</Text>
+      ) : (
+        myBets.map((bet) => <BetCard key={bet.id} bet={bet} />)
+      )}
+    </>
+  )}
+</ScrollView>
+        )}
+
+
+
+
+
+
+
+
+
+
+
+        {/* <TouchableOpacity
+        style={styles.addNewButton}
         onPress={() => {
             navigation.navigate("MakeBet", {
             challId,
@@ -174,7 +271,7 @@ return (
         )}
         </ScrollView>
 
-        )}
+        )} */}
       </View>
 
     </ImageBackground>
@@ -290,6 +387,72 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textAlign: "center",
   },
+tabRow: {
+  flexDirection: "row",
+  justifyContent: "center",
+  marginTop: 10,
+},
+tabButton: {
+  paddingVertical: 10,
+  paddingHorizontal: 20,
+  marginHorizontal: 5,
+  borderRadius: 20,
+  backgroundColor: "rgba(255,255,255,0.2)",
+},
+tabButtonActive: {
+  backgroundColor: "#FFD700",
+},
+tabText: {
+  fontWeight: "600",
+  color: "#000",
+},
+pendingBetCard: {
+  backgroundColor: "rgba(255,255,255,0.1)",
+  borderRadius: 12,
+  padding: 12,
+  marginVertical: 6,
+  width: "90%",
+  alignItems: "center",
+},
+pendingText: {
+  color: "#fff",
+  fontSize: 16,
+  fontWeight: "600",
+},
+
 })
 
 export default Bets
+
+
+
+const BetCard: React.FC<{ bet: Bet }> = ({ bet }) => {
+  const initiatorWinning = bet.initiatorPoints > bet.recipientPoints;
+  const recipientWinning = bet.recipientPoints > bet.initiatorPoints;
+
+  return (
+    <View style={styles.betCard}>
+      <View style={styles.betHeader}>
+        <Text style={styles.betAmountText}>💰 {bet.betAmount} coins</Text>
+      </View>
+
+      <View style={styles.playerRow}>
+        <Text style={styles.playerName}>
+          {bet.initiatorName} {initiatorWinning && <Text style={styles.winnerIcon}>🏆</Text>}
+        </Text>
+        <Text style={styles.pointsText}>{bet.initiatorPoints} pts</Text>
+      </View>
+
+      <View style={styles.vsLine}>
+        <Text style={styles.vsText}>vs</Text>
+      </View>
+
+      <View style={styles.playerRow}>
+        <Text style={styles.playerName}>
+          {bet.recipientName} {recipientWinning && <Text style={styles.winnerIcon}>🏆</Text>}
+        </Text>
+        <Text style={styles.pointsText}>{bet.recipientPoints} pts</Text>
+      </View>
+    </View>
+  );
+};

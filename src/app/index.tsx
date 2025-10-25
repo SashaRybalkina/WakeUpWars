@@ -62,6 +62,8 @@ import StartScreen from './pages/StartScreen';
 import SudokuScreen from './pages/SudokuScreen';
 import EditChallengeSharingFriends from './pages/Challenges/EditChallengeSharingFriends';
 import CreateChallengeForFriend from './pages/Challenges/CreateChallengeForFriend';
+import Bets from './pages/Challenges/Bets';
+import MakeBet from './pages/Challenges/MakeBet';
 import { BASE_URL } from './api';
 
 const { IntentModule, NotificationModule, AlarmModule } = NativeModules;
@@ -462,7 +464,16 @@ function App() {
           component={CreateChallengeForFriend}
           options={{ headerShown: false }}
         />
-        
+        <Stack.Screen
+          name="Bets"
+          component={Bets}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="MakeBet"
+          component={MakeBet}
+          options={{ headerShown: false }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
       );

@@ -33,7 +33,8 @@ from api.chat_consumer import ACTIVE_CHAT_USERS
 from .serializers import (UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer, MessageSerializer, ChallengeSummarySerializer,
                           CatSerializer, GameSerializer, FriendSerializer, FriendRequestSerializer, CreateGroupSerializer, SkillLevelSerializer,
                           RewardSettingSerializer, ExternalHandleSerializer,ObligationSerializer, CashPaymentCreateSerializer,
-                          ExternalPaymentCreateSerializer, PaymentSerializer, PendingPublicChallengeSummarySerializer, PublicChallengeSummarySerializer)
+                          ExternalPaymentCreateSerializer, PaymentSerializer, PendingPublicChallengeSummarySerializer, PublicChallengeSummarySerializer,
+                          ChallengeBetSerializer)
 from .models import (Group, UserNotification, PersonalChallengeInvite, PushToken, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule,
                      AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest,
                      SkillLevel, PendingGroupChallengeAvailability, GroupChallengeInvite, WordleMove, PublicChallengeConfiguration,
@@ -1353,39 +1354,18 @@ class GetChallengeScheduleView(APIView):
     
 
 class GetChallengeBetsView(APIView):
-    def get(self, request, chall_id):
+    def get(self, request, chall_id, user_id):
         try:
             challenge = Challenge.objects.get(id=chall_id)
         except Challenge.DoesNotExist:
-            return Response({'error': 'Challenge not found'}, status=status.HTTP_404_NOT_FOUND)
-        
-        bets = ChallengeBet.objects.filter(challenge=challenge)
-        results = []
+            return Response({'error': 'Challenge not found'}, status=404)
 
-        for bet in bets:
-            # get the initiator and recipient points
-            initiator_points = (
-                GamePerformance.objects
-                .filter(challenge=challenge, user=bet.initiator)
-                .aggregate(total_points=Sum("score"))
-            )["total_points"] or 0
-            
-            recipient_points = (
-                GamePerformance.objects
-                .filter(challenge=challenge, user=bet.recipient)
-                .aggregate(total_points=Sum("score"))
-            )["total_points"] or 0
+        bets = ChallengeBet.objects.filter(challenge=challenge).exclude(
+            Q(isPending=True) & ~Q(initiator_id=user_id) & ~Q(recipient_id=user_id)
+        )
 
-            results.append({
-                "id": bet.id,
-                "initiator_name": bet.initiator.username,
-                "recipient_name": bet.recipient.username,
-                "initiator_points": initiator_points,
-                "recipient_points": recipient_points,
-                "bet_amount": bet.betAmount
-            })
-
-        return Response(results, status=status.HTTP_200_OK)
+        serializer = ChallengeBetSerializer(bets, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 
