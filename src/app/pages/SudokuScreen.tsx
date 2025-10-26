@@ -196,7 +196,7 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
               if (!accessToken) {
                 throw new Error("Not authenticated");
               }
-        const res = await fetch(endpoints.skillLevels(), {
+        const res = await fetch(endpoints.skillLevels(Number(user?.id)), {
                 headers: {
                   Authorization: `Bearer ${accessToken}`
                 }

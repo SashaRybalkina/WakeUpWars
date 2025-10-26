@@ -124,6 +124,7 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
 
                     # mark the challenge winner (if personal, will be the single member)
                     winner_user = ch.get_winner_user()
+                    print(winner_user.id)
                     if winner_user:
                         Challenge.objects.filter(pk=ch.id).update(winner=winner_user)
 
@@ -140,8 +141,8 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
 
                         # check for first public challenge win
                         if ch.isPublic:
-                            first_public_badge = Badge.objects.get(name="First Public")
-                            UserBadge.objects.get_or_create(user=winner_user, badge=first_public_badge)
+                            public_champion_badge = Badge.objects.get(name="Public Champion")
+                            UserBadge.objects.get_or_create(user=winner_user, badge=public_champion_badge)
 
                         # check for first group challenge win, and all betting badges since betting is only
                         # in group challenges
@@ -151,7 +152,7 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
 
 
                             # mark bet winners
-                            bets = ChallengeBet.objects.filter(challenge=ch)
+                            bets = ChallengeBet.objects.filter(challenge=ch, isPending=False)
                             for bet in bets:
                                 initiator_points = GamePerformance.objects.filter(
                                     challenge=ch,
@@ -166,12 +167,15 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
                                 # for now just give reward here
                                 if initiator_points > recipient_points:
                                     bet.winner = bet.initiator
-                                    User.objects.filter(pk=bet.initiator.pk).update(numCoins=F('numCoins') + bet.betAmount)
+                                    User.objects.filter(pk=bet.initiator.pk).update(numCoins=F('numCoins') + (2 * bet.betAmount))
                                 elif recipient_points > initiator_points:
                                     bet.winner = bet.recipient
-                                    User.objects.filter(pk=bet.recipient.pk).update(numCoins=F('numCoins') + bet.betAmount)
+                                    User.objects.filter(pk=bet.recipient.pk).update(numCoins=F('numCoins') + (2 * bet.betAmount))
                                 else:
                                     bet.winner = None  # tie
+                                    # give the coins back to each
+                                    User.objects.filter(pk=bet.initiator.pk).update(numCoins=F('numCoins') + bet.betAmount)
+                                    User.objects.filter(pk=bet.recipient.pk).update(numCoins=F('numCoins') + bet.betAmount)
                                 bet.save()
 
                             # mark first blood winners

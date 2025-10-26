@@ -1463,6 +1463,11 @@ class RespondToBetInviteView(APIView):
         bet.isPending = False
         bet.save()
 
+        bet.initiator.numCoins -= bet.betAmount
+        bet.recipient.numCoins -= bet.betAmount
+        bet.initiator.save()
+        bet.recipient.save()
+
         # Check badges for both users
         self.check_bet_badges(bet.initiator)
         self.check_bet_badges(bet.recipient)
@@ -1473,46 +1478,36 @@ class RespondToBetInviteView(APIView):
     # Check and award Risk Taker / Social Butterfly badges
     # ────────────────────────────────────────────────────────────────
     def check_bet_badges(self, user):
-        # Only consider accepted (non-pending) bets
-        initiator_view = (
-            ChallengeBet.objects
-            .filter(isPending=False)
-            .values(user_id=F('initiator_id'), partner_id=F('recipient_id'))
-        )
+        # First Wager badge
+        first_wager_badge = Badge.objects.get(name="First Wager")
+        UserBadge.objects.get_or_create(user=user, badge=first_wager_badge)
 
-        recipient_view = (
-            ChallengeBet.objects
-            .filter(isPending=False)
-            .values(user_id=F('recipient_id'), partner_id=F('initiator_id'))
-        )
+        # Only consider accepted (non-pending) bets for this user
+        # total bets (count each bet once where user is initiator OR recipient)
+        total_bets_count = ChallengeBet.objects.filter(
+            isPending=False
+        ).filter(
+            Q(initiator=user) | Q(recipient=user)
+        ).count()
 
-        normalized_bets = initiator_view.union(recipient_view)
+        # unique partners: combine partners from both roles and count distinct in Python
+        partners_as_initiator = ChallengeBet.objects.filter(isPending=False, initiator=user).values_list('recipient_id', flat=True)
+        partners_as_recipient = ChallengeBet.objects.filter(isPending=False, recipient=user).values_list('initiator_id', flat=True)
 
-        # Count distinct partners for Social Butterfly
-        social_butterfly_count = (
-            normalized_bets
-            .filter(user_id=user.id)
-            .values('user_id')
-            .annotate(unique_partners=Count('partner_id', distinct=True))
-            .first()
-        )
+        unique_partners = set(partners_as_initiator) | set(partners_as_recipient)
+        unique_partners_count = len(unique_partners)
+        
+        print(unique_partners_count)
+        print(total_bets_count)
 
-        if social_butterfly_count and social_butterfly_count['unique_partners'] >= 5:
+        if unique_partners_count >= 2:
             social_butterfly_badge = Badge.objects.get(name="Social Butterfly")
             UserBadge.objects.get_or_create(user=user, badge=social_butterfly_badge)
 
-        # Count total bets for Risk Taker
-        riREDACTEDtaker_count = (
-            normalized_bets
-            .filter(user_id=user.id)
-            .values('user_id')
-            .annotate(total_bets=Count('partner_id'))
-            .first()
-        )
-
-        if riREDACTEDtaker_count and riREDACTEDtaker_count['total_bets'] >= 5:
+        if total_bets_count >= 2:
             riREDACTEDtaker_badge = Badge.objects.get(name="Risk Taker")
             UserBadge.objects.get_or_create(user=user, badge=riREDACTEDtaker_badge)
+
 
 
 
