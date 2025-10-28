@@ -33,16 +33,17 @@ class ChallengeBetSerializer(serializers.ModelSerializer):
     recipient_name = serializers.CharField(source='recipient.username', read_only=True)
     initiatorId = serializers.IntegerField(source='initiator.id', read_only=True)
     recipientId = serializers.IntegerField(source='recipient.id', read_only=True)
+    winnerId = serializers.SerializerMethodField()
     initiator_points = serializers.SerializerMethodField()
     recipient_points = serializers.SerializerMethodField()
 
     class Meta:
         model = ChallengeBet
         fields = [
-            'id', 'initiatorId', 'recipientId',
+            'id', 'initiatorId', 'recipientId', 'winnerId'
             'initiator_name', 'recipient_name',
             'initiator_points', 'recipient_points',
-            'betAmount', 'isPending'
+            'betAmount', 'isPending', 'isCompleted', 'isCollected'
         ]
 
     def get_initiator_points(self, obj):
@@ -58,6 +59,9 @@ class ChallengeBetSerializer(serializers.ModelSerializer):
             total_points=Sum("score")
         )["total_points"] or 0
         return total
+
+    def get_winnerId(self, obj):
+        return obj.winner.id if obj.winner else None
 
 
 class GroupSerializer(serializers.ModelSerializer):

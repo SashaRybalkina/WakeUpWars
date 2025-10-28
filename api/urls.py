@@ -105,6 +105,8 @@ from .views import (
     GetChallengeBetsView,
     RespondToBetInviteView,
     BadgesView,
+    CollectBadgeView,
+    CollectBetCoinsView,
 )
 
 
@@ -133,6 +135,8 @@ urlpatterns = [
     path('user-groups/<int:user_id>/', GroupListView.as_view(), name='group-list'),
     path('user-friends/<int:user_id>/', FriendListView.as_view(), name='friend-list'),
     path('cats/', CatListView.as_view(), name='cat-list'),
+    path('collect-badge/', CollectBadgeView.as_view(), name='collect-badge'),
+    path('collect-bet-coins/', CollectBetCoinsView.as_view(), name='collect-bet-coins'),
     path('some-cats/', SomeCatsListView.as_view(), name='some-cats'),
     path('games/<int:cat_id>/<str:sing_or_mult>/', GameListView.as_view(), name='game-list'),
     path('games/<str:sing_or_mult>/', SingOrMultGameListView.as_view(), name='sing-or-mult-game-list'),

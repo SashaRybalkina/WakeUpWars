@@ -266,6 +266,8 @@ class ChallengeBet(models.Model):
     )
     betAmount = models.IntegerField()
     isPending = models.BooleanField()
+    isCompleted = models.BooleanField(default=False)
+    isCollected = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'ChallengeBets'
@@ -283,6 +285,7 @@ class Badge(models.Model):
 class UserBadge(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_badges')
     badge = models.ForeignKey(Badge, on_delete=models.CASCADE, related_name='earned_by_users')
+    collected = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'UserBadges'

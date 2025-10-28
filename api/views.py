@@ -1480,7 +1480,9 @@ class RespondToBetInviteView(APIView):
     def check_bet_badges(self, user):
         # First Wager badge
         first_wager_badge = Badge.objects.get(name="First Wager")
-        UserBadge.objects.get_or_create(user=user, badge=first_wager_badge)
+        # UserBadge.objects.get_or_create(user=user, badge=first_wager_badge)
+        UserBadge.objects.get_or_create(user=user, badge=first_wager_badge, defaults={'collected': False})
+
 
         # Only consider accepted (non-pending) bets for this user
         # total bets (count each bet once where user is initiator OR recipient)
@@ -1496,17 +1498,18 @@ class RespondToBetInviteView(APIView):
 
         unique_partners = set(partners_as_initiator) | set(partners_as_recipient)
         unique_partners_count = len(unique_partners)
-        
+
         print(unique_partners_count)
         print(total_bets_count)
 
         if unique_partners_count >= 2:
             social_butterfly_badge = Badge.objects.get(name="Social Butterfly")
-            UserBadge.objects.get_or_create(user=user, badge=social_butterfly_badge)
+            UserBadge.objects.get_or_create(user=user, badge=social_butterfly_badge, defaults={'collected': False})
+
 
         if total_bets_count >= 2:
             riREDACTEDtaker_badge = Badge.objects.get(name="Risk Taker")
-            UserBadge.objects.get_or_create(user=user, badge=riREDACTEDtaker_badge)
+            UserBadge.objects.get_or_create(user=user, badge=riREDACTEDtaker_badge, defaults={'collected': False})
 
 
 
@@ -3096,9 +3099,8 @@ class SkillLevelsView(APIView):
 class BadgesView(APIView):
     def get(self, request, user_id):
         badges = Badge.objects.all()
-        user_badges = set(
-            UserBadge.objects.filter(user_id=user_id).values_list('badge_id', flat=True)
-        )
+        user_badges = UserBadge.objects.filter(user_id=user_id)
+        earned_map = {ub.badge_id: ub.collected for ub in user_badges}
 
         data = [
             {
@@ -3106,11 +3108,49 @@ class BadgesView(APIView):
                 "name": badge.name,
                 "description": badge.description,
                 "imageUrl": badge.imageUrl,
-                "earned": badge.id in user_badges
+                "earned": badge.id in earned_map,
+                "collected": earned_map.get(badge.id, False)
             }
             for badge in badges
         ]
         return Response(data)
+    
+
+
+class CollectBadgeView(APIView):
+    @transaction.atomic
+    def post(self, request):
+        data = request.data
+        user_id = data['user_id']
+        badge_id = data['badge_id']
+
+        user_badge = get_object_or_404(UserBadge, user_id=user_id, badge_id=badge_id)
+        if user_badge.collected:
+            return Response({"message": "Already collected."}, status=status.HTTP_200_OK)
+        user_badge.collected = True
+        user_badge.save()
+        # maybe reward coins or points here
+        return Response({"message": "Badge collected!"}, status=status.HTTP_200_OK)
+    
+
+class CollectBetCoinsView(APIView):
+    @transaction.atomic
+    def post(self, request):
+        data = request.data
+        user_id = data['user_id']
+        bet_id = data['bet_id']
+        amount = data['amount']
+
+        user = get_object_or_404(User, id=user_id)
+        bet = get_object_or_404(ChallengeBet, id=bet_id)
+
+        user.numCoins += amount
+        user.save()
+
+        bet.isCollected = True
+        bet.save()
+
+        return Response({"message": "Coins Collected!"}, status=status.HTTP_200_OK)
 
 
 

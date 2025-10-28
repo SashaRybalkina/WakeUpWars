@@ -154,6 +154,8 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
                             # mark bet winners
                             bets = ChallengeBet.objects.filter(challenge=ch, isPending=False)
                             for bet in bets:
+                                bet.isCompleted = True
+                                
                                 initiator_points = GamePerformance.objects.filter(
                                     challenge=ch,
                                     user=bet.initiator
@@ -164,18 +166,17 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
                                     user=bet.recipient
                                 ).aggregate(total_points=Sum("score"))["total_points"] or 0
 
-                                # for now just give reward here
                                 if initiator_points > recipient_points:
                                     bet.winner = bet.initiator
-                                    User.objects.filter(pk=bet.initiator.pk).update(numCoins=F('numCoins') + (2 * bet.betAmount))
+                                    # User.objects.filter(pk=bet.initiator.pk).update(numCoins=F('numCoins') + (2 * bet.betAmount))
                                 elif recipient_points > initiator_points:
                                     bet.winner = bet.recipient
-                                    User.objects.filter(pk=bet.recipient.pk).update(numCoins=F('numCoins') + (2 * bet.betAmount))
+                                    # User.objects.filter(pk=bet.recipient.pk).update(numCoins=F('numCoins') + (2 * bet.betAmount))
                                 else:
                                     bet.winner = None  # tie
                                     # give the coins back to each
-                                    User.objects.filter(pk=bet.initiator.pk).update(numCoins=F('numCoins') + bet.betAmount)
-                                    User.objects.filter(pk=bet.recipient.pk).update(numCoins=F('numCoins') + bet.betAmount)
+                                    # User.objects.filter(pk=bet.initiator.pk).update(numCoins=F('numCoins') + bet.betAmount)
+                                    # User.objects.filter(pk=bet.recipient.pk).update(numCoins=F('numCoins') + bet.betAmount)
                                 bet.save()
 
                             # mark first blood winners

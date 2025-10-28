@@ -1,5 +1,5 @@
 // export const BASE_URL = 'http://192.168.50.3:8000';
-export const BASE_URL = 'https://66e5dede7906.ngrok-free.app';
+export const BASE_URL = 'https://380cd80afcec.ngrok-free.app';
 
 export const endpoints = {
   // getToken
@@ -13,6 +13,8 @@ export const endpoints = {
 
   friends: (userId: number) => `${BASE_URL}/api/user-friends/${userId}/`,
   cats: () => `${BASE_URL}/api/cats/`,
+  collectBadge: () => `${BASE_URL}/api/collect-badge/`,
+  collectBetCoins: () => `${BASE_URL}/api/collect-bet-coins/`,
   someCats: (categoryIds: number[]) => `${BASE_URL}/api/some-cats/?ids=${categoryIds.join(",")}`,
   games: (catId: number, singOrMult: string) =>
     `${BASE_URL}/api/games/${catId}/${singOrMult}/`,

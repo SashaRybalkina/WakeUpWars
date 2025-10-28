@@ -20,12 +20,15 @@ type Bet = {
   id: number;
   initiatorId: number;
   recipientId: number;
+  winnerId: number | null;
   initiatorName: string;
   recipientName: string;
   initiatorPoints: number;
   recipientPoints: number;
   betAmount: number;
   isPending: boolean;
+  isCompleted: boolean;
+  isCollected: boolean;
 }
 
 type Member = {
@@ -40,7 +43,7 @@ const Bets: React.FC<Props> = ({ navigation }) => {
   const route = useRoute()
   const { challId, challName, challengeMembers } = route.params as { 
     challId: number, 
-    challName: string, 
+    challName: string,
     challengeMembers: Member[] }
 
   const { user } = useUser()
@@ -68,12 +71,15 @@ const Bets: React.FC<Props> = ({ navigation }) => {
         id: item.id,
         initiatorId: item.initiatorId,
         recipientId: item.recipientId,
+        winnerId: item.winnerId,
         initiatorName: item.initiator_name,
         recipientName: item.recipient_name,
         initiatorPoints: item.initiator_points,
         recipientPoints: item.recipient_points,
         betAmount: item.betAmount,
         isPending: item.isPending,
+        isCompleted: item.isCompleted,
+        isCollected: item.isCollected,
         }));
 
         const allNonPending = formattedData.filter(bet => !bet.isPending);
@@ -193,8 +199,9 @@ return (
     bets.length === 0 ? (
       <Text style={styles.noBetsText}>No bets yet.</Text>
     ) : (
-      bets.map((bet) => <BetCard key={bet.id} bet={bet} />)
-    )
+      bets.map((bet) => (
+        <BetCard key={bet.id} bet={bet} user={user} onRefresh={fetchData} />
+      )))
   ) : (
     <>
     
@@ -257,7 +264,9 @@ return (
       {myBets.length === 0 && myPendingBets.length === 0 ? (
         <Text style={styles.noBetsText}>No bets yet.</Text>
       ) : (
-        myBets.map((bet) => <BetCard key={bet.id} bet={bet} />)
+        myBets.map((bet) => (
+            <BetCard key={bet.id} bet={bet} user={user} onRefresh={fetchData} />
+        ))
       )}
     </>
   )}
@@ -533,19 +542,60 @@ export default Bets
 
 
 
-const BetCard: React.FC<{ bet: Bet }> = ({ bet }) => {
-  const initiatorWinning = bet.initiatorPoints > bet.recipientPoints;
-  const recipientWinning = bet.recipientPoints > bet.initiatorPoints;
+
+const BetCard: React.FC<{ bet: Bet; user: any; onRefresh: () => Promise<void> }> = ({ bet, user, onRefresh }) => {
+  const isComplete = bet.isCompleted;
+  const isWinner = bet.winnerId === user?.id;
+  const [isCollecting, setIsCollecting] = useState(false);
+
+  const collectWinnings = async (amount: number) => {
+    try {
+      setIsCollecting(true);
+      const accessToken = await getAccessToken();
+      if (!accessToken) throw new Error("Not authenticated");
+
+      const res = await fetch(endpoints.collectBetCoins(), {  
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ user_id: user.id, bet_id: bet.id, amount }),
+      });
+
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      Alert.alert("🎉 Success", `You collected 💰 ${bet.betAmount * 2} coins!`);
+      await onRefresh();
+    } catch (err) {
+      console.error("Collect error:", err);
+      Alert.alert("Error", "Failed to collect winnings.");
+    } finally {
+      setIsCollecting(false);
+    }
+  };
+
+  const cardColor = isComplete
+    ? isWinner
+      ? "rgba(94, 204, 114, 0.2)" // green tint for winner
+      : "rgba(255, 80, 80, 0.2)" // red tint for loser
+    : "rgba(255,255,255,0.1)";
 
   return (
-    <View style={styles.betCard}>
+    <View style={[styles.betCard, { backgroundColor: cardColor }]}>
       <View style={styles.betHeader}>
         <Text style={styles.betAmountText}>💰 {bet.betAmount} coins</Text>
+        {isComplete && (
+        <Text style={{ color: "#FFD700", fontWeight: "600", marginTop: 5 }}>
+            {bet.winnerId === null
+            ? "It's a tie!"
+            : `Winner: ${isWinner ? "You 🏆" : bet.winnerId === bet.initiatorId ? bet.initiatorName : bet.recipientName}`}
+        </Text>
+        )}
       </View>
 
       <View style={styles.playerRow}>
         <Text style={styles.playerName}>
-          {bet.initiatorName} {initiatorWinning && <Text style={styles.winnerIcon}>🏆</Text>}
+          {bet.initiatorName} {bet.winnerId === bet.initiatorId && <Text style={styles.winnerIcon}>🏆</Text>}
         </Text>
         <Text style={styles.pointsText}>{bet.initiatorPoints} pts</Text>
       </View>
@@ -556,10 +606,28 @@ const BetCard: React.FC<{ bet: Bet }> = ({ bet }) => {
 
       <View style={styles.playerRow}>
         <Text style={styles.playerName}>
-          {bet.recipientName} {recipientWinning && <Text style={styles.winnerIcon}>🏆</Text>}
+          {bet.recipientName} {bet.winnerId === bet.recipientId && <Text style={styles.winnerIcon}>🏆</Text>}
         </Text>
         <Text style={styles.pointsText}>{bet.recipientPoints} pts</Text>
       </View>
+
+      {isWinner && (
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: "#4CAF50", marginTop: 10 }]}
+          onPress={() => collectWinnings(bet.betAmount * 2)}
+          disabled={isCollecting || bet.isCollected}
+        >
+          <Text style={styles.actionButtonText}>
+            {isCollecting ? "Collecting..." : "Collect Winnings"}
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      {isComplete && bet.winnerId === null && (bet.initiatorId === user.id || bet.recipientId === user.id) && ( // in case of tie, tell them their coins have been given back
+          <Text style={styles.actionButtonText}>
+            It's a tie! You have been given back {bet.betAmount} coins.
+          </Text>
+      )}
     </View>
   );
 };

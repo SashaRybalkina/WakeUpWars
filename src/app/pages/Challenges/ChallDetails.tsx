@@ -597,7 +597,7 @@ const loadPerformances = async () => {
 )}
 
 
-
+{whichChall === "Group" && (
     <TouchableOpacity
       style={styles.viewDetailsButton}
       onPress={() =>
@@ -617,6 +617,8 @@ const loadPerformances = async () => {
         <Text style={styles.viewDetailsText}>Challenge bets</Text>
       </LinearGradient>
     </TouchableOpacity>
+)}
+
 
 
           {/* Challenge Stats */}

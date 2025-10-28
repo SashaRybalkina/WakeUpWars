@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useEffect, useState } from 'react';
 import * as SecureStore from "expo-secure-store";
 import { getAccessToken } from "../auth";
@@ -13,6 +13,7 @@ import {
   View,
   Image,
   Modal,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -115,27 +116,26 @@ const handleLogout = async () => {
     }, [user, setSkillLevels]),
   );
 
+  const fetchBadges = async () => {
+    if (!user) return;
+    const access = await getAccessToken();
+    const res = await fetch(endpoints.badges(Number(user.id)), {
+      headers: { Authorization: `Bearer ${access}` },
+    });
+    const data = await res.json();
+    setBadges(data);
+  };
 
 
   useFocusEffect(
   React.useCallback(() => {
-    if (!user) return;
-    let cancelled = false;
-
     (async () => {
       try {
-        const access = await getAccessToken();
-        const res = await fetch(endpoints.badges(Number(user.id)), {
-          headers: { Authorization: `Bearer ${access}` },
-        });
-        const data = await res.json();
-        if (!cancelled) setBadges(data);
+        await fetchBadges();
       } catch (e) {
         console.error('Failed to fetch badges', e);
       }
     })();
-
-    return () => { cancelled = true; };
   }, [user])
 );
 
@@ -150,6 +150,116 @@ const handleLogout = async () => {
         Alert.alert('Error', 'Failed to schedule alarms');
       }
     }
+
+
+const collectBadge = async (badgeId: number) => {
+      const payload = {
+        user_id: user?.id,
+        badge_id: badgeId,
+      }
+  
+      try {
+        const accessToken = await getAccessToken();
+        if (!accessToken) {
+          throw new Error("Not authenticated");
+        }
+  
+        const response = await fetch(endpoints.collectBadge(), {
+          method: "POST",
+          headers: {
+            'Content-Type': 'application/json',
+            "Authorization": `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify(payload),
+        })
+  
+        if (!response.ok) throw new Error(`Server error: ${response.status}`)
+  
+        Alert.alert("Success", "Badge Collected!")
+
+        await fetchBadges();
+      } catch (err) {
+        console.error("Failed to collect badge:", err)
+        Alert.alert("Error", "Failed to collect badge.")
+      }
+}
+
+
+const PulsingBadge = ({ badge, onPress }) => {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (badge.earned && !badge.collected) {
+      // Start pulsing loop
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(scale, {
+            toValue: 1.15,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(scale, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      scale.setValue(1); // reset scale when no longer pulsing
+    }
+  }, [badge.earned, badge.collected]);
+
+  const borderColor = badge.collected
+    ? 'rgba(94, 204, 114, 1)'
+    : badge.earned
+      ? 'gold'
+      : 'transparent';
+
+  const opacity = badge.earned ? 1 : 0.3;
+
+  return (
+    <TouchableOpacity
+      key={badge.id}
+      onPress={onPress}
+      activeOpacity={0.9}
+    >
+      <Animated.View
+        style={{
+          transform: [{ scale }],
+          width: 60,
+          height: 60,
+          margin: 5,
+          borderRadius: 8,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: badge.earned ? 2 : 0,
+          borderColor,
+          backgroundColor: badge.collected
+            ? 'rgba(94, 204, 114, 0.2)'
+            : badge.earned
+              ? 'rgba(255, 215, 0, 0.15)'
+              : 'rgba(255,255,255,0.1)',
+          shadowColor: badge.earned && !badge.collected ? 'gold' : 'transparent',
+          shadowOpacity: badge.earned && !badge.collected ? 0.8 : 0,
+          shadowRadius: badge.earned && !badge.collected ? 8 : 0,
+          shadowOffset: { width: 0, height: 0 },
+        }}
+      >
+        <Image
+          source={{ uri: `${BASE_URL}${badge.imageUrl}` }}
+          style={{
+            width: 50,
+            height: 50,
+            opacity,
+          }}
+          resizeMode="contain"
+        />
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
+
 
   return (
     <ImageBackground
@@ -253,35 +363,75 @@ const handleLogout = async () => {
 
 
 
-<ScrollView horizontal contentContainerStyle={{ paddingHorizontal: 10, paddingVertical: 5 }}>
-  {badges.map((badge) => (
-    <TouchableOpacity
-      key={badge.id}
-      onPress={() => setSelectedBadge(badge)}
-      style={{
-        width: 60,
-        height: 60,
-        margin: 5,
-        borderRadius: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: badge.earned ? 2 : 0,      // add border only if earned
-        borderColor: badge.earned ? 'rgba(94, 204, 114, 1)' : 'transparent', // green outline
-        backgroundColor: badge.earned ? 'rgba(94, 204, 114, 0.2)' : 'rgba(255,255,255,0.1)', 
-      }}
-    >
-      <Image
-        source={{ uri: `${BASE_URL}${badge.imageUrl}` }}
-        style={{
-          width: 50,
-          height: 50,
-          opacity: badge.earned ? 1 : 0.3, // faded if not earned
+{/* <ScrollView horizontal contentContainerStyle={{ paddingHorizontal: 10, paddingVertical: 5 }}>
+  {badges.map((badge) => {
+    const borderColor = badge.collected
+      ? 'rgba(94, 204, 114, 1)'
+      : badge.earned
+        ? 'gold'
+        : 'transparent';
+
+    const opacity = badge.earned ? 1 : 0.3;
+
+    return (
+      <TouchableOpacity
+        key={badge.id}
+        onPress={() => {
+          if (badge.earned && !badge.collected) {
+            collectBadge(badge.id); // hit the /collect endpoint
+          } else {
+            setSelectedBadge(badge);
+          }
         }}
-        resizeMode="contain"
-      />
-    </TouchableOpacity>
+        style={{
+          width: 60,
+          height: 60,
+          margin: 5,
+          borderRadius: 8,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: badge.earned ? 2 : 0,
+          borderColor,
+          backgroundColor: badge.collected
+            ? 'rgba(94, 204, 114, 0.2)'
+            : badge.earned
+              ? 'rgba(255, 215, 0, 0.15)'
+              : 'rgba(255,255,255,0.1)',
+          ...(badge.earned && !badge.collected
+            ? { shadowColor: 'gold', shadowOpacity: 0.7, shadowRadius: 6 }
+            : {}),
+        }}
+      >
+        <Image
+          source={{ uri: `${BASE_URL}${badge.imageUrl}` }}
+          style={{ width: 50, height: 50, opacity }}
+          resizeMode="contain"
+        />
+      </TouchableOpacity>
+    );
+  })}
+</ScrollView> */}
+
+
+<ScrollView
+  horizontal
+  contentContainerStyle={{ paddingHorizontal: 10, paddingVertical: 5 }}
+>
+  {badges.map((badge) => (
+    <PulsingBadge
+      key={badge.id}
+      badge={badge}
+      onPress={() => {
+        if (badge.earned && !badge.collected) {
+          collectBadge(badge.id);
+        } else {
+          setSelectedBadge(badge);
+        }
+      }}
+    />
   ))}
 </ScrollView>
+
 
 
 {selectedBadge && (

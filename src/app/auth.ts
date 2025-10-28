@@ -1,12 +1,5 @@
 import * as SecureStore from "expo-secure-store";
 import { BASE_URL, endpoints } from "./api"
-// import { NativeModules } from "react-native";
-// const { AlarmModule } = NativeModules;
-// import type { NavigationProp } from '@react-navigation/native';
-
-// type Props = {
-//   navigation: NavigationProp<any>;
-// };
 
 
 import jwt_decode from "jwt-decode";
