@@ -36,7 +36,7 @@ from .serializers import (UserSerializer, RegisterSerializer, GroupSerializer, U
                           CatSerializer, GameSerializer, FriendSerializer, FriendRequestSerializer, CreateGroupSerializer, SkillLevelSerializer,
                           RewardSettingSerializer, ExternalHandleSerializer,ObligationSerializer, CashPaymentCreateSerializer,
                           ExternalPaymentCreateSerializer, PaymentSerializer, PendingPublicChallengeSummarySerializer, PublicChallengeSummarySerializer)
-from .models import (FCMDevice, Group, UserNotification, PersonalChallengeInvite, PushToken, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule,
+from .models import (FCMDevice, Group, GroupInvite, UserNotification, PersonalChallengeInvite, PushToken, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule,
                      AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest,
                      SkillLevel, PendingGroupChallengeAvailability, GroupChallengeInvite, WordleMove, PublicChallengeConfiguration,
                      UserAvailability, PublicChallengeCategoryAssociation)

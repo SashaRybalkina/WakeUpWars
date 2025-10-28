@@ -3,7 +3,7 @@ from django.urls import path
 from .views import (AcceptPersonalChallenge, ConversationView, DeclinePersonalChallenge, 
                     ExternalHandleViewSet, FinalizeChallengeView, FinalizePublicChallengeView, 
                     GetMatchingChallengesView, GetPendingPublicChallengesView, GetPersonalChallengeInvites, 
-                    GetPublicChallengesView, GetUserAvailabilityView, GroupConversationView, 
+                    GetPublicChallengesView, GetUserAvailabilityView, GroupConversationView, GroupInviteListView, 
                     JoinPublicChallengeView, LoginView, ObligationViewSet, PaymentViewSet, RegisterView, 
                     GroupListView, HelloWorldView, SendMessageGroupView, SendMessageView, SetChallAvailabilityView, 
                     SetUserAvailabilityView, ShareChallengeView, SingOrMultGameListView, SomeCatsListView, 

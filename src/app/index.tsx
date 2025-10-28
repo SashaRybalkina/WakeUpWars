@@ -31,6 +31,7 @@ import SomeCategories from './pages/Games/SomeCategories';
 import GameExpanded from './pages/Games/GameExpanded';
 import Games from './pages/Games/Games';
 import GroupScreen from './pages/Groups';
+import GroupInvites from './pages/Groups/GroupInvites';
 import CreateGroup from './pages/Groups/CreateGroup';
 import EditAvailability from './pages/Groups/EditAvailability';
 import GroupChall1 from './pages/Groups/GroupChall1';
@@ -42,7 +43,6 @@ import GroupChallCollab from './pages/Groups/GroupChallCollab';
 import GroupChallCollab2 from './pages/Groups/GroupChallCollab2';
 import GroupDetails from './pages/Groups/GroupDetails';
 import LoginScreen from './pages/Login';
-import InputOutput from './pages/mainPage';
 import MainPage from './pages/mainPage';
 import Messages from './pages/Messages';
 import Conversation from './pages/Conversation';
@@ -263,6 +263,11 @@ function App() {
         <Stack.Screen
           name="Groups"
           component={GroupScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="GroupsInvites"
+          component={GroupInvites}
           options={{ headerShown: false }}
         />
         <Stack.Screen

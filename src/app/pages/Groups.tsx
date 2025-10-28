@@ -7,6 +7,8 @@ import type { NavigationProp } from "@react-navigation/native"
 import { useUser } from "../context/UserContext"
 import { useFocusEffect } from "@react-navigation/native";
 import { getAccessToken } from "../auth"
+import * as SecureStore from "expo-secure-store"
+
 type Props = {
   navigation: NavigationProp<any>
 }
@@ -20,6 +22,29 @@ const Groups: React.FC<Props> = ({ navigation }) => {
   const { user } = useUser()
   const [groups, setGroups] = useState<Group[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [inviteCount, setInviteCount] = useState(0)
+
+  const fetchWithAutoRefresh = async (url: string) => {
+    let accessToken = await getAccessToken();
+    if (!accessToken) throw new Error("Not authenticated");
+    let res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (res.status !== 401) return res;
+
+    const refresh = await SecureStore.getItemAsync("refresh");
+    if (!refresh) return res;
+
+    const r = await fetch(endpoints.tokenRefresh, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh }),
+    });
+    if (!r.ok) return res;
+    const data = await r.json().catch(() => ({}));
+    if (!data?.access) return res;
+    await SecureStore.setItemAsync("access", data.access);
+    accessToken = data.access;
+    return await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -42,6 +67,15 @@ const Groups: React.FC<Props> = ({ navigation }) => {
               });
           const data = await response.json();
           setGroups(data);
+
+          const invitesResponse = await fetchWithAutoRefresh(endpoints.groupInvites(Number(user.id)));
+          if (invitesResponse.ok) {
+            const invitesData = await invitesResponse.json().catch(() => []);
+            setInviteCount(Array.isArray(invitesData) ? invitesData.length : 0);
+          } else {
+            setInviteCount(0);
+          }
+
         } catch (error) {
           console.error("Failed to fetch groups:", error);
         } finally {
@@ -83,6 +117,24 @@ const Groups: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.title}>My Groups</Text>
           <View style={styles.decorativeLine} />
         </View>
+
+        {inviteCount > 0 && (
+          <TouchableOpacity
+            style={styles.requestsButton}
+            onPress={() => navigation.navigate("GroupInvites")}
+          >
+            <View style={styles.requestsIconContainer}>
+              <Ionicons name="notifications" size={24} color="#FFD700" />
+              <View style={styles.requestsBadge}>
+                <Text style={styles.requestsBadgeText}>{inviteCount}</Text>
+              </View>
+            </View>
+            <Text style={styles.requestsText}>
+              {inviteCount === 1 ? "1 group invite" : `${inviteCount} group invites`}
+            </Text>
+            <Ionicons name="chevron-forward" size={20} color="#FFD700" />
+          </TouchableOpacity>
+        )}
 
         {isLoading ? (
           <View style={styles.loadingContainer}>
@@ -328,6 +380,44 @@ const styles = StyleSheet.create({
     color: "#FFD700",
     fontSize: 12,
     marginTop: 4,
+    fontWeight: "600",
+  },
+  requestsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(50, 50, 60, 0.4)",
+    borderRadius: 12,
+    padding: 12,
+    marginHorizontal: 20,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "rgba(255, 215, 0, 0.3)",
+  },
+  requestsIconContainer: {
+    position: "relative",
+    marginRight: 10,
+  },
+  requestsBadge: {
+    position: "absolute",
+    top: -5,
+    right: -5,
+    backgroundColor: "#FF3B30",
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  requestsBadgeText: {
+    color: "#FFF",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  requestsText: {
+    flex: 1,
+    color: "#FFF",
+    fontSize: 16,
     fontWeight: "600",
   },
 })
