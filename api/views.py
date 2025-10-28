@@ -3724,3 +3724,20 @@ class RespondGroupInviteView(APIView):
                     user.id
                 )
         return Response({"message": "Response recorded."}, status=200)
+
+
+class GroupInviteListView(APIView):
+    def get(self, request, user_id):
+        invites = GroupInvite.objects.filter(recipient_id=user_id, status=2).select_related('group', 'sender')
+        data = [
+            {
+                "id": invite.id,
+                "group_id": invite.group.id,
+                "group_name": invite.group.name,
+                "sender_id": invite.sender.id,
+                "sender_name": invite.sender.name or invite.sender.username,
+                "created_at": invite.created_at,
+            }
+            for invite in invites
+        ]
+        return Response(data, status=200)

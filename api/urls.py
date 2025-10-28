@@ -200,4 +200,5 @@ urlpatterns = [
 
     path('groups/invite/', SendGroupInviteView.as_view()),
     path('groups/invite/respond/<int:invite_id>/', RespondGroupInviteView.as_view()),
+    path('group-invites/<int:user_id>/', GroupInviteListView.as_view()),
 ]
