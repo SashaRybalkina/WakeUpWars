@@ -19,7 +19,7 @@ from .views import (AcceptPersonalChallenge, ConversationView, DeclinePersonalCh
                     GetAvailabilitiesView, DeclineChallengeInviteView,
                     ChallengeLeaderboardView, SubmitGameScoresView, ChallengeDailyHistoryView,
                     SkillLevelsView, CreatePublicChallengeView, RewardSettingView, 
-                    CreateSudokuGameView, ValidateSudokuMoveView, CreatePatternGameView, 
+                    CreateSudokuGameView, UserRecentGroupMessagesView, UserRecentMessagesView, ValidateSudokuMoveView, CreatePatternGameView, 
                     ValidatePatternMoveView, CreateWordleGameView, ValidateWordleMoveView, 
                     SavePushTokenView, UserNotificationsView, DeleteNotificationView)
 
@@ -137,6 +137,8 @@ urlpatterns = [
     path('profile/<int:user_id>/', UserProfileView.as_view(), name='user-profile'),
     path('get-initiator/<int:chall_id>/', GetChallengeInitiatorView.as_view(), name='get-initiator'),
     path('messages/<int:user_id>/', UserMessagesView.as_view()),
+    path('user/<int:user_id>/recent-messages/', UserRecentMessagesView.as_view(), name="user-recent-messages"),
+    path('user/<int:user_id>/recent-group-messages/', UserRecentGroupMessagesView.as_view(), name='user-recent-group-messages'),
     path('groups/<int:group_id>/', GroupDetailsView.as_view(), name='group-details'),
     path('user/<int:user_id>/group-conversations/', UserGroupConversationsView.as_view(), name='user-group-conversations'),
     path('group-member-add/<int:group_id>/', AddGroupMemberView.as_view(), name='group-mem-add'),

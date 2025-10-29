@@ -5,7 +5,7 @@ from datetime import timezone, datetime, date, timedelta
 from datetime import date as date_cls, timedelta
 import random
 from unittest import result
-from django.db.models import Sum, Count, Q, F, Prefetch
+from django.db.models import Sum, Count, Q, F, Prefetch, Subquery
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.views import View
@@ -282,6 +282,75 @@ class UserProfileView(APIView):
 
         serializer = UserProfileSerializer(user)
         return Response(serializer.data)
+
+
+class UserRecentMessagesView(APIView):
+    def get(self, request, user_id):
+        # 1️⃣ Direct (friend) messages
+        # We find the latest message id per friend conversation (user <-> other user)
+        # Step 1: Get all friends involved in any conversation with this user
+        friend_ids = Message.objects.filter(
+            Q(sender_id=user_id) | Q(recipient_id=user_id),
+            groupID__isnull=True
+        ).values_list('sender_id', 'recipient_id')
+
+        # Step 2: Build a set of unique friend IDs
+        unique_friends = set()
+        for s, r in friend_ids:
+            if s == user_id:
+                unique_friends.add(r)
+            elif r == user_id:
+                unique_friends.add(s)
+
+        # Step 3: For each friend, get their latest message (efficient per subquery)
+        friend_messages = []
+        for fid in unique_friends:
+            latest_msg_subq = (
+                Message.objects.filter(
+                    Q(sender_id=user_id, recipient_id=fid)
+                    | Q(sender_id=fid, recipient_id=user_id),
+                    groupID__isnull=True
+                )
+                .order_by('-id')[:1]
+            )
+            friend_message = Message.objects.filter(id=Subquery(latest_msg_subq.values('id')[:1])).first()
+            if friend_message:
+                friend_messages.append(friend_message)
+
+        messages_sorted = sorted(friend_messages, key=lambda m: m.timestamp, reverse=True)
+
+        serializer = MessageSerializer(messages_sorted, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class UserRecentGroupMessagesView(APIView):
+    def get(self, request, user_id):
+        # 1️⃣ Get all groups the user belongs to
+        memberships = GroupMembership.objects.filter(uID_id=user_id)
+        group_ids = memberships.values_list('groupID_id', flat=True)
+
+        groups = Group.objects.filter(id__in=group_ids)
+
+        # 2️⃣ Fetch the latest message per group efficiently
+        latest_messages = (
+            Message.objects.filter(groupID_id__in=group_ids)
+            .values('groupID_id')
+            .annotate(latest_id=Max('id'))
+        )
+        latest_message_ids = [item['latest_id'] for item in latest_messages]
+        messages_dict = {m.groupID_id: m for m in Message.objects.filter(id__in=latest_message_ids)}
+
+        # 3️⃣ Prepare the response
+        data = []
+        for group in groups:
+            last_message = messages_dict.get(group.id)
+            data.append({
+                'group_id': group.id,
+                'group_name': group.name,
+                'last_message': MessageSerializer(last_message).data if last_message else None,
+            })
+
+        return Response(data, status=status.HTTP_200_OK)
     
 
 class UserMessagesView(APIView):

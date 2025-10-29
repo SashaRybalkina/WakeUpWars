@@ -52,7 +52,7 @@ const Messages: React.FC<Props> = ({ navigation }) => {
       if (!accessToken) {
         throw new Error("Not authenticated");
       }
-      const response = await fetch(endpoints.messages(Number(user.id)), {
+      const response = await fetch(`${BASE_URL}/api/user/${user.id}/recent-messages/`, {
         headers: {
           Authorization: `Bearer ${accessToken}`
         }
@@ -72,7 +72,7 @@ const Messages: React.FC<Props> = ({ navigation }) => {
       if (!accessToken) {
         throw new Error("Not authenticated");
       }
-      const response = await fetch(`${BASE_URL}/api/user/${user.id}/group-conversations/`, {
+      const response = await fetch(`${BASE_URL}/api/user/${user.id}/recent-group-messages/`, {
         headers: {
           Authorization: `Bearer ${accessToken}`
         }
