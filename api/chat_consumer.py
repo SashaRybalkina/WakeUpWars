@@ -153,5 +153,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             message=message,
             sender=sender,
             recipient=recipient,
-            groupID=group
+            groupID=group,
+            is_read=0
         )

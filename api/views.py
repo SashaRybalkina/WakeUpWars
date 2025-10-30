@@ -284,6 +284,34 @@ class UserProfileView(APIView):
         return Response(serializer.data)
 
 
+class MarkMessagesReadView(APIView):
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        other_user_id = request.data.get('other_user_id')
+        group_id = request.data.get('group_id')
+
+        if not user.is_authenticated:
+            return Response({"error": "Authentication required"}, status=401)
+
+        if not other_user_id and not group_id:
+            return Response({"error": "Missing other_user_id or group_id"}, status=400)
+
+        if other_user_id:
+            updated = Message.objects.filter(
+                sender_id=other_user_id,
+                recipient_id=user.id,
+                is_read=False,
+                groupID__isnull=True
+            ).update(is_read=True)
+        else:
+            updated = Message.objects.filter(
+                groupID_id=group_id,
+                is_read=False
+            ).exclude(sender_id=user.id).update(is_read=True)
+
+        return Response({"marked_as_read": updated})
+
+
 class UserRecentMessagesView(APIView):
     def get(self, request, user_id):
         # 1️⃣ Direct (friend) messages
@@ -3534,7 +3562,8 @@ class SendMessageView(APIView):
             sender=sender,
             recipient=recipient,
             message=message_text,
-            timestamp=timezone.now()
+            timestamp=timezone.now(),
+            is_read=0
         )
         
         device = FCMDevice.objects.filter(user=recipient).first()
@@ -3574,7 +3603,8 @@ class SendMessageGroupView(APIView):
             sender=sender,
             groupID=group,
             message=message_text,
-            timestamp=timezone.now()
+            timestamp=timezone.now(),
+            is_read=0
         )
 
         # channel_layer = get_channel_layer()

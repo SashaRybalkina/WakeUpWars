@@ -336,35 +336,66 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     }
   }
 
-  const MessageItem: React.FC<{ name: string; text: string; index: number; timestamp: string; onPress?: () => void }> = ({
+  const MessageItem: React.FC<{ 
+    name: string; 
+    text: string; 
+    index: number; 
+    timestamp: string; 
+    onPress?: () => void;
+    unread?: boolean;
+  }> = ({
     name,
     text,
     index,
     timestamp,
     onPress,
+    unread = false,
   }) => (
     <TouchableOpacity
-      style={[styles.messageCard, { marginTop: index === 0 ? 0 : 12 }]}
+      style={[
+        styles.messageCard,
+        { 
+          marginTop: index === 0 ? 0 : 12,
+          backgroundColor: unread 
+            ? "rgba(255, 215, 0, 0.15)"
+            : "rgba(50, 50, 60, 0.3)"
+        },
+      ]}
       activeOpacity={0.7}
       onPress={onPress}
     >
       <View style={styles.messageAvatarContainer}>
-        <View style={styles.messageAvatar}>
+        <View style={[
+          styles.messageAvatar, 
+          unread && { borderColor: "#FFF700" }
+        ]}>
           <Text style={styles.avatarText}>{name ? name.charAt(0).toUpperCase() : "?"}</Text>
         </View>
       </View>
       <View style={styles.messageContent}>
         <View style={styles.messageHeader}>
-          <Text style={styles.messageName}>{name}</Text>
+          <Text 
+            style={[
+              styles.messageName, 
+              unread && { color: "#FFF", fontWeight: "800" }
+            ]}
+          >
+            {name}
+          </Text>
           <Text style={styles.messageTime}>{getTimeAgo(timestamp)}</Text>
-          {/* <Text style={styles.messageTime}>N/A</Text> */}
         </View>
-        <Text style={styles.messageText} numberOfLines={1}>
+        <Text 
+          style={[
+            styles.messageText, 
+            unread && { fontWeight: "700", color: "#FFD700" }
+          ]} 
+          numberOfLines={1}
+        >
           {text}
         </Text>
       </View>
     </TouchableOpacity>
-  )
+  )  
 
   const NotificationItem: React.FC<{ notification: any; index: number }> = ({ 
     notification, 
@@ -491,6 +522,7 @@ const Messages: React.FC<Props> = ({ navigation }) => {
                     text={`${isMine ? "You" : otherUser.name}: ${lastMessage.message}`}
                     index={index}
                     timestamp={lastMessage.timestamp}
+                    unread={!isMine && !lastMessage.read}
                     onPress={() => openConversation(otherUser.id, otherUser.name)}
                   />
                 )
@@ -526,6 +558,7 @@ const Messages: React.FC<Props> = ({ navigation }) => {
                     text={text}
                     index={index}
                     timestamp={timestamp}
+                    unread={lastMessage ? !lastMessage.read : false}
                     onPress={() => openGroupConversation(group.group_id, groupName)}
                   />
                 )
