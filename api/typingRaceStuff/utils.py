@@ -157,14 +157,15 @@ def finalize_single_result(game_state_id: int, user, accuracy: float):
     player.final_score = compute_single_score_from_accuracy(accuracy)
     player.save()
 
-    # Write to GamePerformance for leaderboard
-    GamePerformance.objects.update_or_create(
-        challenge=state.challenge,
-        game=state.game,
-        user=user,
-        date=date.today(),
-        defaults={"score": int(player.final_score)}
-    )
+    # should be doing it in the frontend with submitGameView
+    # # Write to GamePerformance for leaderboard
+    # GamePerformance.objects.update_or_create(
+    #     challenge=state.challenge,
+    #     game=state.game,
+    #     user=user,
+    #     date=date.today(),
+    #     defaults={"score": int(player.final_score)}
+    # )
 
     return {
         "progress": player.progress,

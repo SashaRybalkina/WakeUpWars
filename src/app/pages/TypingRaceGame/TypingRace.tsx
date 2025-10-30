@@ -50,6 +50,39 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
   const { user } = useUser();
 
   // ===============================
+  // 🧠 Save Scores helper
+  // ===============================
+  const saveScores = async (payload: {
+    challenge_id: number;
+    game_name?: string;
+    date?: string;
+    scores: { username: string; score: number; accuracy?: number; inaccuracy?: number }[];
+  }) => {
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) throw new Error('Not authenticated');
+
+      const res = await fetch(endpoints.submitGameScores(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Submit failed: ${text}`);
+      }
+
+      console.log('[DEBUG] Score saved successfully to leaderboard');
+    } catch (e) {
+      console.error('Failed to save score:', e);
+    }
+  };
+
+  // ===============================
   // ⏳ Game State (shared between solo & multiplayer)
   // ===============================
   const [waitingActive, setWaitingActive] = useState(false);
@@ -271,10 +304,27 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Submit failed');
 
+    console.log('[DEBUG] finalize result:', data);
+
     // Alert.alert('🎉 Race Finished', `Accuracy: ${data.accuracy}%\nScore: ${data.final_score}`, [
     //   { text: 'Play Again', onPress: resetRace },
     //   { text: 'Exit', onPress: () => navigation.goBack() },
     // ]);
+
+    // Save to leaderboard
+    await saveScores({
+        challenge_id: challId,
+        game_name: challName,
+        date: new Date().toISOString().slice(0, 10),
+        scores: [
+          {
+            username: user?.username || 'You',
+            score: data.final_score ?? accuracy,
+            accuracy,
+            inaccuracy: 100 - accuracy,
+          },
+        ],
+      });
   } catch (err) {
     console.error(err);
     Alert.alert('Error', 'Failed to submit result.');
