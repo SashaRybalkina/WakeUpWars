@@ -56,6 +56,7 @@ from django.contrib.auth import login
 from asgiref.sync import async_to_sync
 import traceback
 from api.services.skill import recompute_skill_for_user
+from api.services.skill_config import SKILL_CONFIG
 from api.tasks import open_join_window
 
 ### Pattern Memorization###
@@ -2945,7 +2946,129 @@ class SkillLevelsView(APIView):
     def get(self, request):
         qs = SkillLevel.objects.filter(user=request.user).select_related("category")
         data = SkillLevelSerializer(qs, many=True).data
+        print(data)
         return Response(data)
+
+
+class SkillLevelDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, category_id: int):
+        try:
+            category = GameCategory.objects.get(pk=category_id)
+        except GameCategory.DoesNotExist:
+            return Response({"detail": "Category not found"}, status=404)
+
+        # Pull performances in window
+        window_days = SKILL_CONFIG.WINDOW_DAYS
+        half_life_days = SKILL_CONFIG.HALF_LIFE_DAYS
+
+        qs = GamePerformance.objects.filter(user=request.user, game__category=category)
+        if window_days is not None:
+            cutoff = timezone.now().date() - timedelta(days=window_days)
+            qs = qs.filter(date__gte=cutoff)
+
+        def recency_weight(when):
+            if half_life_days is None or when is None:
+                return 1.0
+            # convert date to aware midnight
+            base = datetime.combine(when, datetime.min.time())
+            aware = timezone.make_aware(base, timezone.get_current_timezone())
+            age_days = max(0.0, (timezone.now() - aware).total_seconds() / 86400.0)
+            return 0.5 ** (age_days / half_life_days)
+
+        total_earned = 0.0
+        total_possible = 0.0
+        count = 0
+        last_played = None
+        for gp in qs.only("score", "date"):
+            count += 1
+            score = max(0, min(100, int(gp.score)))
+            w = recency_weight(gp.date)
+            total_earned += score * w
+            total_possible += 100.0 * w
+            if last_played is None or gp.date > last_played:
+                last_played = gp.date
+
+        if total_possible <= 0:
+            skill = 0.0
+        else:
+            skill = min(10.0, 10.0 * (total_earned / total_possible))
+
+        # Include stored SkillLevel totals if present
+        sl = SkillLevel.objects.filter(user=request.user, category=category).first()
+
+        return Response({
+            "category": {"id": category.id, "name": category.categoryName},
+            "totals": {
+                "computed": {"earned": round(total_earned, 2), "possible": round(total_possible, 2)},
+                "stored": (
+                    {"earned": float(sl.totalEarned or 0), "possible": float(sl.totalPossible or 0)} if sl else None
+                ),
+            },
+            "skill": round(skill, 2),
+            "config": {"window_days": window_days, "half_life_days": half_life_days},
+            "counts": {"games_considered": count, "last_played": str(last_played) if last_played else None},
+        })
+
+
+class SkillLevelHistoryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, category_id: int):
+        try:
+            category = GameCategory.objects.get(pk=category_id)
+        except GameCategory.DoesNotExist:
+            return Response({"detail": "Category not found"}, status=404)
+
+        limit_param = request.query_params.get("limit")
+        try:
+            limit = int(limit_param) if limit_param else 200
+        except Exception:
+            limit = 200
+
+        window_days = SKILL_CONFIG.WINDOW_DAYS
+        half_life_days = SKILL_CONFIG.HALF_LIFE_DAYS
+
+        qs = GamePerformance.objects.filter(user=request.user, game__category=category)
+        if window_days is not None:
+            cutoff = timezone.now().date() - timedelta(days=window_days)
+            qs = qs.filter(date__gte=cutoff)
+        qs = qs.order_by("-date")
+
+        def recency_weight(when):
+            if half_life_days is None or when is None:
+                return 1.0
+            base = datetime.combine(when, datetime.min.time())
+            aware = timezone.make_aware(base, timezone.get_current_timezone())
+            age_days = max(0.0, (timezone.now() - aware).total_seconds() / 86400.0)
+            return 0.5 ** (age_days / half_life_days)
+
+        items = []
+        cum_earned = 0.0
+        cum_possible = 0.0
+        for gp in qs[:limit]:
+            score = max(0, min(100, int(gp.score)))
+            w = recency_weight(gp.date)
+            earned = score * w
+            possible = 100.0 * w
+            cum_earned += earned
+            cum_possible += possible
+            skill_now = 0.0 if cum_possible <= 0 else min(10.0, 10.0 * (cum_earned / cum_possible))
+            items.append({
+                "date": str(gp.date),
+                "raw_score": score,
+                "weight": round(w, 4),
+                "earned": round(earned, 2),
+                "possible": round(possible, 2),
+                "cumulative_skill": round(skill_now, 2),
+            })
+
+        return Response({
+            "category": {"id": category.id, "name": category.categoryName},
+            "config": {"window_days": window_days, "half_life_days": half_life_days},
+            "items": items,
+        })
 
 ## Generated by AI ##
 class IsParticipant(permissions.BasePermission):
