@@ -12,7 +12,7 @@ const UserProfileCard: React.FC<Props> = ({ name, avatarSource }) => {
   return (
     <View style={styles.profileContainer}>
       <Image
-        source={avatarSource || require('../../images/game.jpeg')}
+        source={avatarSource || require('../../../../assets/memojies/AngelaWhiteKiss.png')}
         style={styles.avatar}
       />
       <Text style={styles.profileName}>{name}</Text>

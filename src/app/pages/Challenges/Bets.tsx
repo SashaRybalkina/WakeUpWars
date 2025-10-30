@@ -633,7 +633,7 @@ const BetCard: React.FC<{ bet: Bet; user: any; onRefresh: () => Promise<void> }>
           disabled={isCollecting || bet.isCollected}
         >
           <Text style={styles.actionButtonText}>
-            {isCollecting ? "Collecting..." : "Collect Winnings"}
+            {isCollecting ? "Collecting..." : `Collect Winnings: ${bet.betAmount * 2} 🪙`}
           </Text>
         </TouchableOpacity>
       )}

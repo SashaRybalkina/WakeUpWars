@@ -202,7 +202,7 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
                 }
               });
         const data = await res.json();
-        setSkillLevels(data);
+        setSkillLevels(data.skillLevels);
       } catch (err) {
         console.error("skill refresh failed", err);
       }
