@@ -10,15 +10,15 @@ from django.db import transaction
 from django.utils import timezone
 from asgiref.sync import sync_to_async
 from django.core.cache import cache
+from datetime import timedelta
 
 from api.models import (
     TypingRaceGameState,
     TypingRaceGamePlayer,
     Challenge,
     Game,
-    GamePerformance,
-    User,
-    ChallengeMembership
+    GameSchedule,
+    GameScheduleGameAssociation,
 )
 
 # ===============================
@@ -63,35 +63,63 @@ def compute_single_score_from_accuracy(accuracy: float) -> float:
 # ===============================
 
 @transaction.atomic
-def get_or_create_typing_race_game(challenge_id: int, user) -> Dict[str, Any]:
+def get_or_create_typing_race_game(challenge_id: int, user, allow_join: bool = True) -> Dict[str, Any]:
     """
     Create or reuse a TypingRaceGameState for this challenge.
+    Auto-selects the correct Typing Race Game (single or multi) based on Challenge or GameSchedule.
     """
     challenge = Challenge.objects.select_for_update().get(id=challenge_id)
-    typing_game = Game.objects.filter(name__icontains="typing").order_by("id").first()
-    if typing_game is None:
-        raise ValueError("No 'Typing' Game found.")
 
-    game_state = (
-        TypingRaceGameState.objects.select_for_update()
-        .filter(challenge=challenge)
+    # Try to get the game from GameSchedule → handles challenge with planned games
+    sched_ids = list(GameSchedule.objects.filter(challenge_id=challenge_id).values_list("id", flat=True))
+    assoc = (
+        GameScheduleGameAssociation.objects.filter(game_schedule_id__in=sched_ids)
+        .select_related("game")
+        .order_by("game_order", "id")
         .first()
     )
+
+    typing_game = assoc.game if assoc else None
+
+    # If not found, fallback to single/multi logic based on Challenge group
+    if not typing_game:
+        is_group = challenge.groupID_id is not None
+        typing_game = (
+            Game.objects.filter(name__icontains="typing", isMultiplayer=1 if is_group else 0)
+            .order_by("id")
+            .first()
+        )
+
+    if typing_game is None:
+        raise ValueError("No Typing Race game found (single or multiplayer).")
+
+    # Reuse or create the TypingRaceGameState
+    game_state = TypingRaceGameState.objects.filter(challenge=challenge).first()
+    is_multiplayer = bool(getattr(typing_game, "isMultiplayer", False))
+    print(f"[TYPING][get_or_create] is_multiplayer={is_multiplayer}")
+
     if not game_state:
         text = random.choice(TYPING_PASSAGES)
         game_state = TypingRaceGameState.objects.create(
             game=typing_game,
             challenge=challenge,
             text=text,
+            join_deadline_at=timezone.now() + timedelta(seconds=20),
         )
+        print(f"[TYPING][create] chall={challenge.id} gs={game_state.id}", flush=True)
+    else:
+        # Use existing state, update join_deadline if missing
+        if not getattr(game_state, "join_deadline_at", None):
+            game_state.join_deadline_at = timezone.now() + timedelta(seconds=20)
+            game_state.save(update_fields=["join_deadline_at"])
 
-    TypingRaceGamePlayer.objects.get_or_create(
-        game_state=game_state,
-        player=user,
-        defaults={"progress": 0.0, "accuracy": 100.0, "final_score": 0.0}
-    )
-
-    is_multiplayer = bool(getattr(game_state.game, "isMultiplayer", False))
+    # Ensure player exists
+    if allow_join:
+        TypingRaceGamePlayer.objects.get_or_create(
+            game_state=game_state,
+            player=user,
+            defaults={"progress": 0.0, "accuracy": 100.0, "final_score": 0.0},
+        )
 
     return {
         "game_state_id": game_state.id,

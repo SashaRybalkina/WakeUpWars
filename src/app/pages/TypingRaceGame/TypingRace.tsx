@@ -201,7 +201,7 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
   const connectWebSocket = async (id: number) => {
     try {
       const accessToken = await getAccessToken();
-      const wsUrl = `${BASE_URL.replace(/^http/, 'ws')}/ws/typing/${id}/?token=${accessToken}`;
+      const wsUrl = `${BASE_URL.replace(/^http/, 'ws')}/ws/typingrace/${id}/?token=${accessToken}`;
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {

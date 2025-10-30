@@ -3615,9 +3615,7 @@ class CreateTypingRaceGameView(APIView):
     """
 
     def post(self, request):
-        print("DEBUG user:", request.user)
-        print("DEBUG is_authenticated:", request.user.is_authenticated)
-        print("DEBUG headers:", request.headers)
+        
         challenge_id = request.data.get("challenge_id")
         user = request.user
 
