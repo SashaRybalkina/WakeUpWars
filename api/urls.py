@@ -18,7 +18,7 @@ from .views import (AcceptPersonalChallenge, ConversationView, DeclinePersonalCh
                     CreateGroupView, CreatePersonalChallengeView, GetChallengeInvitesView,
                     GetAvailabilitiesView, DeclineChallengeInviteView,
                     ChallengeLeaderboardView, SubmitGameScoresView, ChallengeDailyHistoryView,
-                    SkillLevelsView, CreatePublicChallengeView, RewardSettingView, 
+                    SkillLevelsView, SkillLevelDetailView, SkillLevelHistoryView, CreatePublicChallengeView, RewardSettingView, 
                     CreateSudokuGameView, ValidateSudokuMoveView, CreatePatternGameView, 
                     ValidatePatternMoveView, CreateWordleGameView, ValidateWordleMoveView, 
                     SavePushTokenView, UserNotificationsView, DeleteNotificationView)
@@ -88,6 +88,8 @@ from .views import (
     ShareChallengeView,
     SingOrMultGameListView,
     SkillLevelsView,
+    SkillLevelDetailView,
+    SkillLevelHistoryView,
     SomeCatsListView,
     SubmitGameScoresView,
     UserGroupConversationsView,
@@ -185,6 +187,8 @@ urlpatterns = [
     path('submit-game-scores/', SubmitGameScoresView.as_view(), name='submit-game-scores'),
     path('add-game-to-schedule/', AddGameToScheduleView.as_view(), name='add-game-to-schedule'),
     path('skill-levels/', SkillLevelsView.as_view(), name="skill-levels"),
+    path('skill-levels/<int:category_id>/detail/', SkillLevelDetailView.as_view(), name="skill-level-detail"),
+    path('skill-levels/<int:category_id>/history/', SkillLevelHistoryView.as_view(), name="skill-level-history"),
 
     # sending challenge to friends
     path("share-challenge/<int:chall_id>/", ShareChallengeView.as_view()),

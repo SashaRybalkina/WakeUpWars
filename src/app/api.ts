@@ -1,4 +1,4 @@
-export const BASE_URL = 'https://a450547cbd4b.ngrok-free.app';
+export const BASE_URL = 'http://192.168.0.191:8000';
 
 export const endpoints = {
   // getToken
@@ -92,6 +92,8 @@ export const endpoints = {
   submitGameScores: () => `${BASE_URL}/api/submit-game-scores/`,
   addGameToSchedule: () => `${BASE_URL}/api/add-game-to-schedule/`,
   skillLevels: () => `${BASE_URL}/api/skill-levels/`,
+  skillLevelDetail: (categoryId: number) => `${BASE_URL}/api/skill-levels/${categoryId}/detail/`,
+  skillLevelHistory: (categoryId: number, limit = 200) => `${BASE_URL}/api/skill-levels/${categoryId}/history/?limit=${limit}`,
   // Pattern (REST)
   patternCreate: `${BASE_URL}/api/pattern/create/`,
   patternValidate: `${BASE_URL}/api/pattern/validate/`,
