@@ -20,9 +20,12 @@ import { BASE_URL, endpoints } from '../../api';
 import { useUser } from '../../context/UserContext';
 import { getAccessToken } from "../../auth";
 
-const GAME_SECONDS = 40;
+// ===============================
+// ⚙️ Game Config
+// ===============================
+const GAME_SECONDS = 40; // total game time
 const CAR_SIZE = 24;
-const COUNTDOWN_START = 3;
+const COUNTDOWN_START = 3; // pre-game countdown
 
 const screenWidth = Dimensions.get('window').width;
 const SIDE_PADDING = 10;
@@ -35,22 +38,68 @@ const TRACK_RATIO = 0.7;
 const NAME_WIDTH = remainingWidth * NAME_RATIO;
 const TRACK_WIDTH = remainingWidth * TRACK_RATIO;
 
+// ===============================
+// 🧱 Type definitions
+// ===============================
 type Props = { navigation: NavigationProp<any>; };
 type PlayerProgress = { username: string; color: string; progress: number; wpm: number; isMe?: boolean; };
 
+/** ✅ Messages from backend WebSocket server */
+type ServerToClientMessage =
+  | {
+      type: 'lobby_state'; // when waiting room updates
+      created_at: string;
+      join_deadline_at: string | null;
+      server_now: string;
+      ready_count: number;
+      expected_count: number;
+      online_ids?: number[];
+    }
+  | {
+      type: 'join_window_closed'; // when waiting room is closed and countdown should start
+      server_now?: string;
+    }
+  | {
+      type: 'leaderboard_update'; // real-time progress update from server
+      leaderboard: {
+        username: string;
+        progress: number;
+        accuracy: number;
+        score: number;
+        rank: number | null;
+        is_completed: boolean;
+      }[];
+      winner?: string; // optional, when someone wins
+    }
+  | {
+      type: 'game_complete'; // final leaderboard after game ends
+      leaderboard: {
+        username: string;
+        score: number;
+        accuracy: number;
+        rank: number;
+      }[];
+    };
+
+// ===============================
+// 🕒 Helper for time formatting
+// ===============================
 const formatTime = (seconds: number) => {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}:${s.toString().padStart(2, '0')}`;
 };
 
+// ===============================
+// 🏁 Main Component
+// ===============================
 const TypingRace: React.FC<Props> = ({ navigation }) => {
   const route = useRoute();
   const { challId, challName = 'Typing Race' } = (route.params as any) || {};
   const { user } = useUser();
 
   // ===============================
-  // 🧠 Save Scores helper
+  // 🧠 Helper: Save scores to backend
   // ===============================
   const saveScores = async (payload: {
     challenge_id: number;
@@ -83,18 +132,20 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
   };
 
   // ===============================
-  // ⏳ Game State (shared between solo & multiplayer)
+  // 🧭 Game State
   // ===============================
-  const [waitingActive, setWaitingActive] = useState(false);
-  
+  const [waitingActive, setWaitingActive] = useState(false); // true if waiting room active
   const [countdown, setCountdown] = useState<number | null>(COUNTDOWN_START);
   const [gameTime, setGameTime] = useState(GAME_SECONDS);
   const [gameOver, setGameOver] = useState(false);
   const [hasFinished, setHasFinished] = useState(false);
   const [isMultiplayer, setIsMultiplayer] = useState(false);
 
+  const [readyCount, setReadyCount] = useState(0);
+  const [expectedCount, setExpectedCount] = useState(0);
+
   // ===============================
-  // 🧑 Player Data
+  // 🧍 Player Progress
   // ===============================
   const [playerProgress, setPlayerProgress] = useState<PlayerProgress[]>([
     { username: user?.username || 'You', color: 'gold', progress: 0, wpm: 0, isMe: true },
@@ -102,18 +153,15 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
 
   const playerMapRef = useRef<Map<string, Animated.Value>>(new Map());
   const [input, setInput] = useState('');
-  const lastInputRef = useRef('');               
-  const [typedCount, setTypedCount] = useState(0);   
-  const [errorCount, setErrorCount] = useState(0);   
+  const lastInputRef = useRef('');
+  const [typedCount, setTypedCount] = useState(0);
+  const [errorCount, setErrorCount] = useState(0);
   const [passage, setPassage] = useState('');
   const [gameStateId, setGameStateId] = useState<number | null>(null);
 
   const totalChars = passage.length;
 
-  const me = useMemo(
-    () => playerProgress.find(p => p.isMe) || playerProgress[0],
-    [playerProgress]
-  );
+  const me = useMemo(() => playerProgress.find(p => p.isMe) || playerProgress[0], [playerProgress]);
 
   const accuracy = useMemo(() => {
     if (typedCount === 0) return 100;
@@ -122,7 +170,7 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
   }, [typedCount, errorCount]);
 
   // ===============================
-  // 🪝 Animation handling
+  // 🎬 Animation setup
   // ===============================
   const ensureAnim = (username: string) => {
     if (!playerMapRef.current.has(username)) {
@@ -145,13 +193,98 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
   }, [playerProgress]);
 
   // ===============================
-  // 🧭 Init: Fetch typing passage from API
+  // 📡 WebSocket Connection
+  // ===============================
+  const socketRef = useRef<WebSocket | null>(null);
+
+  /** ✅ Connect to TypingRace WebSocket server */
+  const connectWebSocket = async (id: number) => {
+    try {
+      const accessToken = await getAccessToken();
+      const wsUrl = `${BASE_URL.replace(/^http/, 'ws')}/ws/typing/${id}/?token=${accessToken}`;
+      const ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        console.log('[Typing WS] connected');
+      };
+
+      ws.onclose = () => console.log('[Typing WS] disconnected');
+      ws.onerror = (e: any) => console.error('[Typing WS] error:', e);
+
+      ws.onmessage = (event) => {
+        const msg: ServerToClientMessage | any = JSON.parse(event.data);
+        console.log('[Typing WS] message:', msg);
+
+        // === 🧭 Waiting room updates ===
+        if (msg.type === 'lobby_state') {
+          setWaitingActive(true);
+          setReadyCount(msg.ready_count);
+          setExpectedCount(msg.expected_count);
+          console.log(`[Lobby] ${msg.ready_count}/${msg.expected_count} players ready`);
+        }
+
+        // === 🚦 Countdown start ===
+        if (msg.type === 'join_window_closed') {
+          Alert.alert('🚦 Race is about to start!');
+          setWaitingActive(false);
+          setCountdown(COUNTDOWN_START);
+        }
+
+        // === 🏎️ Real-time leaderboard updates ===
+        if (msg.type === 'leaderboard_update') {
+          const newProgressList = msg.leaderboard.map((p: any) => ({
+            username: p.username,
+            color: p.username === user?.username ? 'gold' : '#00BFFF',
+            progress: p.progress ?? 0,
+            wpm: 0,
+            isMe: p.username === user?.username,
+          }));
+          setPlayerProgress(newProgressList);
+
+          if (msg.winner) {
+            Alert.alert('🏁 Race finished!', `Winner: ${msg.winner}`);
+            setGameOver(true);
+          }
+        }
+
+        // === 🏁 Game complete (final leaderboard) ===
+        if (msg.type === 'game_complete') {
+          Alert.alert('🏁 Final Results', 'Check leaderboard for scores!');
+          setGameOver(true);
+        }
+      };
+
+      socketRef.current = ws;
+    } catch (err) {
+      console.error('[Typing WS] connection failed:', err);
+    }
+  };
+
+  /** Send progress updates to the server */
+  const sendProgressUpdate = (typed: number, errors: number) => {
+    if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) return;
+    socketRef.current.send(
+      JSON.stringify({
+        type: 'progress_update',
+        total_typed: typed,
+        total_errors: errors,
+      })
+    );
+  };
+
+  /** Notify server when finished */
+  const sendGameFinished = () => {
+    if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) return;
+    socketRef.current.send(JSON.stringify({ type: 'game_finished' }));
+  };
+
+  // ===============================
+  // 🧭 Initialize game
   // ===============================
   useEffect(() => {
     const fetchGame = async () => {
       try {
         const accessToken = await getAccessToken();
-        console.log('[DEBUG] accessToken:', accessToken);
         if (!accessToken) throw new Error('Not authenticated');
 
         const res = await fetch(endpoints.typingRaceCreate, {
@@ -162,29 +295,21 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
           },
           body: JSON.stringify({ challenge_id: challId }),
         });
-        
+
         if (!res.ok) throw new Error('Failed to create game');
         const data = await res.json();
-
-        console.log('[DEBUG] typingRaceCreate response:', data);
 
         setPassage(data.text);
         setGameStateId(data.game_state_id);
         setIsMultiplayer(data.is_multiplayer);
 
+        // 👥 Multiplayer mode
         if (data.is_multiplayer) {
-          setWaitingActive(true);
-          // if (data.join_deadline_at) {
-          //   setJoinDeadlineISO(data.join_deadline_at);
-          //   startLocalCountdown(data.join_deadline_at);
-          // }
-          // connectWebSocket(data.game_state_id); 
+          connectWebSocket(data.game_state_id);
         } else {
-          // ✅ single-player → start immediately
+          // 🧍 Single-player: start immediately
           setWaitingActive(false);
         }
-
-
       } catch (err) {
         console.error(err);
         Alert.alert('Error', 'Failed to start game.');
@@ -192,51 +317,22 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
     };
 
     fetchGame();
+    return () => {
+      if (socketRef.current) socketRef.current.close();
+    };
   }, [challId]);
 
   // ===============================
-  // 📡 WebSocket Placeholder
-  // ===============================
-  /*
-  const socketRef = useRef<WebSocket | null>(null);
-
-  const connectWebSocket = async (id: number) => {
-    const accessToken = await getAccessToken();
-    const wsUrl = `${BASE_URL.replace(/^http/, 'ws')}/ws/typing/${id}/?token=${accessToken}`;
-    const ws = new WebSocket(wsUrl);
-
-    ws.onopen = () => console.log('[Typing WS] connected');
-    ws.onclose = () => console.log('[Typing WS] disconnected');
-    ws.onerror = (e) => console.error('[Typing WS] error:', e);
-
-    ws.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
-      if (msg.type === 'player_progress') {
-        setPlayerProgress(prev => prev.map(p =>
-          p.username === msg.username ? { ...p, progress: msg.progress, wpm: msg.wpm } : p
-        ));
-      }
-    };
-
-    socketRef.current = ws;
-  };
-  */
-
-  // ===============================
-  // 🕒 Countdown Timer
+  // 🕒 Countdown timer before start
   // ===============================
   useEffect(() => {
-    if (!waitingActive) return;
-    setGameOver(false);
-
+    if (waitingActive || countdown === null) return;
     let c = COUNTDOWN_START;
-    setCountdown(c);
     const timer = setInterval(() => {
       c -= 1;
       setCountdown(c);
       if (c <= 0) {
         clearInterval(timer);
-        setWaitingActive(false);
         setCountdown(null);
       }
     }, 1000);
@@ -244,155 +340,194 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
   }, [waitingActive]);
 
   // ===============================
-  // ⏳ Game Timer
+  // ⏳ Game timer countdown
   // ===============================
   useEffect(() => {
-    if ( !passage || waitingActive || gameOver) return;
+    if (!passage || waitingActive || gameOver) return;
     if (gameTime <= 0) {
       finishGame();
       return;
     }
     const t = setInterval(() => setGameTime(t => t - 1), 1000);
     return () => clearInterval(t);
-  }, [ passage, waitingActive, gameOver, gameTime]);
+  }, [passage, waitingActive, gameOver, gameTime]);
 
   // ===============================
-  // 🔄 Reset Game
+  // 🔄 Reset Game (Play Again)
   // ===============================
-  const resetRace = () => {
+  const resetRace = async () => {
+    console.log('[TypingRace] Resetting game...');
+
+    // 🧹 清空輸入與統計資料
     setInput('');
     lastInputRef.current = '';
     setTypedCount(0);
     setErrorCount(0);
     setPlayerProgress(ps => ps.map(p => ({ ...p, progress: 0, wpm: 0 })));
-    setWaitingActive(true);
+
+    // 🧭 重置遊戲狀態
+    setWaitingActive(false);
     setCountdown(COUNTDOWN_START);
     setGameTime(GAME_SECONDS);
     setHasFinished(false);
     setGameOver(false);
+
+    try {
+      // 🚪 若已有 WebSocket 連線，先關閉
+      if (socketRef.current) {
+        socketRef.current.close();
+        socketRef.current = null;
+      }
+
+      // 🔐 拿 Token
+      const accessToken = await getAccessToken();
+      if (!accessToken) throw new Error('Not authenticated');
+
+      // 🎮 向後端重新建立新 TypingRace 遊戲
+      const res = await fetch(endpoints.typingRaceCreate, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ challenge_id: challId }),
+      });
+
+      if (!res.ok) throw new Error('Failed to create new game');
+      const data = await res.json();
+
+      // 📝 更新 passage 與遊戲狀態
+      setPassage(data.text);
+      setGameStateId(data.game_state_id);
+      setIsMultiplayer(data.is_multiplayer);
+
+      // 👥 若是多人模式 → 回到等待室並重新連線
+      if (data.is_multiplayer) {
+        console.log('[TypingRace] Multiplayer restart — reconnecting...');
+        setWaitingActive(true);
+        connectWebSocket(data.game_state_id);
+      } else {
+        console.log('[TypingRace] Single-player restart.');
+        setWaitingActive(false);
+      }
+    } catch (err) {
+      console.error('[TypingRace] Failed to reset game:', err);
+      Alert.alert('Error', 'Failed to restart game.');
+    }
   };
 
   // ===============================
   // 🏁 Finish Game
   // ===============================
   const finishGame = async () => {
-  setGameOver(true);
-  Alert.alert(
-    '🎉 Race Finished',
-    `Accuracy: ${accuracy}%\nWPM: ${me?.wpm ?? 0}\nErrors: ${errorCount}`,
-    [
-      { text: 'Play Again', onPress: resetRace },
-      { text: 'Exit', onPress: () => navigation.goBack() },
-    ]
-  );
-  try {
-    const accessToken = await getAccessToken();
-    if (!accessToken) throw new Error('Not authenticated');
+    setGameOver(true);
+    Alert.alert(
+      '🎉 Race Finished',
+      `Accuracy: ${accuracy}%\nWPM: ${me?.wpm ?? 0}\nErrors: ${errorCount}`,
+      [
+        { text: 'Play Again', onPress: () => resetRace() },
+        { text: 'Exit', onPress: () => navigation.goBack() },
+      ]
+    );
 
-    const res = await fetch(endpoints.typingRaceFinalize, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        game_state_id: gameStateId,
-        accuracy,
-      }),
-    });
+    if (isMultiplayer) {
+      sendGameFinished();
+    } else {
+      try {
+        const accessToken = await getAccessToken();
+        if (!accessToken) throw new Error('Not authenticated');
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Submit failed');
-
-    console.log('[DEBUG] finalize result:', data);
-
-    // Alert.alert('🎉 Race Finished', `Accuracy: ${data.accuracy}%\nScore: ${data.final_score}`, [
-    //   { text: 'Play Again', onPress: resetRace },
-    //   { text: 'Exit', onPress: () => navigation.goBack() },
-    // ]);
-
-    // Save to leaderboard
-    await saveScores({
-        challenge_id: challId,
-        game_name: challName,
-        date: new Date().toISOString().slice(0, 10),
-        scores: [
-          {
-            username: user?.username || 'You',
-            score: data.final_score ?? accuracy,
-            accuracy,
-            inaccuracy: 100 - accuracy,
+        const res = await fetch(endpoints.typingRaceFinalize, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
           },
-        ],
-      });
-  } catch (err) {
-    console.error(err);
-    Alert.alert('Error', 'Failed to submit result.');
-  }
-};
+          body: JSON.stringify({
+            game_state_id: gameStateId,
+            accuracy,
+          }),
+        });
 
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Submit failed');
+
+        await saveScores({
+          challenge_id: challId,
+          game_name: challName,
+          date: new Date().toISOString().slice(0, 10),
+          scores: [
+            {
+              username: user?.username || 'You',
+              score: data.final_score ?? accuracy,
+              accuracy,
+              inaccuracy: 100 - accuracy,
+            },
+          ],
+        });
+      } catch (err) {
+        console.error(err);
+        Alert.alert('Error', 'Failed to submit result.');
+      }
+    }
+  };
 
   // ===============================
   // ⌨️ Handle Player Input
   // ===============================
   const onChangeInput = (rawText: string) => {
-  if (gameOver || waitingActive) return;
+    if (gameOver || waitingActive) return;
 
-  const limited = rawText.slice(0, totalChars);
-  const prev = lastInputRef.current;
+    const limited = rawText.slice(0, totalChars);
+    const prev = lastInputRef.current;
 
-  // Deletions should not affect typed_count or error_count
-  if (limited.length < prev.length) {
-    setInput(limited);
-    lastInputRef.current = limited;
-    return;
-  }
+    if (limited.length < prev.length) {
+      setInput(limited);
+      lastInputRef.current = limited;
+      return;
+    }
 
-  // 🆕 Find newly added characters and check for errors
-  const added = limited.slice(prev.length);
-  if (added.length > 0) {
     let typedDelta = 0;
     let errorDelta = 0;
 
-    for (let i = 0; i < added.length; i++) {
-      const idx = prev.length + i;
-      typedDelta += 1;
-      if (added[i] !== passage[idx]) {
-        errorDelta += 1;
-      }
+    for (let i = prev.length; i < limited.length; i++) {
+      typedDelta++;
+      if (limited[i] !== passage[i]) errorDelta++;
     }
 
     setTypedCount(tc => tc + typedDelta);
     setErrorCount(ec => ec + errorDelta);
-  }
 
-  // 📈 Progress is calculated based on correct characters only
-  const correctNow = limited.split('').filter((ch, i) => ch === passage[i]).length;
-  const newProgress = Math.min(100, (correctNow / totalChars) * 100);
+    const correctNow = limited.split('').filter((ch, i) => ch === passage[i]).length;
+    const newProgress = Math.min(100, (correctNow / totalChars) * 100);
 
-  const elapsedSeconds = GAME_SECONDS - gameTime;
-  const newWpm =
-    elapsedSeconds > 0 ? Math.round((correctNow / 5) / (elapsedSeconds / 60)) : 0;
+    const elapsedSeconds = GAME_SECONDS - gameTime;
+    const newWpm = elapsedSeconds > 0 ? Math.round((correctNow / 5) / (elapsedSeconds / 60)) : 0;
 
-  setPlayerProgress(prev =>
-    prev.map(p =>
-      p.isMe ? { ...p, progress: newProgress, wpm: newWpm } : p
-    )
-  );
+    setPlayerProgress(prev =>
+      prev.map(p =>
+        p.isMe ? { ...p, progress: newProgress, wpm: newWpm } : p
+      )
+    );
 
-  setInput(limited);
-  lastInputRef.current = limited;
+    setInput(limited);
+    lastInputRef.current = limited;
 
-  if (limited.length === totalChars) {
-    if (!isMultiplayer) {
-      // ✅ Single-player: finish immediately
-      finishGame();
-    } else {
-      // 👥 Multiplayer: mark as finished, but don't end the game yet
-      setHasFinished(true);
+    // send live progress to server
+    if (isMultiplayer) {
+      sendProgressUpdate(typedCount + typedDelta, errorCount + errorDelta);
     }
-  }
-};
+
+    // finish when done typing
+    if (limited.length === totalChars) {
+      if (!isMultiplayer) {
+        finishGame();
+      } else {
+        setHasFinished(true);
+        sendGameFinished();
+      }
+    }
+  };
 
 
   // ===============================
