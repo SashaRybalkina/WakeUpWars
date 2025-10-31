@@ -1,5 +1,5 @@
 // export const BASE_URL = 'http://192.168.50.3:8000';
-export const BASE_URL = 'https://3ff533aa897a.ngrok-free.app';
+export const BASE_URL = 'https://c706c4c87bc6.ngrok-free.app';
 
 export const endpoints = {
   // getToken

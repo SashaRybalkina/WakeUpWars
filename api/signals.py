@@ -147,6 +147,7 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
                             community_member_badge = Badge.objects.get(name="Community Member")
                             members = ch.members
                             for member in members:
+                                print(member)
                                 UserBadge.objects.get_or_create(user=member, badge=community_member_badge)
 
 
@@ -159,22 +160,26 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
                             team_player_badge = Badge.objects.get(name="Team Player")
                             members = ch.members
                             for member in members:
+                                print(member)
                                 UserBadge.objects.get_or_create(user=member, badge=team_player_badge)
 
                             # mark bet winners
                             bets = ChallengeBet.objects.filter(challenge=ch, isPending=False)
                             for bet in bets:
+                                print(bet.id)
                                 bet.isCompleted = True
 
                                 initiator_points = GamePerformance.objects.filter(
                                     challenge=ch,
                                     user=bet.initiator
                                 ).aggregate(total_points=Sum("score"))["total_points"] or 0
+                                print(initiator_points)
 
                                 recipient_points = GamePerformance.objects.filter(
                                     challenge=ch,
                                     user=bet.recipient
                                 ).aggregate(total_points=Sum("score"))["total_points"] or 0
+                                print(recipient_points)
 
                                 if initiator_points > recipient_points:
                                     bet.winner = bet.initiator
@@ -188,11 +193,13 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
                                     # User.objects.filter(pk=bet.initiator.pk).update(numCoins=F('numCoins') + bet.betAmount)
                                     # User.objects.filter(pk=bet.recipient.pk).update(numCoins=F('numCoins') + bet.betAmount)
                                 bet.save()
+                                print(bet.winner)
 
                             # mark first blood winners
                             first_blood_badge = Badge.objects.get(name="First Blood")
                             winners = bets.filter(winner__isnull=False).values_list('winner', flat=True)
                             for user_id in winners:
+                                print(user_id)
                                 UserBadge.objects.get_or_create(user_id=user_id, badge=first_blood_badge)
 
 

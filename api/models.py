@@ -8,11 +8,35 @@ from rest_framework.response import Response
 
 # by default, every model's table gets an auto increment integer id as the primary key. Specify a composite key with unique_together
 
+class Memoji(models.Model):
+    imageUrl = models.URLField(max_length=500)
+    base = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='variants'
+    )
+
+    # If base is NULL, this is a "default" memoji.
+    # If base points to another memoji, it's an "extra" memoji variant.
+
+    class Meta:
+        db_table = 'Memojies'
+
+
 # Extend the default Django User model
 class User(AbstractUser):
     name = models.CharField(max_length=255, default='Anonymous')
     bio = models.TextField(blank=True, null=True) # can be null
     numCoins = models.IntegerField(default=0)
+    # current_memoji = models.ForeignKey(
+    #     Memoji,
+    #     on_delete=models.SET_NULL,
+    #     null=True,
+    #     blank=True,
+    #     related_name='users_using_this_memoji'
+    # )
 
     class Meta:
         db_table = 'Users'  # Define the table name
@@ -31,6 +55,14 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.username
+    
+
+class UserMemoji(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='unlocked_memojies')
+    memoji = models.ForeignKey(Memoji, on_delete=models.CASCADE, related_name='unlocked_by_users')
+
+    class Meta:
+        db_table = 'UserMemojies'
 
 
 # Friendships: representing Many-to-many relationship between users
@@ -290,6 +322,30 @@ class UserBadge(models.Model):
     class Meta:
         db_table = 'UserBadges'
         unique_together = ('user', 'badge')
+
+
+# class DefaultMemoji(models.Model):
+#     imageUrl = models.URLField(max_length=500)
+
+#     class Meta:
+#         db_table = 'DefaultMemojies'
+
+
+# class ExtraMemoji(models.Model):
+#     default = models.ForeignKey(DefaultMemoji, on_delete=models.CASCADE, related_name='extra_memojies')
+#     imageUrl = models.URLField(max_length=500)
+
+#     class Meta:
+#         db_table = 'ExtraMemojies'
+
+
+# class UserMemoji(models.Model):
+#     # it is assumes that Users already have unlocked all default memojies
+#     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_memojies')
+#     memoji = models.ForeignKey(ExtraMemoji, on_delete=models.CASCADE, related_name='owned_by_users')
+
+#     class Meta:
+#         db_table = 'UserMemojies'
 
 
 
