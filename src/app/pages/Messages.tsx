@@ -522,7 +522,7 @@ const Messages: React.FC<Props> = ({ navigation }) => {
                     text={`${isMine ? "You" : otherUser.name}: ${lastMessage.message}`}
                     index={index}
                     timestamp={lastMessage.timestamp}
-                    unread={!isMine && !lastMessage.read}
+                    unread={!isMine && lastMessage.hasOwnProperty('is_read') && !lastMessage.is_read}
                     onPress={() => openConversation(otherUser.id, otherUser.name)}
                   />
                 )
@@ -558,7 +558,7 @@ const Messages: React.FC<Props> = ({ navigation }) => {
                     text={text}
                     index={index}
                     timestamp={timestamp}
-                    unread={lastMessage ? !lastMessage.read : false}
+                    unread={lastMessage ? lastMessage.hasOwnProperty('is_read') && !lastMessage.is_read : false}
                     onPress={() => openGroupConversation(group.group_id, groupName)}
                   />
                 )

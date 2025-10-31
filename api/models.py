@@ -77,6 +77,7 @@ class Message(models.Model):
     groupID = models.ForeignKey(Group, related_name='group_messages', null=True, blank=True, on_delete=models.CASCADE) # null if private message
     created_at = models.DateTimeField(auto_now_add=True)
     timestamp = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'Messages'
