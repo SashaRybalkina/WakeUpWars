@@ -411,7 +411,20 @@ class GroupDetailsView(APIView):
             enriched_challenges.append(summary_data)
     
         memberships = GroupMembership.objects.filter(groupID=group)
-        members = [{'id': m.uID.id, 'name': m.uID.name} for m in memberships]
+        members = []
+
+        for m in memberships:
+            user = m.uID
+            memoji = user.currentMemoji
+            members.append({
+                'id': user.id,
+                'name': user.name,
+                'avatar': {
+                    'id': memoji.id if memoji else None,
+                    'imageUrl': memoji.imageUrl if memoji else None,
+                    'backgroundColor': user.memojiBgColor,
+                }
+            })
 
         return Response({
             'id': group.id,
@@ -1191,7 +1204,23 @@ class ChallengeDetailView(APIView):
             return Response({'error': 'Challenge not found'}, status=status.HTTP_404_NOT_FOUND)
 
         memberships = ChallengeMembership.objects.filter(challengeID=challenge)
-        members = [{'id': m.uID.id, 'name': m.uID.name, 'username': m.uID.username, 'numCoins': m.uID.numCoins} for m in memberships]
+        # members = [{'id': m.uID.id, 'name': m.uID.name, 'username': m.uID.username, 'numCoins': m.uID.numCoins} for m in memberships]
+        members = []
+
+        for m in memberships:
+            user = m.uID
+            memoji = user.currentMemoji
+            members.append({
+                'id': user.id,
+                'name': user.name,
+                'username': user.username,
+                'numCoins': user.numCoins,
+                'avatar': {
+                    'id': memoji.id if memoji else None,
+                    'imageUrl': memoji.imageUrl if memoji else None,
+                    'backgroundColor': user.memojiBgColor,
+                }
+            })
 
         serializer = ChallengeSummarySerializer(challenge, context={'user': request.user})
         
@@ -3111,6 +3140,7 @@ class UserDataView(APIView):
                 {"id": memoji.id, "imageUrl": memoji.imageUrl}
                 if memoji is not None else None
             ),
+            "backgroundColor": getattr(user, "memojiBgColor", "#ffffff"),
         }, status=status.HTTP_200_OK)
 
 
@@ -3181,7 +3211,54 @@ class BaseMemojiesView(APIView):
         ]
 
         return Response(data, status=status.HTTP_200_OK)
+    
 
+class SetCurrentMemojiView(APIView):
+    @transaction.atomic
+    def post(self, request, user_id):
+        user = get_object_or_404(User, id=user_id)
+        memoji_id = request.data.get("memojiId")
+        color = request.data.get("backgroundColor", "#ffffff")
+        
+        memoji = get_object_or_404(Memoji, id=memoji_id)
+        user.currentMemoji = memoji
+        user.memojiBgColor = color
+        user.save()
+
+        return Response({"message": "Avatar updated!"})
+
+
+class PurchaseMemojiView(APIView):
+    @transaction.atomic
+    def post(self, request, user_id, memoji_id):
+        user = get_object_or_404(User, id=user_id)
+        memoji = get_object_or_404(Memoji, id=memoji_id)
+
+        # make sure user can afford it
+        if user.numCoins < memoji.price:
+            return Response(
+                {"error": "Not enough coins to purchase this memoji."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Deduct coins and record purchase
+        user.numCoins -= memoji.price
+        user.save()
+
+        UserMemoji.objects.get_or_create(user=user, memoji=memoji)
+
+        return Response(
+            {
+                "message": "Avatar purchased successfully!",
+                "remainingCoins": user.numCoins,
+                "purchasedMemoji": {
+                    "id": memoji.id,
+                    "imageUrl": memoji.imageUrl,
+                    "price": memoji.price,
+                },
+            },
+            status=status.HTTP_200_OK
+        )
 
 
 

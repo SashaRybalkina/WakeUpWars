@@ -1,7 +1,7 @@
 import type React from "react"
 import { useCallback, useEffect, useState } from "react"
-import { endpoints } from "../../api"
-import { Alert, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { BASE_URL, endpoints } from "../../api"
+import { Alert, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View, Image } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { type NavigationProp, useRoute } from "@react-navigation/native"
 import { LinearGradient } from "expo-linear-gradient"
@@ -36,7 +36,13 @@ type Member = {
   name: string;
   username: string;
   numCoins: number;
+  avatar?: {
+      id: number;
+      imageUrl: string;
+      backgroundColor: string;
+  };
 };
+
 
 
 const Bets: React.FC<Props> = ({ navigation }) => {
@@ -113,6 +119,9 @@ const Bets: React.FC<Props> = ({ navigation }) => {
             fetchData();
         }, [user?.id])
     );
+
+
+  
 
 
   
@@ -201,7 +210,7 @@ return (
       <Text style={styles.noBetsText}>No bets yet.</Text>
     ) : (
       bets.map((bet) => (
-        <BetCard key={bet.id} bet={bet} user={user} onRefresh={fetchData} />
+        <BetCard key={bet.id} bet={bet} user={user} challengeMembers={challengeMembers} onRefresh={fetchData} />
       )))
   ) : (
     <>
@@ -269,7 +278,7 @@ return (
         <Text style={styles.noBetsText}>No bets yet.</Text>
       ) : (
         myBets.map((bet) => (
-            <BetCard key={bet.id} bet={bet} user={user} onRefresh={fetchData} />
+            <BetCard key={bet.id} bet={bet} user={user} challengeMembers={challengeMembers} onRefresh={fetchData} />
         ))
       )}
     </>
@@ -429,7 +438,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   pointsText: {
-    color: '#ccc',
+    color: '#FFD700',
     fontSize: 15,
   },
   vsLine: {
@@ -437,7 +446,7 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   vsText: {
-    color: '#aaa',
+    color: '#FFD700',
     fontSize: 14,
   },
   winnerIcon: {
@@ -538,6 +547,26 @@ actionButtonText: {
   color: '#FFF',
   fontWeight: '600',
 },
+avatarCircle: {
+  width: 50,
+  height: 50,
+  borderRadius: 25,
+  justifyContent: 'center',
+  alignItems: 'center',
+  overflow: 'hidden',
+  marginRight: 8,
+  borderWidth: 2,
+  borderColor: '#FFD700',
+},
+avatarImage: {
+  width: '100%',
+  height: '100%',
+},
+avatarInitials: {
+  color: 'white',
+  fontWeight: 'bold',
+  fontSize: 16,
+},
 
 
 })
@@ -547,11 +576,22 @@ export default Bets
 
 
 
-const BetCard: React.FC<{ bet: Bet; user: any; onRefresh: () => Promise<void> }> = ({ bet, user, onRefresh }) => {
+const BetCard: React.FC<{ bet: Bet; user: any; challengeMembers: Member[]; onRefresh: () => Promise<void> }> = ({ bet, user, challengeMembers, onRefresh }) => {
+  const initiator = challengeMembers.find((m) => m.id === bet.initiatorId);
+  const recipient = challengeMembers.find((m) => m.id === bet.recipientId);
+
   const isComplete = bet.isCompleted;
   const isWinner = bet.winnerId === user?.id;
   const isTie = isComplete && bet.winnerId === null
   const [isCollecting, setIsCollecting] = useState(false);
+
+  const getInitials = (name: string): string => {
+    return name
+      .split(" ")
+      .map((part) => part.charAt(0).toUpperCase())
+      .join("")
+      .substring(0, 2) // Limit to 2 characters
+  }
 
   const collectWinnings = async (amount: number) => {
     try {
@@ -569,7 +609,7 @@ const BetCard: React.FC<{ bet: Bet; user: any; onRefresh: () => Promise<void> }>
       });
 
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
-      Alert.alert("🎉 Success", `You collected 💰 ${bet.betAmount * 2} coins!`);
+      Alert.alert("🎉 Success", `You collected ${bet.betAmount * 2} 🪙!`);
       await onRefresh();
     } catch (err) {
       console.error("Collect error:", err);
@@ -592,7 +632,7 @@ const BetCard: React.FC<{ bet: Bet; user: any; onRefresh: () => Promise<void> }>
   return (
     <View style={[styles.betCard, { backgroundColor: cardColor }]}>
       <View style={styles.betHeader}>
-        <Text style={styles.betAmountText}>💰 {bet.betAmount} coins</Text>
+        <Text style={styles.betAmountText}>{bet.betAmount} 🪙</Text>
         {isComplete && (
         <Text style={{ color: "#FFD700", fontWeight: "600", marginTop: 5 }}>
         {bet.winnerId === null
@@ -608,23 +648,48 @@ const BetCard: React.FC<{ bet: Bet; user: any; onRefresh: () => Promise<void> }>
         )}
       </View>
 
-      <View style={styles.playerRow}>
-        <Text style={styles.playerName}>
-          {bet.initiatorName} {bet.winnerId === bet.initiatorId && <Text style={styles.winnerIcon}>🏆</Text>}
-        </Text>
-        <Text style={styles.pointsText}>{bet.initiatorPoints} pts</Text>
-      </View>
 
-      <View style={styles.vsLine}>
-        <Text style={styles.vsText}>vs</Text>
-      </View>
+<View style={styles.playerRow}>
+  <View style={[styles.avatarCircle, { backgroundColor: initiator?.avatar?.backgroundColor || '#ccc' }]}>
+    {initiator?.avatar?.imageUrl ? (
+      <Image
+        source={{ uri: `${BASE_URL}${initiator.avatar.imageUrl}` }}
+        style={styles.avatarImage}
+        resizeMode="contain"
+      />
+    ) : (
+      <Text style={styles.avatarInitials}>{getInitials(initiator?.name || '')}</Text>
+    )}
+  </View>
+  <Text style={styles.playerName}>
+    {initiator?.name} {bet.winnerId === bet.initiatorId && <Text style={styles.winnerIcon}>🏆</Text>}
+  </Text>
+  <Text style={styles.pointsText}>{bet.initiatorPoints} pts</Text>
+</View>
 
-      <View style={styles.playerRow}>
-        <Text style={styles.playerName}>
-          {bet.recipientName} {bet.winnerId === bet.recipientId && <Text style={styles.winnerIcon}>🏆</Text>}
-        </Text>
-        <Text style={styles.pointsText}>{bet.recipientPoints} pts</Text>
-      </View>
+<View style={styles.vsLine}>
+  <Text style={styles.vsText}>vs</Text>
+</View>
+
+<View style={styles.playerRow}>
+  <View style={[styles.avatarCircle, { backgroundColor: recipient?.avatar?.backgroundColor || '#ccc' }]}>
+    {recipient?.avatar?.imageUrl ? (
+      <Image
+        source={{ uri: `${BASE_URL}${recipient.avatar.imageUrl}` }}
+        style={styles.avatarImage}
+        resizeMode="contain"
+      />
+    ) : (
+      <Text style={styles.avatarInitials}>{getInitials(recipient?.name || '')}</Text>
+    )}
+  </View>
+  <Text style={styles.playerName}>
+    {recipient?.name} {bet.winnerId === bet.recipientId && <Text style={styles.winnerIcon}>🏆</Text>}
+  </Text>
+  <Text style={styles.pointsText}>{bet.recipientPoints} pts</Text>
+</View>
+
+
 
       {isWinner && (
         <TouchableOpacity

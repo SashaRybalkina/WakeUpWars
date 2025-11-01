@@ -21,6 +21,8 @@ class Memoji(models.Model):
         related_name='variants'
     )
 
+    price = models.IntegerField(default=0)
+
     class Meta:
         db_table = 'Memojies'
 
@@ -37,6 +39,7 @@ class User(AbstractUser):
         blank=True,
         related_name='users_using_this_memoji'
     )
+    memojiBgColor = models.CharField(max_length=7, default="#ffffff")
 
     class Meta:
         db_table = 'Users'  # Define the table name

@@ -53,6 +53,7 @@ const Profile: React.FC<Props> = ({ navigation }) => {
   const [profileData, setProfileData] = useState<any>(null);
   const [currentMemoji, setCurrentMemoji] = useState<Memoji | null>(null);
   const [numCoins, setNumCoins] = useState<number>(0);
+  const [backgroundColor, setBackgroundColor] = useState<string>('#FFB3BA');
   const { user, setUser, setSkillLevels } = useUser();
   const [badges, setBadges] = useState<any[]>([]);
   const [selectedBadge, setSelectedBadge] = useState<null | any>(null);
@@ -112,6 +113,7 @@ const handleLogout = async () => {
             setSkillLevels(data.skillLevels);
             setNumCoins(data.numCoins);
             setCurrentMemoji(data.currentMemoji);
+            setBackgroundColor(data.backgroundColor);
             console.log(currentMemoji)
           }
         } catch (e) {
@@ -288,6 +290,7 @@ const PulsingBadge = ({ badge, onPress }) => {
         <UserProfileCard
           name={user?.name ?? 'Loading…'}
           currentMemoji={currentMemoji}
+          bgColor={backgroundColor}
         />
 
         <View style={styles.profileButtons}>

@@ -1,7 +1,7 @@
 import type React from "react"
 import { useCallback, useEffect, useState } from "react"
-import { endpoints } from "../../api"
-import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { BASE_URL, endpoints } from "../../api"
+import { ImageBackground, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { type NavigationProp, useRoute } from "@react-navigation/native"
 import { LinearGradient } from "expo-linear-gradient"
@@ -45,7 +45,15 @@ type GroupData = {
   id: number
   name: string
   challenges: Challenge[]
-  members: { id: number; name: string }[]
+  members: {
+    id: number;
+    name: string;
+    avatar?: {
+      id: number;
+      imageUrl: string;
+      backgroundColor: string;
+    };
+  }[];
 }
 
 const GroupDetails: React.FC<Props> = ({ navigation }) => {
@@ -212,20 +220,32 @@ const GroupDetails: React.FC<Props> = ({ navigation }) => {
             <View style={styles.membersSection}>
               <Text style={styles.sectionTitle}>Members</Text>
               <View style={styles.membersRow}>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.membersScrollContent}
-                >
-                  {groupData.members.map((member, index) => (
-                    <View key={index} style={styles.memberContainer}>
-                      <View style={[styles.memberAvatar, { backgroundColor: getRandomPastelColor(index) }]}>
-                        <Text style={styles.memberInitials}>{getInitials(member.name)}</Text>
-                      </View>
-                      <Text style={styles.memberName}>{member.name}</Text>
-                    </View>
-                  ))}
-                </ScrollView>
+<ScrollView
+  horizontal
+  showsHorizontalScrollIndicator={false}
+  contentContainerStyle={styles.membersScrollContent}
+>
+  {groupData.members.map((member) => {
+    const bgColor = member.avatar?.backgroundColor ?? getRandomPastelColor(member.id);
+    return (
+      <View key={member.id} style={styles.memberContainer}>
+        <View style={[styles.memberAvatar, { backgroundColor: bgColor }]}>
+          {member.avatar?.imageUrl ? (
+            <Image
+              source={{ uri: `${BASE_URL}${member.avatar.imageUrl}` }}
+              style={styles.memberAvatarImage}
+              resizeMode="contain"
+            />
+          ) : (
+            <Text style={styles.memberInitials}>{getInitials(member.name)}</Text>
+          )}
+        </View>
+        <Text style={styles.memberName}>{member.name}</Text>
+      </View>
+    );
+  })}
+</ScrollView>
+
 
                 <TouchableOpacity
                   style={styles.addMemberButton}
@@ -511,7 +531,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 5,
     borderWidth: 2,
-    borderColor: "rgba(255, 255, 255, 0.5)",
+    borderColor: '#FFD700',
   },
   memberInitials: {
     color: "#333",
@@ -642,6 +662,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginTop: 5,
+  },
+  memberAvatarImage: {
+    width: '100%',
+    height: '100%',
   },
 })
 

@@ -13,6 +13,7 @@ import {
   Dimensions,
   Animated,
   TextInput,
+  Image,
 } from "react-native"
 import { useUser } from "../../context/UserContext"
 import { Ionicons } from "@expo/vector-icons"
@@ -34,6 +35,11 @@ type Member = {
   name: string;
   username: string;
   numCoins: number;
+  avatar?: {
+      id: number;
+      imageUrl: string;
+      backgroundColor: string;
+  };
 };
 
 const { width } = Dimensions.get("window")
@@ -50,20 +56,10 @@ const DayOfWeekReverseLabels: Record<string, number> = {
   SU: 7, // Sunday
 }
 
-// Function to generate a pastel color based on name
-const generatePastelColor = (name: string): string => {
-  // Simple hash function to generate a number from a string
-  const hash = name.split("").reduce((acc, char) => {
-    return char.charCodeAt(0) + ((acc << 5) - acc)
-  }, 0)
-
-  // Generate pastel colors by keeping high lightness and medium saturation
-  const h = hash % 360 // Hue: 0-359
-  const s = 60 + (hash % 20) // Saturation: 60-79%
-  const l = 80 + (hash % 10) // Lightness: 80-89%
-
-  return `hsl(${h}, ${s}%, ${l}%)`
-}
+  const getRandomPastelColor = (seed: number) => {
+    const hue = (seed * 137.5) % 360
+    return `hsl(${hue}, 70%, 80%)`
+  }
 
 // Function to get initials from name
 const getInitials = (name: string): string => {
@@ -442,21 +438,32 @@ const loadPerformances = async () => {
           {/* Members Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Enrolled Members</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.membersScroll}>
-              {members.map((member, index) => {
-                const initials = getInitials(member.name)
-                const backgroundColor = generatePastelColor(member.name)
+<ScrollView
+  horizontal
+  showsHorizontalScrollIndicator={false}
+  contentContainerStyle={styles.membersScrollContent}
+>
+  {members.map((member) => {
+    const bgColor = member.avatar?.backgroundColor ?? getRandomPastelColor(member.id);
+    return (
+      <View key={member.id} style={styles.memberContainer}>
+        <View style={[styles.memberAvatar, { backgroundColor: bgColor }]}>
+          {member.avatar?.imageUrl ? (
+            <Image
+              source={{ uri: `${BASE_URL}${member.avatar.imageUrl}` }}
+              style={styles.memberAvatarImage}
+              resizeMode="contain"
+            />
+          ) : (
+            <Text style={styles.memberInitials}>{getInitials(member.name)}</Text>
+          )}
+        </View>
+        <Text style={styles.memberName}>{member.name}</Text>
+      </View>
+    );
+  })}
+</ScrollView>
 
-                return (
-                  <View key={index} style={styles.memberCard}>
-                    <View style={[styles.memberAvatar, { backgroundColor }]}>
-                      <Text style={styles.memberInitials}>{initials}</Text>
-                    </View>
-                    <Text style={styles.memberName}>{member.name}</Text>
-                  </View>
-                )
-              })}
-            </ScrollView>
           </View>
 
           {/* Challenge Days Section */}
@@ -764,16 +771,6 @@ const styles = StyleSheet.create({
     marginRight: 20,
     width: 70,
   },
-  memberAvatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 8,
-    borderWidth: 2,
-    borderColor: "rgba(255, 255, 255, 0.5)",
-  },
   memberInitials: {
     fontSize: 22,
     fontWeight: "700",
@@ -1042,6 +1039,28 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     width: 50, // fixed width for alignment
     textAlign: "right",
+  },
+  membersScrollContent: {
+    paddingRight: 20,
+  },
+  memberContainer: {
+    alignItems: "center",
+    marginRight: 15,
+    width: 70,
+  },
+  memberAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 5,
+    borderWidth: 2,
+    borderColor: '#FFD700',
+  },
+  memberAvatarImage: {
+    width: '100%',
+    height: '100%',
   },
 })
 

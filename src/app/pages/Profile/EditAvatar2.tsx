@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Alert, Modal } from 'react-native';
 import { useFocusEffect, useRoute, useNavigation } from '@react-navigation/native';
 import { NavigationProp } from '@react-navigation/native';
 import { getAccessToken } from '../../auth';
@@ -24,6 +24,19 @@ const EditAvatar2: React.FC<Props> = ({ navigation }) => {
   const [avatars, setAvatars] = useState<Memoji[]>([]);
   const [selectedMemoji, setSelectedMemoji] = useState<Memoji | null>(null);
   const [numCoins, setNumCoins] = useState<number>(0);
+
+  const [selectedColor, setSelectedColor] = useState<string>('#FFB3BA'); // default white background
+  const [showColorPicker, setShowColorPicker] = useState<boolean>(false);
+
+  const pastelColors = [
+  '#FFB3BA',
+  '#FFDFBA',
+  '#FFFFBA',
+  '#BAFFC9',
+  '#BAE1FF',
+  '#D9BAFF',
+  ];
+
   const { user } = useUser();
 
   const fetchAvatars = async () => {
@@ -35,6 +48,7 @@ const EditAvatar2: React.FC<Props> = ({ navigation }) => {
     const data = await res.json();
     setAvatars(data.avatars);
     setNumCoins(data.numCoins);
+    return data;
   };
 
   useFocusEffect(
@@ -55,7 +69,13 @@ const EditAvatar2: React.FC<Props> = ({ navigation }) => {
     });
 
     if (res.ok) {
-      await fetchAvatars(); // refresh
+      const data = await fetchAvatars(); // refresh
+
+      // Update selectedMemoji if it’s the one we just bought
+      if (selectedMemoji?.id === memojiId) {
+        const updated = data.avatars.find((a) => a.id === memojiId);
+        if (updated) setSelectedMemoji(updated);
+      }
     }
   };
 
@@ -65,25 +85,39 @@ const EditAvatar2: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    const access = await getAccessToken();
-    await fetch(endpoints.setCurrentMemoji(Number(user?.id)), {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${access}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ memojiId: selectedMemoji.id }),
-    });
-    navigation.goBack();
+    try {
+      const access = await getAccessToken();
+      const res = await fetch(endpoints.setCurrentMemoji(Number(user?.id)), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${access}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          memojiId: selectedMemoji.id,
+          backgroundColor: selectedColor,
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to set avatar");
+      }
+
+      navigation.navigate('Profile');
+
+    } catch (err: any) {
+      Alert.alert("Error", err.message);
+    }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.coinsText}>💰 Coins: {numCoins}</Text>
+      <Text style={styles.coinsText}>{numCoins} 🪙</Text>
 
 
       <View style={styles.previewContainer}>
-        <View style={styles.previewFrame}>
+        <View style={[styles.previewFrame, { backgroundColor: selectedColor }]}>
           {selectedMemoji ? (
             <Image
               source={{ uri: `${BASE_URL}${selectedMemoji.imageUrl}` }}
@@ -97,6 +131,7 @@ const EditAvatar2: React.FC<Props> = ({ navigation }) => {
           )}
         </View>
       </View>
+
 
 
       {/* Horizontal scroll of memojies */}
@@ -123,7 +158,7 @@ const EditAvatar2: React.FC<Props> = ({ navigation }) => {
                 disabled={numCoins < m.price}
                 onPress={() => handlePurchase(m.id, m.price)}
               >
-                <Text style={styles.purchaseText}>Buy ({m.price})</Text>
+                <Text style={styles.purchaseText}>{m.price} 🪙</Text>
               </TouchableOpacity>
             ) : (
               <Text style={styles.purchasedLabel}>Owned</Text>
@@ -131,6 +166,22 @@ const EditAvatar2: React.FC<Props> = ({ navigation }) => {
           </View>
         ))}
       </ScrollView>
+
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.scrollContainer, { marginTop: 10 }]}>
+        {pastelColors.map((color, index) => (
+          <TouchableOpacity
+            key={index}
+            onPress={() => setSelectedColor(color)}
+            style={[
+              styles.colorCircle,
+              { backgroundColor: color },
+              selectedColor === color && styles.selectedColorCircle,
+            ]}
+          />
+        ))}
+      </ScrollView>
+
 
       {/* Done button */}
       <TouchableOpacity
@@ -250,6 +301,37 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 18,
+  },
+  colorButton: {
+    position: 'absolute',
+    bottom: 10,
+    left: 10,
+    backgroundColor: '#fff',
+    padding: 8,
+    borderRadius: 20,
+    elevation: 3,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+  },
+  modalCloseButton: {
+    backgroundColor: '#333',
+    padding: 12,
+    alignItems: 'center',
+  },
+  colorCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30, // circle
+    marginRight: 10,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  selectedColorCircle: {
+    borderColor: '#FFD700',
+    borderWidth: 3,
   },
 });
 

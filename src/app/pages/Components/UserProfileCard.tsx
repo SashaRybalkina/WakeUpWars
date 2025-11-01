@@ -7,7 +7,8 @@ import { BASE_URL } from '../../api';
 
 type Props = {
   name: string;
-  currentMemoji: Memoji | null
+  currentMemoji: Memoji | null;
+  bgColor: string;
 };
 
 
@@ -17,56 +18,62 @@ type Memoji = {
 }
 
 
-const UserProfileCard: React.FC<Props> = ({ name, currentMemoji }) => {
+const UserProfileCard: React.FC<Props> = ({ name, currentMemoji, bgColor }) => {
   const navigation = useNavigation<NavigationProp<any>>();
   const { skillLevels } = useUser();
+return (
+  <View style={styles.profileContainer}>
+    {/* Avatar wrapper (allows overflow for buttons) */}
+    <View style={styles.avatarWrapper}>
+      {/* Inner avatar container (clipped circle) */}
+      <View style={[styles.avatarContainer, { backgroundColor: bgColor }]}>
+        <Image
+          source={
+            currentMemoji?.imageUrl
+              ? { uri: `${BASE_URL}${currentMemoji.imageUrl}` }
+              : require('../../../../assets/memojies/JaneBase.webp')
+          }
+          style={styles.avatar}
+          resizeMode="contain"
+        />
+      </View>
 
-  return (
-    <View style={styles.profileContainer}>
-      {/* Avatar container */}
-      <View style={styles.avatarContainer}>
-      <Image
-        source={
-          currentMemoji?.imageUrl
-            ? { uri: `${BASE_URL}${currentMemoji.imageUrl}` }
-            : require('../../../../assets/memojies/JaneBase.webp')
+      {/* Edit button (allowed to overflow) */}
+      <TouchableOpacity
+        style={styles.editButton}
+        onPress={() =>
+          navigation.navigate('EditAva', {
+            currentMemojiId: currentMemoji?.id,
+          })
         }
-        style={styles.avatar}
-        resizeMode="contain"
-      />
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => navigation.navigate('EditAva', {
-                currentMemojiId: currentMemoji?.id
-            })}
-        >
-          <Ionicons name="pencil" size={18} color="#fff" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Name below the avatar */}
-      <Text style={styles.profileName}>{name}</Text>
-
-      {/* Stats */}
-      <View style={styles.statsContainer}>
-        {skillLevels.map((s, i) => {
-          const level =
-            s.totalPossible === 0
-              ? '0.0'
-              : ((s.totalEarned / s.totalPossible) * 10).toFixed(1);
-
-          return (
-            <View style={styles.statCard} key={i}>
-              <View style={styles.statRow}>
-                <Text style={styles.stat}>{s.category.categoryName}</Text>
-                <Text style={styles.statValue}>{level} / 10</Text>
-              </View>
-            </View>
-          );
-        })}
-      </View>
+      >
+        <Ionicons name="pencil" size={18} color="#fff" />
+      </TouchableOpacity>
     </View>
-  );
+
+    {/* Name below the avatar */}
+    <Text style={styles.profileName}>{name}</Text>
+
+    {/* Stats */}
+    <View style={styles.statsContainer}>
+      {skillLevels.map((s, i) => {
+        const level =
+          s.totalPossible === 0
+            ? '0.0'
+            : ((s.totalEarned / s.totalPossible) * 10).toFixed(1);
+
+        return (
+          <View style={styles.statCard} key={i}>
+            <View style={styles.statRow}>
+              <Text style={styles.stat}>{s.category.categoryName}</Text>
+              <Text style={styles.statValue}>{level} / 10</Text>
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  </View>
+);
 };
 
 const styles = StyleSheet.create({
@@ -74,19 +81,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 50,
   },
-  avatarContainer: {
+
+  // ✅ Outer wrapper — allows overflow for buttons
+  avatarWrapper: {
     position: 'relative',
     width: 120,
     height: 120,
-    marginBottom: 15, // ✅ adds space below avatar for name
+    marginBottom: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  avatar: {
-    width: '100%',
-    height: '100%',
+
+  // ✅ Inner circular container — clips the image/background
+  avatarContainer: {
+    width: 120,
+    height: 120,
     borderRadius: 60,
+    overflow: 'hidden', // ensures bg + image stay inside the circle
     borderWidth: 3,
     borderColor: '#FFD700',
   },
+
+  avatar: {
+    width: '100%',
+    height: '100%',
+  },
+
+  // ✅ Button now outside clipped area
   editButton: {
     position: 'absolute',
     bottom: 0,
@@ -99,18 +120,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 1 },
   },
+
   profileName: {
     fontSize: 26,
     fontWeight: 'bold',
     color: '#FFF',
-    marginBottom: 10, // ✅ spacing before stats
+    marginBottom: 10,
     textShadowColor: 'rgba(0, 0, 0, 0.75)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
   },
+
   statsContainer: {
     width: '100%',
   },
+
   statCard: {
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     paddingHorizontal: 25,
@@ -118,19 +142,23 @@ const styles = StyleSheet.create({
     marginVertical: 2.5,
     borderRadius: 10,
   },
+
   stat: {
     color: '#FFF',
     fontWeight: '600',
   },
+
   statValue: {
     fontWeight: 'bold',
     color: '#FFD700',
   },
+
   statRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
 });
+
 
 export default UserProfileCard;

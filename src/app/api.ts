@@ -1,5 +1,5 @@
 // export const BASE_URL = 'http://192.168.50.3:8000';
-export const BASE_URL = 'https://d81787112a22.ngrok-free.app';
+export const BASE_URL = 'https://a30903479641.ngrok-free.app';
 
 export const endpoints = {
   // getToken
@@ -23,6 +23,10 @@ export const endpoints = {
   messages: (userId: number) => `${BASE_URL}/api/messages/${userId}/`,
   baseMemojies: () => `${BASE_URL}/api/base-memojies/`,
   extraMemojies: (userId: number, baseId: number) => `${BASE_URL}/api/extra-memojies/${userId}/${baseId}/`,
+  purchaseMemoji: (userId: number, memojiId: number) => `${BASE_URL}/api/purchase-memoji/${userId}/${memojiId}/`,
+  setCurrentMemoji: (userId: number) => `${BASE_URL}/api/set-current-memoji/${userId}/`,
+
+
   conversation: (userId: number, recipientId: number) => `${BASE_URL}/api/conversation/${userId}/${recipientId}/`,
   groupConversations: (userId: number) => `${BASE_URL}/api/user/${userId}/group-conversations/`,
   sendGroupMessage: (groupId: number) => `${BASE_URL}/api/messages/send/group/${groupId}/`,

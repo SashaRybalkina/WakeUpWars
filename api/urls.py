@@ -109,7 +109,9 @@ from .views import (
     CollectBetCoinsView,
     UserDataView,
     BaseMemojiesView,
-    ExtraMemojiesView
+    ExtraMemojiesView,
+    SetCurrentMemojiView,
+    PurchaseMemojiView,
 )
 
 
@@ -205,6 +207,8 @@ urlpatterns = [
     path('badges/<int:user_id>/', BadgesView.as_view(), name="badges"),
     path('base-memojies/', BaseMemojiesView.as_view(), name="base-memojies"),
     path('extra-memojies/<int:user_id>/<int:base_id>/', ExtraMemojiesView.as_view(), name="extra-memojies"),
+    path('purchase-memoji/<int:user_id>/<int:memoji_id>/', PurchaseMemojiView.as_view(), name="purchase-memoji"),
+    path('set-current-memoji/<int:user_id>/', SetCurrentMemojiView.as_view(), name="set-current-memoji"),
 
     path('send-bet/', SendBetView.as_view(), name='send-bet'),
 

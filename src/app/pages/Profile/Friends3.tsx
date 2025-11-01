@@ -1,8 +1,8 @@
-import type React from "react"
+import React from "react"
 import { useEffect, useState } from "react"
 import { Alert, ImageBackground, StyleSheet, Text, TouchableOpacity, View, Animated, Modal } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
-import { type NavigationProp, useRoute } from "@react-navigation/native"
+import { type NavigationProp, useFocusEffect, useRoute } from "@react-navigation/native"
 import UserProfileCard from "../Components/UserProfileCard"
 import { BASE_URL, endpoints } from "../../api"
 import { LinearGradient } from "expo-linear-gradient"
@@ -12,6 +12,12 @@ type Props = {
   navigation: NavigationProp<any>
 }
 
+type Memoji = {
+  id: number;
+  imageUrl: string;
+}
+
+
 const Friends3: React.FC<Props> = ({ navigation }) => {
   const route = useRoute()
   const { friendId, groupId } = route.params as { friendId: number; groupId?: number }
@@ -20,36 +26,41 @@ const Friends3: React.FC<Props> = ({ navigation }) => {
   const [buttonScale] = useState(new Animated.Value(1))
   const [infoVisible, setInfoVisible] = useState(false)
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        console.log(friendId)
-        const accessToken = await getAccessToken();
-        if (!accessToken) {
-          throw new Error("Not authenticated");
-        }
-        const response = await fetch(endpoints.profile(friendId), {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        })
-        const text = await response.text()
-        let data: any = null
-        try {
-          data = text ? JSON.parse(text) : null
-        } catch (error) {
-          console.error("Failed to parse profile JSON:", error)
-        }
-        if (!response.ok) {
-          throw new Error((data && (data.detail || data.message)) || `Profile load failed (${response.status})`)
-        }
-        console.log(data)
-        setProfileData(data)
-      } catch (error) {
-        console.error("Failed to load profile:", error)
-      }
-    }
+  const [currentMemoji, setCurrentMemoji] = useState<Memoji | null>(null);
+  const [numCoins, setNumCoins] = useState<number>(0);
+  const [backgroundColor, setBackgroundColor] = useState<string>('#FFB3BA');
 
-    fetchProfile()
-  }, [friendId])
+  useFocusEffect(
+    React.useCallback(() => {
+      let cancelled = false;
+
+      (async () => {
+        try {
+                const access = await getAccessToken();
+                if (!access) {
+                  throw new Error("Not authenticated");
+                }
+        const res = await fetch(endpoints.userData(friendId), {
+          headers: {
+            Authorization: `Bearer ${access}`
+          }
+        });
+          const data = await res.json();
+          if (!cancelled) {
+            setNumCoins(data.numCoins);
+            setCurrentMemoji(data.currentMemoji);
+            setBackgroundColor(data.backgroundColor);
+          }
+        } catch (e) {
+          console.error('refresh skills failed', e);
+        }
+      })();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [friendId]),
+  );
 
   const handlePressIn = () => {
     Animated.spring(buttonScale, {
@@ -126,7 +137,11 @@ const Friends3: React.FC<Props> = ({ navigation }) => {
 
       {/* Profile Section */}
       {profileData && (
-        <UserProfileCard name={profileData.name || profileData.username || ""} />
+        <UserProfileCard
+          name={profileData.name || profileData.username || ""}
+          currentMemoji={currentMemoji}
+          bgColor={backgroundColor}
+        />
       )}
 
       {/* Add to Group Button */}
