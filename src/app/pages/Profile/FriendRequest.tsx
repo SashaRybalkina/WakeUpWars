@@ -1,7 +1,7 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import * as SecureStore from "expo-secure-store"
-import { ImageBackground, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Alert } from "react-native"
+import { ImageBackground, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Alert, Image } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import type { NavigationProp } from "@react-navigation/native"
 import { ScrollView } from "tamagui"
@@ -19,6 +19,11 @@ type FriendRequest = {
     id: number
     name: string
     username: string
+    avatar?: {
+      id: number;
+      imageUrl: string;
+      backgroundColor: string;
+    };
   }
   created_at: string
 }
@@ -188,8 +193,21 @@ const FriendsRequests: React.FC<Props> = ({ navigation }) => {
                 const backgroundColor = generatePastelColor(request.sender.name)
                 return (
                   <View key={request.id} style={styles.requestCard}>
-                    <View style={[styles.avatarContainer, { backgroundColor }]}>
-                      <Text style={styles.avatarText}>{getInitials(request.sender.name)}</Text>
+                    <View
+                      style={[
+                        styles.avatarContainer,
+                        { backgroundColor: request.sender.avatar?.backgroundColor || generatePastelColor(request.sender.name) },
+                      ]}
+                    >
+                      {request.sender.avatar?.imageUrl ? (
+                        <Image
+                          source={{ uri: `${BASE_URL}${request.sender.avatar.imageUrl}` }}
+                          style={{ width: 50, height: 50, borderRadius: 25 }}
+                          resizeMode="contain"
+                        />
+                      ) : (
+                        <Text style={styles.avatarText}>{getInitials(request.sender.name)}</Text>
+                      )}
                     </View>
                     <View style={styles.requestInfo}>
                       <View style={styles.nameContainer}>

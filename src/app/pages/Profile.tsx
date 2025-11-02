@@ -279,6 +279,7 @@ const PulsingBadge = ({ badge, onPress }) => {
       resizeMode="cover"
     >
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+
       <View style={styles.container}>
 
       {/* ScrollView wraps all content except the bottom navigation */}
@@ -291,6 +292,8 @@ const PulsingBadge = ({ badge, onPress }) => {
           name={user?.name ?? 'Loading…'}
           currentMemoji={currentMemoji}
           bgColor={backgroundColor}
+          skill_levels={null}
+          numCoins={numCoins}
         />
 
         <View style={styles.profileButtons}>
@@ -316,10 +319,6 @@ const PulsingBadge = ({ badge, onPress }) => {
           </TouchableOpacity>
         </View>
 
-    <View style={styles.container}>
-      <Text style={styles.coinText}>{numCoins} 🪙</Text>
-      {/* <Text style={styles.coinEmoji}>🪙</Text> */}
-    </View>
 
         <View style={styles.menu}>
           <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
@@ -646,12 +645,6 @@ const styles = StyleSheet.create({
   profileContainer: {
     alignItems: 'center',
     marginTop: 50,
-  },
-  coinText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-    marginLeft: 6,
   },
   coinEmoji: {
     fontSize: 18,

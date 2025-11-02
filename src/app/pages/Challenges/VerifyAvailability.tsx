@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { NavigationProp, useRoute } from '@react-navigation/native';
+import { NavigationProp, useFocusEffect, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import DateTimePicker from "@react-native-community/datetimepicker"
 import { useUser } from "../../context/UserContext"
 import {
@@ -119,7 +119,8 @@ const convertTo24Hour = (input: string) => {
 };
 
 
-  useEffect(() => {
+useFocusEffect(
+  useCallback(() => {
     const fetchAvailability = async () => {
       try {
               const accessToken = await getAccessToken();
@@ -149,7 +150,8 @@ const convertTo24Hour = (input: string) => {
     };
 
     fetchAvailability();
-  }, [user?.id]);
+  }, [user?.id])
+);
 
 
   const formatTo12Hour = (time24: string) => {

@@ -12,9 +12,25 @@ User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
+    avatar = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'name', 'email']
+        fields = ['id', 'username', 'name', 'email', 'avatar']
+
+    def get_avatar(self, obj):
+        if obj.currentMemoji:
+            return {
+                "id": obj.currentMemoji.id,
+                "imageUrl": obj.currentMemoji.imageUrl,
+                "backgroundColor": obj.memojiBgColor or "#ffffff"
+            }
+        return None
+    
+# class FriendSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = User
+#         fields = ['id', 'name', 'username']
 
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
@@ -69,10 +85,6 @@ class GroupSerializer(serializers.ModelSerializer):
         model = Group
         fields = ['id', 'name']
 
-class FriendSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id', 'name', 'username']
 
 class CatSerializer(serializers.ModelSerializer):
     class Meta:

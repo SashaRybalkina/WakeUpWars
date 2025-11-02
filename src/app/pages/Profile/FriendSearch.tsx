@@ -9,6 +9,7 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  Image,
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import type { NavigationProp } from "@react-navigation/native"
@@ -27,6 +28,11 @@ type UserType = {
   username: string
   isFriend?: boolean
   requestSent?: boolean
+  avatar?: {
+    id: number;
+    imageUrl: string;
+    backgroundColor: string;
+  };
 }
 
 const FriendsSearch: React.FC<Props> = ({ navigation }) => {
@@ -275,11 +281,23 @@ const FriendsSearch: React.FC<Props> = ({ navigation }) => {
           <ScrollView style={styles.scrollViewContainer} contentContainerStyle={styles.scrollViewContent}>
             {filteredUsers.length > 0 ? (
               filteredUsers.map((user) => {
-                const backgroundColor = generatePastelColor(user.name)
                 return (
                   <View key={user.id} style={styles.userCard}>
-                    <View style={[styles.avatarContainer, { backgroundColor }]}>
-                      <Text style={styles.avatarText}>{getInitials(user.name)}</Text>
+                    <View
+                      style={[
+                        styles.avatarContainer,
+                        { backgroundColor: user.avatar?.backgroundColor || generatePastelColor(user.name) },
+                      ]}
+                    >
+                      {user.avatar?.imageUrl ? (
+                        <Image
+                          source={{ uri: `${BASE_URL}${user.avatar.imageUrl}` }}
+                          style={{ width: 50, height: 50, borderRadius: 25 }}
+                          resizeMode="contain"
+                        />
+                      ) : (
+                        <Text style={styles.avatarText}>{getInitials(user.name)}</Text>
+                      )}
                     </View>
                     <View style={styles.userInfo}>
                       <Text style={styles.userName}>{user.name}</Text>
@@ -410,7 +428,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 15,
     borderWidth: 2,
-    borderColor: "rgba(255, 255, 255, 0.5)",
+    borderColor: '#FFD700',
   },
   avatarText: {
     fontSize: 22,

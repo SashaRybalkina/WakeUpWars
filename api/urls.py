@@ -1,28 +1,5 @@
 from django.urls import path
 
-from .views import (AcceptPersonalChallenge, ConversationView, DeclinePersonalChallenge, 
-                    ExternalHandleViewSet, FinalizeChallengeView, FinalizePublicChallengeView, 
-                    GetMatchingChallengesView, GetPendingPublicChallengesView, GetPersonalChallengeInvites, 
-                    GetPublicChallengesView, GetUserAvailabilityView, GroupConversationView, 
-                    JoinPublicChallengeView, LoginView, ObligationViewSet, PaymentViewSet, RegisterView, 
-                    GroupListView, HelloWorldView, SendMessageGroupView, SendMessageView, SendNotificationView, SetChallAvailabilityView, 
-                    SetUserAvailabilityView, ShareChallengeView, SingOrMultGameListView, SomeCatsListView, 
-                    UserGroupConversationsView, UserProfileView, GetChallengeScheduleView, AddGameToScheduleView,
-                    UserMessagesView, GroupDetailsView, CatListView, GameListView,
-                    ChallengeListView, GetChallengeInitiatorView,
-                    ChallengeDetailView, ChallengeGameScheduleView, CreateManualGroupChallengeView,
-                    CreatePendingCollaborativeGroupChallengeView, FriendListView,
-                    AddGroupMemberView, SendFriendRequestView, FriendRequestListView,
-                    RespondToFriendRequestView, FinalizeCollaborativeGroupChallengeScheduleView,
-                    SentFriendRequestListView, AllUsersView, CancelFriendRequestView,
-                    CreateGroupView, CreatePersonalChallengeView, GetChallengeInvitesView,
-                    GetAvailabilitiesView, DeclineChallengeInviteView,
-                    ChallengeLeaderboardView, SubmitGameScoresView, ChallengeDailyHistoryView,
-                    SkillLevelsView, CreatePublicChallengeView, RewardSettingView, 
-                    CreateSudokuGameView, ValidateSudokuMoveView, CreatePatternGameView, 
-                    ValidatePatternMoveView, CreateWordleGameView, ValidateWordleMoveView, 
-                    SavePushTokenView, UserNotificationsView, DeleteNotificationView)
-
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.routers import DefaultRouter
@@ -112,6 +89,10 @@ from .views import (
     ExtraMemojiesView,
     SetCurrentMemojiView,
     PurchaseMemojiView,
+    SendNotificationView,
+    SavePushTokenView,
+    UserNotificationsView,
+    DeleteNotificationView,
 )
 
 

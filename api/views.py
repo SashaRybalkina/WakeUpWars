@@ -31,7 +31,7 @@ from django.contrib.auth import authenticate, get_user_model
 
 from api.chat_consumer import ACTIVE_CHAT_USERS
 from .serializers import (UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer, MessageSerializer, ChallengeSummarySerializer,
-                          CatSerializer, GameSerializer, FriendSerializer, FriendRequestSerializer, CreateGroupSerializer, SkillLevelSerializer,
+                          CatSerializer, GameSerializer, FriendRequestSerializer, CreateGroupSerializer, SkillLevelSerializer,
                           RewardSettingSerializer, ExternalHandleSerializer,ObligationSerializer, CashPaymentCreateSerializer,
                           ExternalPaymentCreateSerializer, PaymentSerializer, PendingPublicChallengeSummarySerializer, PublicChallengeSummarySerializer,
                           ChallengeBetSerializer)
@@ -327,7 +327,7 @@ class FriendListView(APIView):
                 friend_ids.append(friendship.uID1.id)
 
         friends = User.objects.filter(id__in=friend_ids)
-        serializer = FriendSerializer(friends, many=True)
+        serializer = UserSerializer(friends, many=True)
         return Response(serializer.data)
 
 class CatListView(APIView):
@@ -950,24 +950,24 @@ class GetMatchingChallengesView(APIView):
         
         user = User.objects.get(id=user_id)
 
-        # today = timezone.now().date()
-        # print("Today's date:", today)
+        mountain_tz = pytz.timezone("America/Denver")
+        today = timezone.now().astimezone(mountain_tz)
 
         base_q = PublicChallengeConfiguration.objects.filter(
             isMultiplayer=is_multiplayer_flag,
             challenge__isPublic=True
         ).select_related("challenge")
 
-        # if not is_multiplayer_flag:
-        #     # Exclude singleplayer challenges that already started
-        #     q = base_q.filter(challenge__startDate__gte=today)
+        if not is_multiplayer_flag:
+            # Exclude singleplayer challenges that already started
+            q = base_q.filter(challenge__startDate__gte=today)
 
-        q = base_q
+        # q = base_q
         
         if is_multiplayer_flag:
             # Annotate with member count for filtering
             q = base_q.annotate(member_count=Count('challenge__challengemembership', distinct=True)).filter(
-                # challenge__startDate__gte=today,
+                challenge__startDate__gte=today,
                 member_count__lt=5  # fewer than 5 members enrolled
             )
         
@@ -1058,36 +1058,61 @@ class GetMatchingChallengesView(APIView):
 
         # Build results list
         results = []
+        mountain_tz = pytz.timezone("America/Denver")
+        now_mt = timezone.now().astimezone(mountain_tz)
+        print("now mt: ", now_mt)
+
         for cfg in candidates:
             challenge = cfg.challenge
-            print(challenge.startDate)
 
-            # collect alarm times per day for this challenge from prefetched CAS (set by prefetch)
-            # note: we used to_attr='prefetched_cas' on challenge
+            # --- Step 1: find start datetime (with alarm time) ---
+            start_date = challenge.startDate
+            print("startDate: ", start_date)
+            if not start_date:
+                continue  # skip malformed challenge
+
             cas_list = getattr(challenge, "prefetched_cas", None)
             if cas_list is None:
-                # fallback: query the DB (rare)
-                cas_qs = ChallengeAlarmSchedule.objects.filter(challenge=challenge).select_related("alarm_schedule__uID")
+                cas_qs = ChallengeAlarmSchedule.objects.filter(challenge=challenge).select_related("alarm_schedule")
             else:
                 cas_qs = cas_list
 
-            # Build map day -> set of times strings "HH:MM"
+            # get the day of week of the challenge's start date (1 = Monday ... 7 = Sunday)
+            start_day_of_week = start_date.isoweekday()
+            print("start day of week: ", start_day_of_week)
+
+            # find the alarm time for that day (since all users share same schedule, any works)
+            alarm_time = None
+            for cas in cas_qs:
+                if cas.alarm_schedule.dayOfWeek == start_day_of_week:
+                    alarm_time = cas.alarm_schedule.alarmTime
+                    break
+
+            if not alarm_time:
+                continue  # skip if somehow no alarm found for that day
+
+            # --- Step 2: create timezone-aware start datetime ---
+            start_naive = datetime.combine(start_date, alarm_time)
+            print("start naive ", start_naive)
+            start_mt = mountain_tz.localize(start_naive)
+            print("start mt ", start_mt)
+
+            # --- Step 3: compare with current datetime ---
+            if now_mt >= start_mt:
+                # Challenge already started -> skip
+                continue
+
+            # --- rest of your availability and skill logic follows ---
             challenge_alarms_by_day = {}
             for cas in cas_qs:
                 alarm = cas.alarm_schedule
                 day = alarm.dayOfWeek
-                # normalize time string to HH:MM
                 time_str = alarm.alarmTime.strftime("%H:%M")
                 challenge_alarms_by_day.setdefault(day, set()).add(time_str)
 
-
-            # require that for every day in challenge_alarms_by_day the user has at least one time matching
             matched_days = []
             required_days = sorted(challenge_alarms_by_day.keys())
 
-            # if is_multiplayer_flag:
-
-            # For each required day, check intersection with user_avail_by_day[day]
             all_days_match = True
             for day in required_days:
                 challenge_times = challenge_alarms_by_day.get(day, set())
@@ -1097,11 +1122,9 @@ class GetMatchingChallengesView(APIView):
                     all_days_match = False
                     break
 
-                # Instead of strict set intersection:
                 has_overlap = any(
                     time_in_user_window(ct, user_times) for ct in challenge_times
                 )
-
                 if has_overlap:
                     matched_days.append(day)
                 else:
@@ -1109,7 +1132,6 @@ class GetMatchingChallengesView(APIView):
                     break
 
             if not all_days_match:
-                # skip this candidate
                 continue
 
             cat_ids = list(
@@ -1119,8 +1141,8 @@ class GetMatchingChallengesView(APIView):
             )
 
             totals = SkillLevel.objects.filter(user_id=user_id, category_id__in=cat_ids).aggregate(
-            total_earned=Sum('totalEarned'),
-            total_possible=Sum('totalPossible')
+                total_earned=Sum('totalEarned'),
+                total_possible=Sum('totalPossible')
             )
             total_earned = Decimal(totals['total_earned'] or 0)
             total_possible = Decimal(totals['total_possible'] or 0)
@@ -1133,18 +1155,14 @@ class GetMatchingChallengesView(APIView):
 
             distance = abs(user_skill_value - challenge_skill)
 
-            # serialize challenge summary (use serializer)
             serialized = PendingPublicChallengeSummarySerializer(challenge, context={"user": request.user}).data
 
             results.append({
-                # "id": challenge.id,
-                # "name": challenge.name,        
-                # "totalDays": challenge.totalDays,    # already included in serialized
                 "summary": serialized,
                 "userAverageSkillLevel": user_skill_value,
-                "distance": float(distance),  # convert Decimal -> float for JSON
-                # "averageSkillLevel": float(challenge_skill),
+                "distance": float(distance),
             })
+
 
         # sort by distance ascending (closest skill match first)
         results.sort(key=lambda r: r["distance"])
@@ -3134,6 +3152,7 @@ class UserDataView(APIView):
         memoji = user.currentMemoji
 
         return Response({
+            "name": user.name,
             "skillLevels": data,
             "numCoins": user.numCoins,
             "currentMemoji": (

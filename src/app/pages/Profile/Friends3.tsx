@@ -1,12 +1,13 @@
 import React from "react"
 import { useEffect, useState } from "react"
-import { Alert, ImageBackground, StyleSheet, Text, TouchableOpacity, View, Animated, Modal } from "react-native"
+import { Alert, ImageBackground, StyleSheet, Text, TouchableOpacity, View, Animated, Modal, ScrollView, Image } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { type NavigationProp, useFocusEffect, useRoute } from "@react-navigation/native"
 import UserProfileCard from "../Components/UserProfileCard"
 import { BASE_URL, endpoints } from "../../api"
 import { LinearGradient } from "expo-linear-gradient"
 import { getAccessToken } from "../../auth"
+import { SkillLevel } from '../../context/UserContext';
 
 type Props = {
   navigation: NavigationProp<any>
@@ -21,20 +22,27 @@ type Memoji = {
 const Friends3: React.FC<Props> = ({ navigation }) => {
   const route = useRoute()
   const { friendId, groupId } = route.params as { friendId: number; groupId?: number }
+  console.log(`groupId: ${groupId}`)
+
   const [isLoading, setIsLoading] = useState(false)
-  const [profileData, setProfileData] = useState<any>(null)
   const [buttonScale] = useState(new Animated.Value(1))
   const [infoVisible, setInfoVisible] = useState(false)
 
   const [currentMemoji, setCurrentMemoji] = useState<Memoji | null>(null);
   const [numCoins, setNumCoins] = useState<number>(0);
+  const [name, setName] = useState<string>("");
   const [backgroundColor, setBackgroundColor] = useState<string>('#FFB3BA');
+  const [skillLevels, setSkillLevels] = useState<SkillLevel[]>([]);
+  const [dataLoading, setDataLoading] = useState(true)
+  const [badges, setBadges] = useState<any[]>([]);
+  const [selectedBadge, setSelectedBadge] = useState<null | any>(null);
 
   useFocusEffect(
     React.useCallback(() => {
       let cancelled = false;
 
       (async () => {
+        setDataLoading(true)
         try {
                 const access = await getAccessToken();
                 if (!access) {
@@ -47,13 +55,18 @@ const Friends3: React.FC<Props> = ({ navigation }) => {
         });
           const data = await res.json();
           if (!cancelled) {
+            setName(data.name)
+            setSkillLevels(data.skillLevels);
             setNumCoins(data.numCoins);
             setCurrentMemoji(data.currentMemoji);
             setBackgroundColor(data.backgroundColor);
           }
         } catch (e) {
           console.error('refresh skills failed', e);
+        } finally {
+          setDataLoading(false)
         }
+
       })();
 
       return () => {
@@ -62,23 +75,31 @@ const Friends3: React.FC<Props> = ({ navigation }) => {
     }, [friendId]),
   );
 
-  const handlePressIn = () => {
-    Animated.spring(buttonScale, {
-      toValue: 0.95,
-      friction: 5,
-      tension: 300,
-      useNativeDriver: true,
-    }).start()
-  }
 
-  const handlePressOut = () => {
-    Animated.spring(buttonScale, {
-      toValue: 1,
-      friction: 3,
-      tension: 400,
-      useNativeDriver: true,
-    }).start()
-  }
+
+  const fetchBadges = async () => {
+    const access = await getAccessToken();
+    const res = await fetch(endpoints.badges(friendId), {
+      headers: { Authorization: `Bearer ${access}` },
+    });
+    const data = await res.json();
+    setBadges(data);
+  };
+
+
+  useFocusEffect(
+    React.useCallback(() => {
+      (async () => {
+        try {
+          await fetchBadges();
+        } catch (e) {
+          console.error('Failed to fetch badges', e);
+        }
+      })();
+    }, [friendId])
+  );
+
+
 
   const handleAddToGroup = async () => {
     if (isLoading) return
@@ -110,7 +131,7 @@ const Friends3: React.FC<Props> = ({ navigation }) => {
 
       const data = await response.json()
       console.log("Friend added to group", data)
-      Alert.alert("Success!", `${profileData?.name || "Friend"} has been added to your group.`, [
+      Alert.alert("Success!", `${name || "Friend"} has been added to your group.`, [
         { text: "OK", onPress: () => navigation.navigate("GroupDetails", { groupId }) },
       ])
     } catch (err: any) {
@@ -129,6 +150,13 @@ const Friends3: React.FC<Props> = ({ navigation }) => {
 
   return (
     <ImageBackground source={require("../../images/tertiary.png")} style={styles.background} resizeMode="cover">
+
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollViewContent}
+          showsVerticalScrollIndicator={false}
+        >
+
       <View style={styles.backButtonContainer}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={30} color="#FFF" />
@@ -136,42 +164,130 @@ const Friends3: React.FC<Props> = ({ navigation }) => {
       </View>
 
       {/* Profile Section */}
-      {profileData && (
+      {!dataLoading && (
         <UserProfileCard
-          name={profileData.name || profileData.username || ""}
+          name={name}
           currentMemoji={currentMemoji}
           bgColor={backgroundColor}
+          skill_levels={skillLevels}
+          numCoins={numCoins}
         />
       )}
 
-      {/* Add to Group Button */}
-      {groupId !== undefined && groupId !== null && (
-        <View style={styles.buttonContainer}>
-          <Animated.View style={[{ transform: [{ scale: buttonScale }] }]}>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPressIn={handlePressIn}
-              onPressOut={handlePressOut}
-              onPress={handleAddToGroup}
-              disabled={isLoading}
-            >
-              <LinearGradient
-                colors={["#FFD700", "#FFA500"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.addButton}
+
+      <ScrollView horizontal contentContainerStyle={{ paddingHorizontal: 10, paddingVertical: 5 }}>
+        {badges
+          .filter((badge) => badge.earned)
+          .map((badge) => {
+            const borderColor = 'rgba(94, 204, 114, 1)';
+            const opacity = 1;
+
+            return (
+              <TouchableOpacity
+                key={badge.id}
+                onPress={() => setSelectedBadge(badge)}
+                style={{
+                  width: 60,
+                  height: 60,
+                  margin: 5,
+                  borderRadius: 8,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 2,
+                  borderColor,
+                  backgroundColor: 'rgba(94, 204, 114, 0.2)',
+                }}
               >
-                <View style={styles.buttonContent}>
-                  <Ionicons name="person-add" size={24} color="#FFF" style={styles.buttonIcon} />
-                  <Text style={styles.addText}>{isLoading ? "Adding..." : "Add to Group"}</Text>
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
-          </Animated.View>
+                <Image
+                  source={{ uri: `${BASE_URL}${badge.imageUrl}` }}
+                  style={{ width: 50, height: 50, opacity }}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
+            );
+          })}
+      </ScrollView>
+      </ScrollView>
+
+
+{selectedBadge && (
+  <Modal
+    transparent
+    animationType="fade"
+    visible={!!selectedBadge}
+    onRequestClose={() => setSelectedBadge(null)}
+  >
+    <View style={{
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    }}>
+      <View style={{
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 20,
+        width: '100%',
+        maxWidth: 300,
+        alignItems: 'center',
+      }}>
+        <Image
+          source={{ uri: `${BASE_URL}${selectedBadge.imageUrl}` }}
+          style={{ width: 80, height: 80 }}
+          resizeMode="contain"
+        />
+        <Text style={{ fontWeight: 'bold', fontSize: 18, marginTop: 10 }}>
+          {selectedBadge.name}
+        </Text>
+        <Text style={{ fontSize: 14, textAlign: 'center', marginTop: 5 }}>
+          {selectedBadge.description}
+        </Text>
+        <TouchableOpacity
+          onPress={() => setSelectedBadge(null)}
+          style={{ marginTop: 15, padding: 10 }}
+        >
+          <Text style={{ color: '#007BFF', fontWeight: 'bold' }}>Close</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </Modal>
+)}
+
+
+{/* Add to Group Button */}
+{!dataLoading && groupId && (
+  <View style={styles.buttonContainer}>
+    <TouchableOpacity
+      activeOpacity={0.8}
+      onPress={handleAddToGroup}
+      disabled={isLoading}
+    >
+      <LinearGradient
+        colors={["#FFD700", "#FFA500"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.addButton}
+      >
+        <View style={styles.buttonContent}>
+          <Ionicons
+            name="person-add"
+            size={24}
+            color="#FFF"
+            style={styles.buttonIcon}
+          />
+          <Text style={styles.addText}>
+            {isLoading ? "Adding..." : "Add to Group"}
+          </Text>
         </View>
-      )}
+      </LinearGradient>
+    </TouchableOpacity>
+  </View>
+)}
+
+      
       {/* Create Challenge for Friend Button */}
-      {profileData && (
+      {!groupId && !dataLoading && (
         <TouchableOpacity
           style={styles.createChallengeButton}
           onPress={() => navigation.navigate("CreateChallengeForFriend", { friendId })}
@@ -186,7 +302,7 @@ const Friends3: React.FC<Props> = ({ navigation }) => {
       )}
 
       {/* Floating Info icon and modal */}
-      {profileData && (
+      {!groupId && !dataLoading && (
         <>
           <TouchableOpacity style={styles.infoFab} onPress={() => setInfoVisible(true)}>
             <Ionicons name="information-circle-outline" size={26} color="#FFF" />
@@ -206,7 +322,7 @@ const Friends3: React.FC<Props> = ({ navigation }) => {
                 </View>
                 <View style={styles.infoBulletRow}>
                   <View style={styles.infoBulletDot} />
-                  <Text style={styles.infoBulletText}>We notify {profileData.name || profileData.username} to join</Text>
+                  <Text style={styles.infoBulletText}>We notify {name} to join</Text>
                 </View>
                 <View style={styles.infoBulletRow}>
                   <View style={styles.infoBulletDot} />
@@ -224,6 +340,8 @@ const Friends3: React.FC<Props> = ({ navigation }) => {
           </Modal>
         </>
       )}
+
+      
 
       {/* Navigation Bar */}
       <View style={styles.navBar}>
@@ -300,14 +418,14 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#FFD700",
   },
-  buttonContainer: {
-    marginTop: 225,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-  },
+buttonContainer: {
+  position: "absolute",
+  bottom: 100, // adjust above nav bar
+  left: 0,
+  right: 0,
+  alignItems: "center",
+  zIndex: 10,
+},
   addButton: {
     borderRadius: 30,
     paddingVertical: 16,
@@ -317,7 +435,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 2,
     borderColor: "rgba(255, 255, 255, 0.5)",
-    marginTop: 170,
+    marginTop: 10,
   },
   buttonContent: {
     flexDirection: "row",
@@ -467,6 +585,16 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: 18,
     fontWeight: "500",
+  },
+  scrollView: {
+    flex: 1,
+    width: '100%',
+  },
+  scrollViewContent: {
+    alignItems: 'center',
+    paddingTop: 20,
+    paddingBottom: 20,
+    flexGrow: 1,
   },
 })
 

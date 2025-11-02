@@ -1,16 +1,27 @@
 import type React from "react"
 import { useEffect, useState } from "react"
 import * as SecureStore from "expo-secure-store"
-import { ImageBackground, StyleSheet, Text, TouchableOpacity, View, TextInput, ActivityIndicator } from "react-native"
+import { ImageBackground, StyleSheet, Text, TouchableOpacity, View, TextInput, ActivityIndicator, Image } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { type NavigationProp, useRoute } from "@react-navigation/native"
 import { ScrollView } from "tamagui"
 import { useUser } from "../../context/UserContext"
-import { endpoints } from "../../api"
+import { BASE_URL, endpoints } from "../../api"
 import { getAccessToken } from "../../auth"
 
 type Props = {
   navigation: NavigationProp<any>
+}
+
+type Friend = {
+  id: number
+  name: string
+  username: string
+  avatar?: {
+    id: number;
+    imageUrl: string;
+    backgroundColor: string;
+  };
 }
 
 const Friends1: React.FC<Props> = ({ navigation }) => {
@@ -18,7 +29,7 @@ const Friends1: React.FC<Props> = ({ navigation }) => {
   const route = useRoute()
   const params = route.params as { groupId?: number } | undefined
   const groupId = params?.groupId
-  const [friends, setFriends] = useState<{ id: number; name: string }[]>([])
+  const [friends, setFriends] = useState<Friend[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [requestCount, setRequestCount] = useState(0)
@@ -181,15 +192,27 @@ const Friends1: React.FC<Props> = ({ navigation }) => {
           <ScrollView style={styles.scrollViewContainer} contentContainerStyle={styles.scrollViewContent}>
             {filteredFriends.length > 0 ? (
               filteredFriends.map((friend) => {
-                const backgroundColor = generatePastelColor(friend.name)
                 return (
                   <TouchableOpacity
                     key={friend.id}
                     style={styles.friendCard}
                     onPress={() => navigation.navigate("Friends3", { friendId: friend.id, groupId: groupId })}
                   >
-                    <View style={[styles.avatarContainer, { backgroundColor }]}>
-                      <Text style={styles.avatarText}>{getInitials(friend.name)}</Text>
+                    <View
+                      style={[
+                        styles.avatarContainer,
+                        { backgroundColor: friend.avatar?.backgroundColor || generatePastelColor(friend.name) },
+                      ]}
+                    >
+                      {friend.avatar?.imageUrl ? (
+                        <Image
+                          source={{ uri: `${BASE_URL}${friend.avatar.imageUrl}` }}
+                          style={{ width: 50, height: 50, borderRadius: 25 }}
+                          resizeMode="contain"
+                        />
+                      ) : (
+                        <Text style={styles.avatarText}>{getInitials(friend.name)}</Text>
+                      )}
                     </View>
                     <View style={styles.friendInfo}>
                       <Text style={styles.friendName}>{friend.name}</Text>
@@ -362,7 +385,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 15,
     borderWidth: 2,
-    borderColor: "rgba(255, 255, 255, 0.5)",
+    borderColor: '#FFD700',
   },
   avatarText: {
     fontSize: 22,

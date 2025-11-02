@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
-import { useUser } from '../../context/UserContext';
+import { SkillLevel, useUser } from '../../context/UserContext';
 import { Ionicons } from '@expo/vector-icons';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import { BASE_URL } from '../../api';
@@ -9,6 +9,8 @@ type Props = {
   name: string;
   currentMemoji: Memoji | null;
   bgColor: string;
+  skill_levels: SkillLevel[] | null // will only be passed this if coming from friend profile
+  numCoins: number;
 };
 
 
@@ -18,9 +20,10 @@ type Memoji = {
 }
 
 
-const UserProfileCard: React.FC<Props> = ({ name, currentMemoji, bgColor }) => {
+const UserProfileCard: React.FC<Props> = ({ name, currentMemoji, bgColor, skill_levels, numCoins }) => {
   const navigation = useNavigation<NavigationProp<any>>();
   const { skillLevels } = useUser();
+  console.log(numCoins)
 return (
   <View style={styles.profileContainer}>
     {/* Avatar wrapper (allows overflow for buttons) */}
@@ -39,39 +42,64 @@ return (
       </View>
 
       {/* Edit button (allowed to overflow) */}
-      <TouchableOpacity
-        style={styles.editButton}
-        onPress={() =>
-          navigation.navigate('EditAva', {
-            currentMemojiId: currentMemoji?.id,
-          })
-        }
-      >
-        <Ionicons name="pencil" size={18} color="#fff" />
-      </TouchableOpacity>
+      {!skill_levels && (
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() =>
+            navigation.navigate('EditAva', {
+              currentMemojiId: currentMemoji?.id,
+            })
+          }
+        >
+          <Ionicons name="pencil" size={18} color="#fff" />
+        </TouchableOpacity>
+      )}
+
     </View>
 
     {/* Name below the avatar */}
     <Text style={styles.profileName}>{name}</Text>
+    <Text style={styles.coinText}>{numCoins} 🪙</Text>
 
     {/* Stats */}
-    <View style={styles.statsContainer}>
-      {skillLevels.map((s, i) => {
-        const level =
-          s.totalPossible === 0
-            ? '0.0'
-            : ((s.totalEarned / s.totalPossible) * 10).toFixed(1);
+    {!skill_levels ? (
+      <View style={styles.statsContainer}>
+        {skillLevels.map((s, i) => {
+          const level =
+            s.totalPossible === 0
+              ? '0.0'
+              : ((s.totalEarned / s.totalPossible) * 10).toFixed(1);
 
-        return (
-          <View style={styles.statCard} key={i}>
-            <View style={styles.statRow}>
-              <Text style={styles.stat}>{s.category.categoryName}</Text>
-              <Text style={styles.statValue}>{level} / 10</Text>
+          return (
+            <View style={styles.statCard} key={i}>
+              <View style={styles.statRow}>
+                <Text style={styles.stat}>{s.category.categoryName}</Text>
+                <Text style={styles.statValue}>{level} / 10</Text>
+              </View>
             </View>
-          </View>
-        );
-      })}
-    </View>
+          );
+        })}
+      </View>
+    ) : (
+      <View style={styles.statsContainer}>
+        {skill_levels.map((s, i) => {
+          const level =
+            s.totalPossible === 0
+              ? '0.0'
+              : ((s.totalEarned / s.totalPossible) * 10).toFixed(1);
+
+          return (
+            <View style={styles.statCard} key={i}>
+              <View style={styles.statRow}>
+                <Text style={styles.stat}>{s.category.categoryName}</Text>
+                <Text style={styles.statValue}>{level} / 10</Text>
+              </View>
+            </View>
+          );
+        })}
+      </View>      
+    )}
+
   </View>
 );
 };
@@ -82,7 +110,7 @@ const styles = StyleSheet.create({
     marginTop: 50,
   },
 
-  // ✅ Outer wrapper — allows overflow for buttons
+  // Outer wrapper — allows overflow for buttons
   avatarWrapper: {
     position: 'relative',
     width: 120,
@@ -92,7 +120,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // ✅ Inner circular container — clips the image/background
+  // Inner circular container — clips the image/background
   avatarContainer: {
     width: 120,
     height: 120,
@@ -157,6 +185,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  coinText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 6,
   },
 });
 
