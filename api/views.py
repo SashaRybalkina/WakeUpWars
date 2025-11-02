@@ -1899,9 +1899,9 @@ class CreatePendingCollaborativeGroupChallengeView(APIView):
                     if device:
                         send_fcm_notification(
                             "New Group Challenge",
-                            f"A new group challenge '{challenge.name}' needs your availability.",
-                            {"screen": "Notifications", "type": "group_challenge_invite", "challengeId": challenge.id},
-                            invite.uID.id
+                            f"A new group challenge '{challenge.name + ""}' needs your availability.",
+                            {"screen": "Notifications", "type": "group_challenge_invite", "challengeId": str(challenge.id)},
+                            invite.uID
                         )
 
             print("here3")
