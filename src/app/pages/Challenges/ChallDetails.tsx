@@ -605,7 +605,7 @@ const loadPerformances = async () => {
 )}
 
 
-{whichChall === "Group" && (
+{(whichChall === "Group" || whichChall === "Public") && (
     <TouchableOpacity
       style={styles.viewDetailsButton}
       onPress={() =>

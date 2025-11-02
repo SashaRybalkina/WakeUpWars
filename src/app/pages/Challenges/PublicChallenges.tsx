@@ -269,6 +269,7 @@ const PublicChallenges: React.FC<Props> = ({ navigation }) => {
                           challId: challenge.id,
                           challName: challenge.name,
                           whichChall: "Public",
+                          isCompleted: challenge.isCompleted,
                         })
                       }
                     >
@@ -319,6 +320,7 @@ const PublicChallenges: React.FC<Props> = ({ navigation }) => {
                           challId: challenge.id,
                           challName: challenge.name,
                           whichChall: "Group",
+                          isCompleted: challenge.isCompleted,
                         })
                       }
                     >

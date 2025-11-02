@@ -1352,7 +1352,22 @@ class GetChallengeScheduleView(APIView):
 
         # Members
         memberships = ChallengeMembership.objects.filter(challengeID=challenge)
-        members = [{'id': m.uID.id, 'name': m.uID.name} for m in memberships]
+        # members = [{'id': m.uID.id, 'name': m.uID.name} for m in memberships]
+        members = []
+
+        for m in memberships:
+            user = m.uID
+            memoji = user.currentMemoji
+            members.append({
+                'id': user.id,
+                'name': user.name,
+                'username': user.username,
+                'avatar': {
+                    'id': memoji.id if memoji else None,
+                    'imageUrl': memoji.imageUrl if memoji else None,
+                    'backgroundColor': user.memojiBgColor,
+                }
+            })
 
         # Preload ChallengeAlarmSchedules, including the user
         challenge_alarm_schedules = (

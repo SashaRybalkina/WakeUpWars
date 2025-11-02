@@ -72,6 +72,8 @@ const Challenges: React.FC<Props> = ({ navigation }) => {
           {/* <ChallengeButton title="Public" icon="people-outline" onPress={() => goToPublicChallenges()} /> */}
           <ChallengeButton title="Public" icon="people-outline" onPress={() => goToChall1("Public")} />
 
+          <ChallengeButton title="Public Placeholder" icon="people-outline" onPress={() => goToPublicChallenges()} />
+
         </View>
       </View>
 

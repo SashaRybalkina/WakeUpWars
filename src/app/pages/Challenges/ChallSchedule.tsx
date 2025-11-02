@@ -14,7 +14,7 @@
 // import { endpoints } from "../../api"
 // // import styles from "./ChallSchedule.styles"
 import { useState, useEffect } from "react"
-import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View, Platform, Alert, Button } from "react-native"
+import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View, Platform, Alert, Button, Image } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import DateTimePicker from "@react-native-community/datetimepicker"
 import { type NavigationProp, useRoute } from "@react-navigation/native"
@@ -34,6 +34,17 @@ type DaySchedule = {
   alarms: Alarm[]
   games: { id?: number; name: string; order: number; screen?: string }[]
 }
+
+type Member = {
+  id: number;
+  name: string;
+  username: string;
+  avatar?: {
+      id: number;
+      imageUrl: string;
+      backgroundColor: string;
+  };
+};
 
 
 const DAYS = ["M", "T", "W", "TH", "F", "S", "SU"]
@@ -79,7 +90,7 @@ const ChallSchedule = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
 
   // Challenge members
-  const [members, setMembers] = useState<{ id: number; name: string }[]>([])
+  const [members, setMembers] = useState<Member[]>([])
 
   // Derived for convenience: currently visible games and alarms
   const currentDay = schedule.find((d) => d.dayOfWeek === selectedDay)
@@ -155,6 +166,11 @@ useEffect(() => {
 
   fetchSchedule()
 }, [])
+
+  const getRandomPastelColor = (seed: number) => {
+    const hue = (seed * 137.5) % 360
+    return `hsl(${hue}, 70%, 80%)`
+  }
 
 
   // const onStartDateChange = (event: any, date?: Date) => {
@@ -446,19 +462,25 @@ const getInitials = (name: string): string => {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Enrolled Members</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.membersScroll}>
-                {members.map((member, index) => {
-                  const initials = getInitials(member.name)
-                  const backgroundColor = generatePastelColor(member.name)
-
-                  return (
-                    <View key={index} style={styles.memberCard}>
-                      <View style={[styles.memberAvatar, { backgroundColor }]}>
-                        <Text style={styles.memberInitials}>{initials}</Text>
-                      </View>
-                      <Text style={styles.memberName}>{member.name}</Text>
-                    </View>
-                  )
-                })}
+  {members.map((member) => {
+    const bgColor = member.avatar?.backgroundColor ?? getRandomPastelColor(member.id);
+    return (
+      <View key={member.id} style={styles.memberContainer}>
+        <View style={[styles.memberAvatar, { backgroundColor: bgColor }]}>
+          {member.avatar?.imageUrl ? (
+            <Image
+              source={{ uri: `${BASE_URL}${member.avatar.imageUrl}` }}
+              style={styles.memberAvatarImage}
+              resizeMode="contain"
+            />
+          ) : (
+            <Text style={styles.memberInitials}>{getInitials(member.name)}</Text>
+          )}
+        </View>
+        <Text style={styles.memberName}>{member.name}</Text>
+      </View>
+    );
+  })}
               </ScrollView>
             </View>
           )}
@@ -1049,15 +1071,24 @@ const styles = StyleSheet.create({
     marginRight: 20,
     width: 70,
   },
-  memberAvatar: {
+  memberContainer: {
+    alignItems: "center",
+    marginRight: 15,
     width: 70,
-    height: 70,
-    borderRadius: 35,
+  },
+  memberAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 5,
     borderWidth: 2,
-    borderColor: "rgba(255, 255, 255, 0.5)",
+    borderColor: '#FFD700',
+  },
+  memberAvatarImage: {
+    width: '100%',
+    height: '100%',
   },
   memberInitials: {
     fontSize: 22,

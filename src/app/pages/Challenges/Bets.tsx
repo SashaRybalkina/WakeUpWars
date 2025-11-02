@@ -691,7 +691,7 @@ const BetCard: React.FC<{ bet: Bet; user: any; challengeMembers: Member[]; onRef
 
 
 
-      {isWinner && (
+      {isWinner && !bet.isCollected && (
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: "#4CAF50", marginTop: 10 }]}
           onPress={() => collectWinnings(bet.betAmount * 2)}
