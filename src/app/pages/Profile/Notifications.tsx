@@ -54,7 +54,7 @@ const NotificationsPage: React.FC<Props> = ({ navigation }) => {
     console.log(n)
     if (n.screen === "ChallDetails" || n.screen === "ChallSchedule") {
       navigation.navigate(n.screen as string, {
-        challengeId: n.challengeId || n.challenge_id,
+        challId: n.challengeId || n.challenge_id,
         challName: n.challName,
         whichChall: n.whichChall,
       })
