@@ -99,6 +99,7 @@ class UserNotification(models.Model):
     challengeId = models.IntegerField(null=True, blank=True)
     challName = models.CharField(max_length=255, null=True, blank=True)
     whichChall = models.CharField(max_length=64, null=True, blank=True)
+    groupId = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
         return f"Notification for {self.user.username if self.user else 'Unknown'}: {self.title}"

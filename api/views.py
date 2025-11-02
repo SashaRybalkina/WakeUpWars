@@ -1872,6 +1872,7 @@ class CreatePendingCollaborativeGroupChallengeView(APIView):
             # create invites for everyone (accepted = 2 means neither accepted nor declined, 1 
             # means accepted, 0 means declined)
             group_members = GroupMembership.objects.filter(groupID_id=data['group_id'])
+            groupId = data['group_id']
 
             invites = [
                 GroupChallengeInvite(
@@ -1891,9 +1892,7 @@ class CreatePendingCollaborativeGroupChallengeView(APIView):
                         body=f"A new group challenge '{challenge.name}' needs your availability.",
                         type="group_challenge_invite",
                         screen="GroupDetails",
-                        challengeId=challenge.id,
-                        challName=challenge.name,
-                        whichChall="Group"
+                        groupId=groupId,
                     )
                     device = FCMDevice.objects.filter(user=invite.uID).first()
                     if device:
@@ -2061,8 +2060,8 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
                             send_fcm_notification(
                                 "Group Challenge Finalized",
                                 f"The group challenge '{challenge.name}' has been finalized. Set your alarms!",
-                                {"screen": "Notifications", "type": "group_challenge_finalized", "challengeId": challenge.id},
-                                m.uID.id
+                                {"screen": "Notifications", "type": "group_challenge_finalized", "challengeId": str(challenge.id)},
+                                m.uID
                             )
 
                 # delete all invites
@@ -3730,6 +3729,7 @@ class UserNotificationsView(APIView):
                 "challengeId": n.challengeId,
                 "challName": n.challName,
                 "whichChall": n.whichChall,
+                "groupId": n.groupId,
             }
             for n in notifications
         ]
@@ -3787,7 +3787,7 @@ class SendGroupInviteView(APIView):
             title="Group Invite",
             body=f"{sender.name or sender.username} invited you to join group '{group.name}'.",
             type="group_invite",
-            screen="Groups",
+            screen="GroupInvites",
         )
         device = FCMDevice.objects.filter(user=recipient).first()
         if device:

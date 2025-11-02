@@ -57,7 +57,13 @@ const NotificationsPage: React.FC<Props> = ({ navigation }) => {
         challName: n.challName,
         whichChall: n.whichChall,
       })
-    } else {
+    } 
+    else if (n.screen === "GroupDetails") {
+      navigation.navigate(n.screen as string, {
+        groupId: n.groupId,
+      })
+    }
+    else {
       navigation.navigate(n.screen as string)
     }
   }
