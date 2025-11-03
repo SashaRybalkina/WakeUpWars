@@ -3758,6 +3758,9 @@ class UserNotificationsView(APIView):
                 "challName": n.challName,
                 "whichChall": n.whichChall,
                 "groupId": n.groupId,
+                "accepted": str(n.accepted),
+                "startDate": str(n.startDate),
+                "endDate": str(n.endDate),
             }
             for n in notifications
         ]
