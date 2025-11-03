@@ -278,17 +278,17 @@ const GroupDetails: React.FC<Props> = ({ navigation }) => {
 
             {/* Group Ranking (overall) */}
             <View style={styles.challengesSection}>
-              <Text style={styles.sectionTitle}>Ranking</Text>
+              <Text style={styles.sectionTitle}>Overall Ranking</Text>
               <View style={styles.leaderboardCard}>
-              {/* {lbSince && lbUntil && (
-                <Text style={{ color: "rgba(255,255,255,0.7)", textAlign: "center", marginBottom: 8, fontSize: 12 }}>
+              {lbSince && lbUntil && (
+                <Text style={{ color: "#68528dff", textAlign: "center", marginBottom: 8, fontSize: 12 }}>
                   Window: {lbSince} – {lbUntil}
                 </Text>
-              )} */}
+              )}
               {lbLoading && <Text style={{ color: "#FFF", textAlign: "center" }}>Loading…</Text>}
               {lbError && <Text style={{ color: "#F88", textAlign: "center" }}>{lbError}</Text>}
               {!lbLoading && !lbError && displayRows().length === 0 && (
-                <Text style={{ color: "rgba(255,255,255,0.8)", textAlign: "center" }}>No scores yet — be the first!</Text>
+                <Text style={{ color: "#68528dff", textAlign: "center" }}>No scores yet — be the first!</Text>
               )}
               {!lbLoading && !lbError && displayRows().map((row, index) => (
                 'ellipsis' in (row as any) ? (
@@ -300,7 +300,7 @@ const GroupDetails: React.FC<Props> = ({ navigation }) => {
                     <View style={styles.rankPosition}>
                       <Text style={styles.rankEmoji}>{getRankEmoji((row as LeaderRow).rank)}</Text>
                     </View>
-                    <Text style={[styles.rankName, (row as LeaderRow).name === myName && { color: "#7E57C2" }]}>
+                    <Text style={[styles.rankName, (row as LeaderRow).name === myName && { color: "#9679c9ff" }]}>
                       {(row as LeaderRow).name === myName ? "You" : (row as LeaderRow).name}
                     </Text>
                     <Text style={styles.rankPoints}>{(row as LeaderRow).points} pts</Text>
@@ -312,7 +312,7 @@ const GroupDetails: React.FC<Props> = ({ navigation }) => {
                 onPress={() => navigation.navigate("GroupLeaderboardDetails", { groupId: groupData.id, myName })}
               >
                 <LinearGradient
-                  colors={["#D1C4E9", "#7E57C2"]}
+                  colors={["#bdabddff", "#a383daa6"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.viewDetailsGradient}
@@ -672,10 +672,9 @@ const styles = StyleSheet.create({
   /* Leaderboard styles (mirrors ChallDetails) */
   leaderboardCard: {
     width: "100%",
-    backgroundColor: "rgba(255, 255, 255, 1)",
+    backgroundColor: "rgba(255, 255, 255, 0.75)",
     borderRadius: 20,
     padding: 20,
-    marginBottom: 20,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.2)",
   },
@@ -683,7 +682,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 15,
+    marginBottom: -40,
   },
   trophyIcon: { marginRight: 10 },
   leaderboardTitle: {
@@ -705,7 +704,7 @@ const styles = StyleSheet.create({
   rankPosition: { width: 40, alignItems: "center" },
   rankEmoji: { fontSize: 20, color: "#FFD700" },
   rankName: { flex: 1, fontSize: 18, fontWeight: "600", color: "#000000ff", marginLeft: 10 },
-  rankPoints: { fontSize: 18, fontWeight: "700", color: "#7E57C2" },
+  rankPoints: { fontSize: 18, fontWeight: "700", color: "#9e7dd6ff" },
   ellipsisText: { color: "#888", fontSize: 18, textAlign: "center", width: "100%" },
   viewDetailsButton: { height: 45, borderRadius: 22.5, overflow: "hidden", marginTop: 20 },
   viewDetailsGradient: { width: "100%", height: "100%", justifyContent: "center", alignItems: "center" },
