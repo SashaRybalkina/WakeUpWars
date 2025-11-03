@@ -2945,9 +2945,41 @@ class SkillLevelsView(APIView):
 
     def get(self, request):
         qs = SkillLevel.objects.filter(user=request.user).select_related("category")
-        data = SkillLevelSerializer(qs, many=True).data
-        print(data)
-        return Response(data)
+
+        window_days = SKILL_CONFIG.WINDOW_DAYS
+        half_life_days = SKILL_CONFIG.HALF_LIFE_DAYS
+
+        def recency_weight(when):
+            if half_life_days is None or when is None:
+                return 1.0
+            base = datetime.combine(when, datetime.min.time())
+            aware = timezone.make_aware(base, timezone.get_current_timezone())
+            age_days = max(0.0, (timezone.now() - aware).total_seconds() / 86400.0)
+            return 0.5 ** (age_days / half_life_days)
+
+        out = []
+        for sl in qs:
+            cat = sl.category
+            gp_qs = GamePerformance.objects.filter(user=request.user, game__category=cat)
+            if window_days is not None:
+                cutoff = timezone.now().date() - timedelta(days=window_days)
+                gp_qs = gp_qs.filter(date__gte=cutoff)
+            total_earned = 0.0
+            total_possible = 0.0
+            for gp in gp_qs.only("score", "date"):
+                score = max(0, min(100, int(gp.score)))
+                w = recency_weight(gp.date)
+                total_earned += score * w
+                total_possible += 100.0 * w
+            skill = 0.0 if total_possible <= 0 else min(10.0, 10.0 * (total_earned / total_possible))
+            out.append({
+                "category": {"id": cat.id, "categoryName": cat.categoryName},
+                "totalEarned": sl.totalEarned,
+                "totalPossible": sl.totalPossible,
+                "skill": round(skill, 2),
+            })
+
+        return Response(out)
 
 
 class SkillLevelDetailView(APIView):
@@ -3010,8 +3042,6 @@ class SkillLevelDetailView(APIView):
             "config": {"window_days": window_days, "half_life_days": half_life_days},
             "counts": {"games_considered": count, "last_played": str(last_played) if last_played else None},
         })
-
-
 class SkillLevelHistoryView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -3030,11 +3060,11 @@ class SkillLevelHistoryView(APIView):
         window_days = SKILL_CONFIG.WINDOW_DAYS
         half_life_days = SKILL_CONFIG.HALF_LIFE_DAYS
 
-        qs = GamePerformance.objects.filter(user=request.user, game__category=category)
+        qs = GamePerformance.objects.filter(user=request.user, game__category=category).select_related("game")
+
         if window_days is not None:
             cutoff = timezone.now().date() - timedelta(days=window_days)
             qs = qs.filter(date__gte=cutoff)
-        qs = qs.order_by("-date")
 
         def recency_weight(when):
             if half_life_days is None or when is None:
@@ -3062,6 +3092,8 @@ class SkillLevelHistoryView(APIView):
                 "earned": round(earned, 2),
                 "possible": round(possible, 2),
                 "cumulative_skill": round(skill_now, 2),
+                "game_id": gp.game_id,
+                "game_name": gp.game.name,
             })
 
         return Response({
