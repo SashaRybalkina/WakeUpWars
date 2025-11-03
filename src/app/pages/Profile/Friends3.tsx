@@ -126,7 +126,12 @@ const Friends3: React.FC<Props> = ({ navigation }) => {
 
       {/* Profile Section */}
       {profileData && (
-        <UserProfileCard name={profileData.name || profileData.username || ""} isCurrentUser={false} />
+        <UserProfileCard
+          name={profileData.name || profileData.username || ""}
+          isCurrentUser={false}
+          skillLevelsOverride={profileData.skill_levels}
+          disableSkillDetail={true}
+        />
       )}
 
       {/* Add to Group Button */}

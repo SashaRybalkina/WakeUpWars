@@ -9,16 +9,19 @@ type Props = {
   name: string;
   avatarSource?: any;
   isCurrentUser?: boolean;
+  skillLevelsOverride?: any[];
+  disableSkillDetail?: boolean;
 };
 
-const UserProfileCard: React.FC<Props> = ({ name, avatarSource, isCurrentUser = true }) => {
+const UserProfileCard: React.FC<Props> = ({ name, avatarSource, isCurrentUser = true, skillLevelsOverride, disableSkillDetail }) => {
   const { skillLevels } = useUser();
   const navigation = useNavigation<any>();
   const [tab, setTab] = React.useState<'skills' | 'badges'>('skills');
   const [infoVisible, setInfoVisible] = React.useState(false);
 
   const rows: any[][] = [];
-  const list = Array.isArray(skillLevels) ? skillLevels : [];
+  const effectiveSkills = Array.isArray(skillLevelsOverride) ? skillLevelsOverride : skillLevels;
+  const list = Array.isArray(effectiveSkills) ? effectiveSkills : [];
   for (let i = 0; i < list.length; i += 3) rows.push(list.slice(i, i + 3));
 
   const getVal = (sl: any) => {
@@ -106,8 +109,12 @@ const UserProfileCard: React.FC<Props> = ({ name, avatarSource, isCurrentUser = 
                       <TouchableOpacity
                         key={`${categoryId ?? j}`}
                         style={styles.skillItem}
-                        activeOpacity={0.8}
-                        onPress={() => categoryId && navigation.navigate('SkillDetail', { categoryId, categoryName })}
+                        activeOpacity={isCurrentUser && !disableSkillDetail ? 0.8 : 1}
+                        onPress={() => {
+                          if (isCurrentUser && !disableSkillDetail && categoryId) {
+                            navigation.navigate('SkillDetail', { categoryId, categoryName });
+                          }
+                        }}
                       >
                         <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
                           <Svg width={size} height={size}>
