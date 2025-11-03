@@ -57,6 +57,15 @@ android/app/.cxx/
 android/app/.externalNativeBuild/
 android/app/src/main/assets/index.android.bundle
 android/app/src/main/res/values/generated.xml
+android/local.properties
 
 # React Native Android autolinking
 android/build/generated/autolinking/
+
+yarn.lock
+
+# Expo / Metro cache
+.expo/
+.expo-shared/
+.expo-bundle/
+.expo-source-maps/
