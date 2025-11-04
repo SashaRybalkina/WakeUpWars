@@ -117,14 +117,13 @@ from .views import (
     ExtraMemojiesView,
     SetCurrentMemojiView,
     PurchaseMemojiView,
-    SendNotificationView,
     SavePushTokenView,
     UserNotificationsView,
     DeleteNotificationView,
     CurrentChallengesView,
     SaveFCMTokenView,
     SendGroupInviteView,
-    RespondGroupInviteView
+    RespondGroupInviteView,
     CreateTypingRaceGameView,
     FinalizeTypingRaceResultView
 )
