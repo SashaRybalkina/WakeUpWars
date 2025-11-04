@@ -69,6 +69,7 @@ import CreateChallengeForFriend from './pages/Challenges/CreateChallengeForFrien
 import Bets from './pages/Challenges/Bets';
 import MakeBet from './pages/Challenges/MakeBet';
 import { BASE_URL } from './api';
+import TypingRace from './pages/TypingRaceGame/TypingRace';
 
 messaging().setBackgroundMessageHandler(async remoteMessage => {
   console.log('FCM background message:', remoteMessage);
@@ -217,7 +218,7 @@ function App() {
   return (
     <NavigationContainer ref={navigationRef} onReady={flushPendingNavigation}>
       <Stack.Navigator
-        // initialRouteName="Login"
+        //initialRouteName="TypingRace"
         initialRouteName="Bootstrap"
         screenOptions={{ animationEnabled: false, headerShown: false }}
       >
@@ -481,6 +482,12 @@ function App() {
           component={CreateChallengeForFriend}
           options={{ headerShown: false }}
         />
+        <Stack.Screen
+          name="TypingRace"
+          component={TypingRace}
+          options={{ headerShown: false }}
+        />
+
         <Stack.Screen
           name="Bets"
           component={Bets}

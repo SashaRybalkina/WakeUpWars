@@ -1,5 +1,3 @@
-from django.urls import path
-
 from .views import (AcceptPersonalChallenge, ConversationView, DeclinePersonalChallenge, 
                     ExternalHandleViewSet, FinalizeChallengeView, FinalizePublicChallengeView, 
                     GetMatchingChallengesView, GetPendingPublicChallengesView, GetPersonalChallengeInvites, 
@@ -120,6 +118,8 @@ from .views import (
     SaveFCMTokenView,
     SendGroupInviteView,
     RespondGroupInviteView
+    CreateTypingRaceGameView,
+    FinalizeTypingRaceResultView
 )
 
 
@@ -236,4 +236,9 @@ urlpatterns = [
     path('groups/invite/', SendGroupInviteView.as_view()),
     path('groups/invite/respond/<int:invite_id>/', RespondGroupInviteView.as_view()),
     path('group-invites/<int:user_id>/', GroupInviteListView.as_view()),
+
+    # Typing Race Game
+    path('typing-race/create/', CreateTypingRaceGameView.as_view(), name='typing-race-create'),
+    path('typing-race/finalize/', FinalizeTypingRaceResultView.as_view(), name='typing-race-finalize'),
+
 ]
