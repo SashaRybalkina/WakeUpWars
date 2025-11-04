@@ -69,3 +69,5 @@ yarn.lock
 .expo-shared/
 .expo-bundle/
 .expo-source-maps/
+
+wakeupwars_private_key.json

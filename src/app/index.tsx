@@ -1,5 +1,5 @@
-import * as React from 'react';
-import { NativeEventEmitter, NativeModules } from 'react-native';
+import React, { useEffect, useState } from "react";
+import { NativeEventEmitter, NativeModules, Platform } from 'react-native';
 import {
   createNavigationContainerRef,
   NavigationContainer,
@@ -7,7 +7,8 @@ import {
 import type { ParamListBase } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import * as Notifications from 'expo-notifications';
-import NotificationService from './Notification';
+import { getAccessToken } from "./auth";
+import messaging from '@react-native-firebase/messaging';
 
 import { useUser } from './context/UserContext';
 
@@ -30,6 +31,7 @@ import SomeCategories from './pages/Games/SomeCategories';
 import GameExpanded from './pages/Games/GameExpanded';
 import Games from './pages/Games/Games';
 import GroupScreen from './pages/Groups';
+import GroupInvites from './pages/Groups/GroupInvites';
 import CreateGroup from './pages/Groups/CreateGroup';
 import EditAvailability from './pages/Groups/EditAvailability';
 import GroupChall1 from './pages/Groups/GroupChall1';
@@ -41,12 +43,12 @@ import GroupChallCollab from './pages/Groups/GroupChallCollab';
 import GroupChallCollab2 from './pages/Groups/GroupChallCollab2';
 import GroupDetails from './pages/Groups/GroupDetails';
 import LoginScreen from './pages/Login';
-import InputOutput from './pages/mainPage';
 import MainPage from './pages/mainPage';
 import Messages from './pages/Messages';
 import Conversation from './pages/Conversation';
 import PatternGameScreen from './pages/PatternGame/PatternGameScreen';
 import Profile from './pages/Profile';
+import NotificationsPage from './pages/Profile/Notifications';
 import AcceptFInvite from './pages/Profile/AcceptFInvite';
 import AcceptGInvite from './pages/Profile/AcceptGInvite';
 import FriendsRequests from './pages/Profile/FriendRequest';
@@ -68,7 +70,11 @@ import Bets from './pages/Challenges/Bets';
 import MakeBet from './pages/Challenges/MakeBet';
 import { BASE_URL } from './api';
 
-const { IntentModule, NotificationModule, AlarmModule } = NativeModules;
+messaging().setBackgroundMessageHandler(async remoteMessage => {
+  console.log('FCM background message:', remoteMessage);
+});
+
+const { IntentModule, AlarmModule } = NativeModules;
 const alarmEmitter = new NativeEventEmitter(AlarmModule);
 
 const Stack = createStackNavigator<ParamListBase>();
@@ -93,93 +99,93 @@ function flushPendingNavigation() {
   }
 }
 
+async function registerForFCM(userId: string) {
+  if (!userId) return;
+
+  try {
+    const token = await messaging().getToken();
+    const platform = Platform.OS;
+
+    const accessToken = await getAccessToken();
+    if (!accessToken) throw new Error("Not authenticated");
+
+    await fetch(`${BASE_URL}/api/save-fcm-token/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ token, user_id: userId, platform }),
+    });
+
+    console.log('FCM token registered:', token);
+  } catch (err) {
+    console.error('Failed to register FCM token:', err);
+  }
+}
+
+
 function App() {
   const { user } = useUser();
   const wsRef = React.useRef<WebSocket | null>(null);
 
-  React.useEffect(() => {
-    const subscription = alarmEmitter.addListener('AlarmTriggered', (event) => {
-      NotificationService.sendNotification(
-        user?.Id,
-        "Alarm",
-        "Wake up! Time to start your challenge!",
-        event.screen,
-        {
-          challengeId: event.challengeId,
-          challName: event.challName,
-          whichChall: event.whichChall,
-        }
-      );
-    });
-
-    return () => subscription.remove();
-  }, []);
-
-  React.useEffect(() => {
-    let subscription: any;
-    let notificationListener: any;
-
-    // WebSocket notification listener
-    if (user && user.id) {
-      // Replace ws:// with wss:// if using HTTPS
-      const wsUrl = `${BASE_URL.replace(/^http/, "ws")}/ws/notifications/${user.id}/`;
-      wsRef.current = new WebSocket(wsUrl);
-      wsRef.current.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type === 'notification_event') {
-            // Show notification using native module
-            console.log(data.screen);
-            console.log(data);
-            NotificationModule.showNotification(
-              data.title,
-              data.body,
-              data.screen,
-              {}
-            );
-          }
-        } catch (e) {
-          console.error('WebSocket notification parse error:', e);
-        }
-      };
-      wsRef.current.onerror = (err) => {
-        console.error('WebSocket error:', err);
-      };
-      wsRef.current.onclose = () => {
-        console.log('WebSocket closed');
-      };
-    }
-
-    // 1) cold-start intent
-    IntentModule.getInitialIntent()
-      .then((data: any) => {
-        console.log('getInitialIntent =>', data);
-        if (data?.screen) {
+  useEffect(() => {
+    const handleInitialIntent = async () => {
+      const data = await IntentModule.getInitialIntent();
+      console.log('getInitialIntent =>', data);
+      if (data?.screen) {
+        setTimeout(() => {
           if (!user) {
-            navigate('Login', {
-              redirectTo: data.screen,
-              redirectParams: data,
-            });
+            navigate('Login', { redirectTo: data.screen, redirectParams: data });
           } else {
             navigate(data.screen, data.params);
           }
-        }
-      })
-      .catch((e: any) => {
-        console.warn('getInitialIntent error', e);
-      });
+        }, 800);
+      }
+    };
+  
+    handleInitialIntent();
+  }, [user]);  
+
+  useEffect(() => {
+    if (user?.id) {
+      registerForFCM(user.id);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    let subscription: any;
+    let notificationListener: any;
+
+    // 1) cold-start intent
+    // IntentModule.getInitialIntent()
+    //   .then((data: any) => {
+    //     console.log('getInitialIntent =>', data);
+    //     if (data?.screen) {
+    //       if (!user) {
+    //         navigate('Login', {
+    //           redirectTo: data.screen,
+    //           redirectParams: data,
+    //         });
+    //       } else {
+    //         navigate(data.screen, data.params);
+    //       }
+    //     }
+    //   })
+    //   .catch((e: any) => {
+    //     console.warn('getInitialIntent error', e);
+    //   });
 
     // 2) warm-start intents: subscribe to native event emitter
     const emitter = IntentModule ? new NativeEventEmitter(IntentModule) : null;
     if (emitter) {
       subscription = emitter.addListener('NewIntent', (data: any) => {
       console.log('NewIntent event =>', data);
-      if (data?.screen) {
-        if (!user) {
-          navigate('Login', { redirectTo: data.screen, redirectParams: data });
-        } else {
-          navigate(data.screen, data.params);
-        }
+      const targetScreen = data.screen || "Notifications";
+      if (!user) {
+        navigate('Login', { redirectTo: targetScreen, redirectParams: data });
+      } else {
+        navigate(targetScreen, data.params);
       }
     });
     }
@@ -188,15 +194,14 @@ function App() {
     notificationListener =
       Notifications.addNotificationResponseReceivedListener((response) => {
         const data = response.notification.request.content.data;
-        if (data?.screen) {
-          if (!user) {
-            navigate('Login', {
-              redirectTo: data.screen,
-              redirectParams: data.params || {},
-            });
-          } else {
-            navigate(data.screen, data.params || {});
-          }
+        const targetScreen = data.screen || "Notifications";
+        if (!user) {
+          navigate('Login', {
+            redirectTo: targetScreen,
+            redirectParams: data.params || {},
+          });
+        } else {
+          navigate(targetScreen, data.params || {});
         }
       });
 
@@ -282,6 +287,11 @@ function App() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
+          name="GroupInvites"
+          component={GroupInvites}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
           name="CreateGroup"
           component={CreateGroup}
           options={{ headerShown: false }}
@@ -334,6 +344,11 @@ function App() {
         <Stack.Screen
           name="Profile"
           component={Profile}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Notifications"
+          component={NotificationsPage}
           options={{ headerShown: false }}
         />
         <Stack.Screen

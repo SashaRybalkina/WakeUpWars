@@ -19,15 +19,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
 import { NativeModules } from 'react-native';
-const { NotificationModule } = NativeModules;
 
 import { scheduleAlarms } from '../Alarm';
-import { endpoints, BASE_URL } from '../api';
+import { BASE_URL, endpoints } from '../api';
 import { useUser } from '../context/UserContext';
 import UserProfileCard from './Components/UserProfileCard';
 const { AlarmModule } = NativeModules;
 import { scheduleAlarmsForUser } from '../alarmService';
-import NotificationService from '../Notification';
 
 type Props = {
   navigation: NavigationProp<any>;
@@ -57,6 +55,7 @@ const Profile: React.FC<Props> = ({ navigation }) => {
   const { user, setUser, setSkillLevels } = useUser();
   const [badges, setBadges] = useState<any[]>([]);
   const [selectedBadge, setSelectedBadge] = useState<null | any>(null);
+  const [notifCount, setNotifCount] = useState(0);
 
   // const handleLogout = () => {
   //   setUser(null);
@@ -90,6 +89,44 @@ const handleLogout = async () => {
   }
 };
 
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const fetchNotificationsCount = async () => {
+      try {
+        const access = await getAccessToken();
+        const res = await fetch(endpoints.notifications(Number(user.id)), {
+          headers: { Authorization: `Bearer ${access}` },
+        });
+        const data = await res.json();
+        setNotifCount(data);
+      } catch (e) {
+        console.error("Failed to fetch notification count:", e);
+      }
+    };
+
+    fetchNotificationsCount();
+
+    // Optional: refresh count every 30s while on profile
+    const interval = setInterval(fetchNotificationsCount, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+    // useEffect(() => {
+  //   if (!user) return;
+  //   (async () => {
+  //     try {
+  //       const access = await getAccessToken();
+  //       const res = await fetch(endpoints.skillLevels(), {
+  //         headers: {
+  //           Authorization: `Bearer ${access}`
+  //         }
+  //       });
+  //       setSkillLevels(await res.json());
+  //     } catch {}
+  //   })();
+  // }, [user, setSkillLevels]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -281,6 +318,21 @@ const PulsingBadge = ({ badge, onPress }) => {
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
       <View style={styles.container}>
+
+      <TouchableOpacity
+        style={styles.notificationButton}
+        onPress={() => navigation.navigate('Notifications')}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="notifications-outline" size={30} color="#FFD700" />
+        {notifCount > 0 && (
+          <View style={styles.notificationBadge}>
+            <Text style={styles.notificationBadgeText}>
+              {notifCount > 9 ? '9+' : notifCount}
+            </Text>
+          </View>
+        )}
+      </TouchableOpacity>
 
       {/* ScrollView wraps all content except the bottom navigation */}
       <ScrollView
@@ -510,28 +562,6 @@ const PulsingBadge = ({ badge, onPress }) => {
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
 
-        {/* <TouchableOpacity
-          style={styles.logoutButton}
-          activeOpacity={0.8}
-          onPress={() =>
-            NotificationService.sendNotification(
-              user.id,
-              "Wassupppp",
-              "This is a real push notification!",
-              "FriendsRequests",
-              {}
-            )
-          }
-        >
-          {/* <Ionicons
-            name="game-controller"
-            size={22}
-            color="#FFF"
-            style={styles.logoutIcon}
-          />
-          <Text style={styles.logoutText}>Notification</Text> */}
-
-
 
         {/* <TouchableOpacity
           style={styles.logoutButton}
@@ -600,7 +630,7 @@ const PulsingBadge = ({ badge, onPress }) => {
       {/* Navigation Bar stays fixed at the bottom */}
       <View style={styles.navBar}>
         <TouchableOpacity style={styles.navButton} onPress={goToChallenges}>
-          <Ionicons name="star" size={28} color="#FFF" />
+          <Ionicons name="star-outline" size={28} color="#FFF" />
           <Text style={styles.navText}>Challenges</Text>
         </TouchableOpacity>
 
@@ -615,7 +645,7 @@ const PulsingBadge = ({ badge, onPress }) => {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navButton} onPress={goToProfile}>
-          <Ionicons name="person-outline" size={28} color="#FFD700" />
+          <Ionicons name="person" size={28} color="#FFD700" />
           <Text style={styles.activeNavText}>Profile</Text>
         </TouchableOpacity>
       </View>
@@ -794,6 +824,35 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 1.5,
   },
+  notificationButton: {
+    position: 'absolute',
+    top: 60, // adjust for status bar
+    left: 20,
+    zIndex: 10,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    padding: 10,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 3,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: 'red',
+    borderRadius: 10,
+    width: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
+  },  
 });
 
 export default Profile;

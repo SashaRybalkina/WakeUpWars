@@ -113,6 +113,7 @@ class Message(models.Model):
     groupID = models.ForeignKey(Group, related_name='group_messages', null=True, blank=True, on_delete=models.CASCADE) # null if private message
     created_at = models.DateTimeField(auto_now_add=True)
     timestamp = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'Messages'
@@ -134,6 +135,10 @@ class UserNotification(models.Model):
     challengeId = models.IntegerField(null=True, blank=True)
     challName = models.CharField(max_length=255, null=True, blank=True)
     whichChall = models.CharField(max_length=64, null=True, blank=True)
+    groupId = models.IntegerField(null=True, blank=True)
+    startDate = models.CharField(max_length=64, null=True, blank=True)
+    endDate = models.CharField(max_length=64, null=True, blank=True)
+    accepted = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
         return f"Notification for {self.user.username if self.user else 'Unknown'}: {self.title}"
@@ -769,3 +774,18 @@ class PushToken(models.Model):
 
     def __str__(self):
         return f"ExpoPushToken for {self.user.username}: {self.token}"
+
+
+class FCMDevice(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    token = models.CharField(max_length=255, unique=True)
+    platform = models.CharField(max_length=10, choices=[("ios", "iOS"), ("android", "Android")])
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class GroupInvite(models.Model):
+    group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    sender = models.ForeignKey(User, related_name='sent_group_invites', on_delete=models.CASCADE)
+    recipient = models.ForeignKey(User, related_name='received_group_invites', on_delete=models.CASCADE)
+    status = models.IntegerField(default=2)  # 2=pending, 1=accepted, 0=declined
+    created_at = models.DateTimeField(auto_now_add=True)

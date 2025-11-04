@@ -15,6 +15,9 @@ import { Ionicons } from "@expo/vector-icons"
 import { BASE_URL } from "../api"
 import { useUser } from "../context/UserContext"
 import { getAccessToken } from "../auth"
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native"
+import axios from "axios"
 
 type Props = {
   route: any
@@ -22,13 +25,13 @@ type Props = {
 }
 
 const Conversation: React.FC<Props> = ({ route }) => {
-  const { user, setActiveConversationId, setActiveGroupId } = useUser()
+  const { user } = useUser()
   const { otherUserId, groupId, groupName, otherUserName } = route.params
 
   const [messages, setMessages] = useState<any[]>([])
   const [newMessage, setNewMessage] = useState("")
   const [sending, setSending] = useState(false)
-  const [loading, setLoading] = useState(true) // Loading state
+  const [loading, setLoading] = useState(true)
 
   const ws = useRef<WebSocket | null>(null)
   const flatListRef = useRef<FlatList>(null)
@@ -47,10 +50,22 @@ const Conversation: React.FC<Props> = ({ route }) => {
 
     ws.current = new WebSocket(url)
 
-    ws.current.onmessage = (event: any) => {
-      const data = JSON.parse(event.data)
-      setMessages((prev) => [...prev, data])
-    }
+    ws.current.onmessage = async (event: any) => {
+      const data = JSON.parse(event.data);
+      setMessages(prev => [...prev, data]);
+    
+      // if (data.sender_id !== user.id) {
+      //   try {
+      //     const token = await getAccessToken();
+      //     await axios.post(`${BASE_URL}/api/messages/mark-read/`, 
+      //       groupId ? { group_id: groupId } : { other_user_id: otherUserId },
+      //       { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
+      //     );
+      //   } catch (err) {
+      //     console.error("Failed to mark new message as read:", err);
+      //   }
+      // }
+    };
 
     ws.current.onerror = (err: any) => console.error("WebSocket error:", err)
 
@@ -93,28 +108,52 @@ const Conversation: React.FC<Props> = ({ route }) => {
     fetchConversation()
   }, [user, otherUserId, groupId])
 
-  // Set active conversation/group
-  useEffect(() => {
-    if (groupId) {
-      setActiveGroupId(groupId)
-      setActiveConversationId(null)
-    } else if (otherUserId) {
-      setActiveConversationId(otherUserId)
-      setActiveGroupId(null)
-    }
 
-    return () => {
-      setActiveConversationId(null)
-      setActiveGroupId(null)
-    }
-  }, [groupId, otherUserId, setActiveConversationId, setActiveGroupId])
+  // useFocusEffect(
+  //   React.useCallback(() => {
+  //     const markMessagesAsRead = async () => {
+  //       if (!user?.id) return;
 
-  // Scroll to bottom when messages update
+  //       try {
+  //         const token = await getAccessToken();
+  //         if (!token) return;
+
+  //         const payload = groupId
+  //           ? { group_id: groupId }
+  //           : { other_user_id: otherUserId };
+
+  //         await axios.post(`${BASE_URL}/api/messages/mark-read/`, payload, {
+  //           headers: {
+  //             Authorization: `Bearer ${token}`,
+  //             "Content-Type": "application/json",
+  //           },
+  //         });
+
+  //         setMessages(prev =>
+  //           prev.map(msg =>
+  //             msg.sender_id !== user.id && msg.is_read === false
+  //               ? { ...msg, is_read: true }
+  //               : msg
+  //           )
+  //         );
+  //       } catch (err) {
+  //         console.error("Failed to mark messages as read:", err);
+  //       }
+  //     };
+
+  //     markMessagesAsRead();
+
+  //     return () => {};
+  //   }, [user?.id, otherUserId, groupId])
+  // );
+
+
   useEffect(() => {
     if (messages.length > 0) {
       flatListRef.current?.scrollToEnd({ animated: true })
     }
   }, [messages])
+  
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !user?.id) return
@@ -232,6 +271,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#111" },
   banner: {
     padding: 16,
+    paddingTop: 50,
     backgroundColor: "#497ead",
     alignItems: "center",
   },

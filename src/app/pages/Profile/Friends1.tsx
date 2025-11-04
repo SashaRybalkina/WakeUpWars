@@ -27,6 +27,7 @@ type Friend = {
 const Friends1: React.FC<Props> = ({ navigation }) => {
   const { user } = useUser()
   const route = useRoute()
+  const from = route?.params?.from;
   const params = route.params as { groupId?: number } | undefined
   const groupId = params?.groupId
   const [friends, setFriends] = useState<Friend[]>([])
@@ -196,7 +197,20 @@ const Friends1: React.FC<Props> = ({ navigation }) => {
                   <TouchableOpacity
                     key={friend.id}
                     style={styles.friendCard}
-                    onPress={() => navigation.navigate("Friends3", { friendId: friend.id, groupId: groupId })}
+                    onPress={() => {
+                      if (from === "Messages") {
+                        navigation.navigate("Conversation", { 
+                          otherUserId: friend.id, 
+                          otherUserName: friend.name,
+                          groupId: null,
+                          groupName: null
+                        });
+                      }
+                      else
+                      {
+                        navigation.navigate("Friends3", { friendId: friend.id, groupId: groupId })}
+                      }
+                    }
                   >
                     <View
                       style={[

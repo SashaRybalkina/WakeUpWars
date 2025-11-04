@@ -74,6 +74,11 @@ export const endpoints = {
   sendFriendRequest: () => `${BASE_URL}/api/friend-request/send/`,
   friendRequests: (userId: number) =>
     `${BASE_URL}/api/friend-requests/${userId}/`,
+  sendGroupInvite: () => `${BASE_URL}/api/groups/invite/`,
+  groupInvites: (userId: number) =>
+    `${BASE_URL}/api/group-invites/${userId}/`,
+  respondToGroupInvite: (inviteId: number) =>
+    `${BASE_URL}/api/groups/invite/respond/${inviteId}/`,
   getChallengeInvites: (userId: number, groupId: number) =>
     `${BASE_URL}/api/get-challenge-invites/${userId}/${groupId}/`,
   // challengeInvites: (userId: number, groupId: number) => `${BASE_URL}/api/challenge-invites/${userId}/${groupId}/`,

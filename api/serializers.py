@@ -272,7 +272,24 @@ class MessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Message
-        fields = ['id', 'message', 'sender', 'recipient', 'groupID']
+        fields = ['id', 'message', 'sender', 'recipient', 'groupID', 'is_read']
+
+    def to_representation(self, instance):
+        """
+        Hide 'is_read' from the sender (since they’ve already seen their own messages).
+        Show it only to the recipient.
+        """
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+
+        if not request or not hasattr(request, 'user'):
+            data.pop('is_read', None)
+            return data
+
+        if instance.recipient_id != request.user.id:
+            data.pop('is_read', None)
+
+        return data
         
 class FriendRequestSerializer(serializers.ModelSerializer):
     sender = UserSerializer(read_only=True)
@@ -285,7 +302,10 @@ class FriendRequestSerializer(serializers.ModelSerializer):
 class CreateGroupSerializer(serializers.Serializer):
     name = serializers.CharField()
     members = serializers.ListField(
-        child=serializers.IntegerField()
+        child=serializers.IntegerField(),
+        required=False,
+        default=list,
+        allow_empty=True
     )
 
 class GroupSerializer(serializers.ModelSerializer):

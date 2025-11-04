@@ -1,5 +1,28 @@
 from django.urls import path
 
+from .views import (AcceptPersonalChallenge, ConversationView, DeclinePersonalChallenge, 
+                    ExternalHandleViewSet, FinalizeChallengeView, FinalizePublicChallengeView, 
+                    GetMatchingChallengesView, GetPendingPublicChallengesView, GetPersonalChallengeInvites, 
+                    GetPublicChallengesView, GetUserAvailabilityView, GroupConversationView, GroupInviteListView, 
+                    JoinPublicChallengeView, LoginView, MarkMessagesReadView, ObligationViewSet, PaymentViewSet, RegisterView, 
+                    GroupListView, HelloWorldView, SendMessageGroupView, SendMessageView, SetChallAvailabilityView, 
+                    SetUserAvailabilityView, ShareChallengeView, SingOrMultGameListView, SomeCatsListView, 
+                    UserGroupConversationsView, UserProfileView, GetChallengeScheduleView, AddGameToScheduleView,
+                    UserMessagesView, GroupDetailsView, CatListView, GameListView,
+                    ChallengeListView, GetChallengeInitiatorView,
+                    ChallengeDetailView, ChallengeGameScheduleView, CreateManualGroupChallengeView,
+                    CreatePendingCollaborativeGroupChallengeView, FriendListView,
+                    AddGroupMemberView, SendFriendRequestView, FriendRequestListView,
+                    RespondToFriendRequestView, FinalizeCollaborativeGroupChallengeScheduleView,
+                    SentFriendRequestListView, AllUsersView, CancelFriendRequestView,
+                    CreateGroupView, CreatePersonalChallengeView, GetChallengeInvitesView,
+                    GetAvailabilitiesView, DeclineChallengeInviteView,
+                    ChallengeLeaderboardView, SubmitGameScoresView, ChallengeDailyHistoryView,
+                    SkillLevelsView, CreatePublicChallengeView, RewardSettingView, 
+                    CreateSudokuGameView, UserRecentGroupMessagesView, UserRecentMessagesView, ValidateSudokuMoveView, CreatePatternGameView, 
+                    ValidatePatternMoveView, CreateWordleGameView, ValidateWordleMoveView, 
+                    SavePushTokenView, UserNotificationsView, DeleteNotificationView)
+
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.routers import DefaultRouter
@@ -94,6 +117,9 @@ from .views import (
     UserNotificationsView,
     DeleteNotificationView,
     CurrentChallengesView,
+    SaveFCMTokenView,
+    SendGroupInviteView,
+    RespondGroupInviteView
 )
 
 
@@ -133,6 +159,9 @@ urlpatterns = [
     path('get-initiator/<int:chall_id>/', GetChallengeInitiatorView.as_view(), name='get-initiator'),
     path('get-num-coins/<int:user_id>/', GetNumCoinsView.as_view(), name='get-num-coins'),
     path('messages/<int:user_id>/', UserMessagesView.as_view()),
+    path('messages/mark-read/', MarkMessagesReadView.as_view(), name='mark_messages_read'),
+    path('user/<int:user_id>/recent-messages/', UserRecentMessagesView.as_view(), name="user-recent-messages"),
+    path('user/<int:user_id>/recent-group-messages/', UserRecentGroupMessagesView.as_view(), name='user-recent-group-messages'),
     path('groups/<int:group_id>/', GroupDetailsView.as_view(), name='group-details'),
     path('user/<int:user_id>/group-conversations/', UserGroupConversationsView.as_view(), name='user-group-conversations'),
     path('group-member-add/<int:group_id>/', AddGroupMemberView.as_view(), name='group-mem-add'),
@@ -165,9 +194,8 @@ urlpatterns = [
     path('decline-challenge-invite/<int:user_id>/<int:chall_id>/', DeclineChallengeInviteView.as_view(), name='decline-challenge-invite'),
     path('messages/send/<int:user_id>/', SendMessageView.as_view(), name='send-message'),
     path('messages/send/group/<int:group_id>/', SendMessageGroupView.as_view()),
-    path("notifications/send/", SendNotificationView.as_view(), name="send_notification"),
-    path("notifications/", SendNotificationView.as_view(), name="notification"),
     path("push-tokens/", SavePushTokenView.as_view(), name="save_push_token"),
+    path('save-fcm-token/', SaveFCMTokenView.as_view()),
     path('conversation/<int:user_id>/<int:recipient_id>/', ConversationView.as_view(), name='conversation'),
     path('conversation/group/<int:group_id>/', GroupConversationView.as_view(), name='conversation-group'),
     path('profile/all/', AllUsersView.as_view(), name='all-users'),
@@ -204,4 +232,8 @@ urlpatterns = [
     path('save-push-token/', SavePushTokenView.as_view(), name='save-push-token'),
     path('notifications/<int:user_id>/', UserNotificationsView.as_view(), name='user-notifications'),
     path("notifications/<int:notification_id>/delete/", DeleteNotificationView.as_view(), name="delete-notification"),
+
+    path('groups/invite/', SendGroupInviteView.as_view()),
+    path('groups/invite/respond/<int:invite_id>/', RespondGroupInviteView.as_view()),
+    path('group-invites/<int:user_id>/', GroupInviteListView.as_view()),
 ]

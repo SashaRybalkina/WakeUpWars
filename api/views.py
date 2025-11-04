@@ -5,7 +5,7 @@ from datetime import timezone, datetime, date, timedelta
 from datetime import date as date_cls, timedelta
 import random
 from unittest import result
-from django.db.models import Sum, Count, Q, F, Prefetch, Exists, OuterRef
+from django.db.models import Sum, Count, Q, F, Prefetch, Exists, OuterRef, Subquery
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.views import View
@@ -30,12 +30,14 @@ from django.shortcuts import get_object_or_404
 from django.contrib.auth import authenticate, get_user_model
 
 from api.chat_consumer import ACTIVE_CHAT_USERS
+from api.middleware import get_user_from_token
+from api.utils.notifications import send_fcm_notification
 from .serializers import (UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer, MessageSerializer, ChallengeSummarySerializer,
                           CatSerializer, GameSerializer, FriendRequestSerializer, CreateGroupSerializer, SkillLevelSerializer,
                           RewardSettingSerializer, ExternalHandleSerializer,ObligationSerializer, CashPaymentCreateSerializer,
                           ExternalPaymentCreateSerializer, PaymentSerializer, PendingPublicChallengeSummarySerializer, PublicChallengeSummarySerializer,
                           ChallengeBetSerializer)
-from .models import (Group, UserNotification, PersonalChallengeInvite, PushToken, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule,
+from .models import (FCMDevice, Group, GroupInvite, UserNotification, PersonalChallengeInvite, PushToken, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule,
                      AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest,
                      SkillLevel, PendingGroupChallengeAvailability, GroupChallengeInvite, WordleMove, PublicChallengeConfiguration,
                      UserAvailability, PublicChallengeCategoryAssociation, ChallengeBet, Badge, UserBadge, Memoji, UserMemoji)
@@ -73,11 +75,13 @@ import requests
 User = get_user_model()
 WORD_LIST = words
 
-
+#Here
 class SetChallAvailabilityView(APIView):
     @transaction.atomic
     def post(self, request, user_id, chall_id):
         availability_data = request.data.get('availability', [])
+        challenge = get_object_or_404(Challenge, id=chall_id)
+        user = get_object_or_404(User, id=user_id)
 
         for item in availability_data:
             day = item['dayOfWeek']
@@ -114,6 +118,32 @@ class SetChallAvailabilityView(APIView):
             challengeID_id=chall_id,
             uID_id=user_id,
         )
+        
+        if (user_id != challenge.initiator_id):
+            UserNotification.objects.create(
+                    user=challenge.initiator,
+                    title="Availability Set",
+                    body=f"{user.name or user.username} has set their availability for '{challenge.name}'.",
+                    type="availability_set",
+                    screen="EditAvailability",
+                    groupId=challenge.groupID.id,
+                    startDate=challenge.startDate,
+                    endDate=challenge.endDate,
+                    accepted=1,
+                    challengeId=challenge.id,
+                    challName=challenge.name,
+                    whichChall="Group"
+                )
+            device = FCMDevice.objects.filter(user=challenge.initiator).first()
+            if device:
+                title = "Availability Set"
+                body = f"{user.name or user.username} has set their availability for '{challenge.name}'."
+                recipient_id = challenge.initiator_id
+                data={
+                    "screen": "Notifications",
+                    "type": "availability_set",
+                }
+                send_fcm_notification(title, body, data, recipient_id)
 
         return Response({'status': 'availability toggled and invite accepted'})
     
@@ -291,6 +321,103 @@ class UserProfileView(APIView):
 
         serializer = UserProfileSerializer(user)
         return Response(serializer.data)
+
+
+class MarkMessagesReadView(APIView):
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        other_user_id = request.data.get('other_user_id')
+        group_id = request.data.get('group_id')
+
+        if not user.is_authenticated:
+            return Response({"error": "Authentication required"}, status=401)
+
+        if not other_user_id and not group_id:
+            return Response({"error": "Missing other_user_id or group_id"}, status=400)
+
+        if other_user_id:
+            updated = Message.objects.filter(
+                sender_id=other_user_id,
+                recipient_id=user.id,
+                is_read=False,
+                groupID__isnull=True
+            ).update(is_read=True)
+        else:
+            updated = Message.objects.filter(
+                groupID_id=group_id,
+                is_read=False
+            ).exclude(sender_id=user.id).update(is_read=True)
+
+        return Response({"marked_as_read": updated})
+
+
+class UserRecentMessagesView(APIView):
+    def get(self, request, user_id):
+        # 1️⃣ Direct (friend) messages
+        # We find the latest message id per friend conversation (user <-> other user)
+        # Step 1: Get all friends involved in any conversation with this user
+        friend_ids = Message.objects.filter(
+            Q(sender_id=user_id) | Q(recipient_id=user_id),
+            groupID__isnull=True
+        ).values_list('sender_id', 'recipient_id')
+
+        # Step 2: Build a set of unique friend IDs
+        unique_friends = set()
+        for s, r in friend_ids:
+            if s == user_id:
+                unique_friends.add(r)
+            elif r == user_id:
+                unique_friends.add(s)
+
+        # Step 3: For each friend, get their latest message (efficient per subquery)
+        friend_messages = []
+        for fid in unique_friends:
+            latest_msg_subq = (
+                Message.objects.filter(
+                    Q(sender_id=user_id, recipient_id=fid)
+                    | Q(sender_id=fid, recipient_id=user_id),
+                    groupID__isnull=True
+                )
+                .order_by('-id')[:1]
+            )
+            friend_message = Message.objects.filter(id=Subquery(latest_msg_subq.values('id')[:1])).first()
+            if friend_message:
+                friend_messages.append(friend_message)
+
+        messages_sorted = sorted(friend_messages, key=lambda m: m.timestamp, reverse=True)
+
+        serializer = MessageSerializer(messages_sorted, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class UserRecentGroupMessagesView(APIView):
+    def get(self, request, user_id):
+        # 1️⃣ Get all groups the user belongs to
+        memberships = GroupMembership.objects.filter(uID_id=user_id)
+        group_ids = memberships.values_list('groupID_id', flat=True)
+
+        groups = Group.objects.filter(id__in=group_ids)
+
+        # 2️⃣ Fetch the latest message per group efficiently
+        latest_messages = (
+            Message.objects.filter(groupID_id__in=group_ids)
+            .values('groupID_id')
+            .annotate(latest_id=Max('id'))
+        )
+        latest_message_ids = [item['latest_id'] for item in latest_messages]
+        messages_dict = {m.groupID_id: m for m in Message.objects.filter(id__in=latest_message_ids)}
+
+        # 3️⃣ Prepare the response
+        data = []
+        for group in groups:
+            last_message = messages_dict.get(group.id)
+            data.append({
+                'group_id': group.id,
+                'group_name': group.name,
+                'last_message': MessageSerializer(last_message).data if last_message else None,
+            })
+
+        return Response(data, status=status.HTTP_200_OK)
     
 
 class UserMessagesView(APIView):
@@ -516,6 +643,30 @@ class JoinPublicChallengeView(APIView):
                 hasSetAlarms=True # TODO: change this later
             )
 
+            other_members = ChallengeMembership.objects.filter(challengeID=challenge).exclude(uID=user)
+            for m in other_members:
+                UserNotification.objects.create(
+                    user=m.uID,
+                    title="New Member Joined",
+                    body=f"{user.name or user.username} joined the public challenge '{challenge.name}'.",
+                    type="public_challenge_join",
+                    screen="ChallDetails",
+                    challengeId=challenge.id,
+                    challName=challenge.name,
+                    whichChall="Public"
+                )
+                device = FCMDevice.objects.filter(user=m.uID).first()
+                if device:
+                    title = "New Member Joined"
+                    body = f"{user.name or user.username} joined the public challenge '{challenge.name}'."
+                    recipient_id = m.uID
+                    data={
+                        "screen": "Notifications",
+                        "type": "public_challenge_join",
+                    }
+                    send_fcm_notification(title, body, data, recipient_id)
+                    
+
             challenge.isPending = False
             challenge.save()
 
@@ -731,8 +882,6 @@ class AddGroupMemberView(APIView):
     @transaction.atomic
     def post(self, request, group_id):
         data = request.data
-        sender_id = request.data.get("sender_id")
-        recipient_id = request.data.get("recipient_id")
         try:
             friend_id = data.get("friend_id")
             if not friend_id:
@@ -757,18 +906,19 @@ class AddGroupMemberView(APIView):
                 screen="Groups",
             )
             
-            channel_layer = get_channel_layer()
-            async_to_sync(channel_layer.group_send)(
-                f"notifications_{friend_id}",
-                {
-                    "type": "notification_event",
-                    "title": "Group Invite",
-                    "body": f"You have been invited to group {group.name}!",
-                    "sender_id": sender_id,
-                    "screen": "Groups",
-                    "notification_type": "group_invite"
+            device = FCMDevice.objects.filter(user=user.id).first()
+            print(device)
+            print(user)
+            print(user.id)
+            recipient_id = user.id
+            if device:
+                title = "Added to Group"
+                body = f"You have been added to the group '{group.name}'."
+                data={
+                    "screen": "Notifications",
+                    "type": "group_add",
                 }
-            )
+                send_fcm_notification(title, body, data, recipient_id)
 
             return Response({"message": "User added to group successfully."}, status=status.HTTP_201_CREATED)
 
@@ -1988,6 +2138,7 @@ class CreatePendingCollaborativeGroupChallengeView(APIView):
             # create invites for everyone (accepted = 2 means neither accepted nor declined, 1 
             # means accepted, 0 means declined)
             group_members = GroupMembership.objects.filter(groupID_id=data['group_id'])
+            groupId = data['group_id']
 
             invites = [
                 GroupChallengeInvite(
@@ -1998,6 +2149,26 @@ class CreatePendingCollaborativeGroupChallengeView(APIView):
                 ) for member in group_members
             ]
             GroupChallengeInvite.objects.bulk_create(invites)
+
+            for invite in invites:
+                if invite.uID_id != data['initiator_id']:
+                    UserNotification.objects.create(
+                        user=invite.uID,
+                        title="New Group Challenge",
+                        body=f"A new group challenge '{challenge.name}' needs your availability.",
+                        type="group_challenge_invite",
+                        screen="GroupDetails",
+                        groupId=groupId,
+                    )
+                    device = FCMDevice.objects.filter(user=invite.uID).first()
+                    if device:
+                        send_fcm_notification(
+                            "New Group Challenge",
+                            f"A new group challenge '{challenge.name + ""}' needs your availability.",
+                            {"screen": "Notifications", "type": "group_challenge_invite", "challengeId": str(challenge.id)},
+                            invite.uID
+                        )
+
             print("here3")
 
             return Response({"success": True, "challenge_id": challenge.id}, status=status.HTTP_201_CREATED)
@@ -2134,7 +2305,31 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
 
 
                 challenge.isPending = False
-                challenge.save(update_fields=["isPending"]) 
+                challenge.save(update_fields=["isPending"])
+
+                members = ChallengeMembership.objects.filter(challengeID=challenge)
+
+                for m in members:
+                    if m.uID_id != request.user.id:
+                        UserNotification.objects.create(
+                            user=m.uID,
+                            title="Group Challenge Finalized",
+                            body=f"The group challenge '{challenge.name}' has been finalized. Set your alarms!",
+                            type="group_challenge_finalized",
+                            screen="ChallSchedule",
+                            challengeId=challenge.id,
+                            challName=challenge.name,
+                            whichChall="Group"
+                        )
+                        device = FCMDevice.objects.filter(user=m.uID).first()
+                        if device:
+                            send_fcm_notification(
+                                "Group Challenge Finalized",
+                                f"The group challenge '{challenge.name}' has been finalized. Set your alarms!",
+                                {"screen": "Notifications", "type": "group_challenge_finalized", "challengeId": str(challenge.id)},
+                                m.uID
+                            )
+
                 # delete all invites
                 GroupChallengeInvite.objects.filter(chall=challenge).delete()
 
@@ -2152,48 +2347,6 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-     
-
-class SendNotificationView(APIView):
-    def post(self, request):
-        user_id = request.data.get("user_id")
-        title = request.data.get("title", "New Notification")
-        body = request.data.get("body", "")
-        ttype = request.data.get("type", "")
-        screen = request.data.get("screen", "Messages")
-        challengeId = request.data.get("challengeId")
-        challName = request.data.get("challName")
-        whichChall = request.data.get("whichChall")
-
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        # Save to DB
-        notification = UserNotification.objects.create(
-            user=user,
-            title=title,
-            body=body,
-            type=ttype,
-            screen=screen,
-            challengeId=challengeId,
-            challName=challName,
-            whichChall=whichChall,
-        )
-
-        # Send push notification
-        send_expo_push_notification(
-            user,
-            title=title,
-            body=body,
-            data={"notification_id": notification.id}
-        )
-
-        return Response(
-            {"success": True, "notification_id": notification.id},
-            status=status.HTTP_201_CREATED
-        )
         
 
 from channels.layers import get_channel_layer
@@ -2222,24 +2375,22 @@ class SendFriendRequestView(APIView):
             type="friend_request",
             screen="FriendsRequests",
         )
+        
+        try:
+            device = FCMDevice.objects.filter(user_id=recipient_id).first()
+            if device:
+                title = "Friend Request"
+                body = sender.name + " (" + sender.username + ") sent you a friend request!"
+                data={
+                    "screen": "Notifications",
+                    "type": "notification_type",
+                    "notification_type": "friend_request",
+                }
+                send_fcm_notification(title, body, data, recipient_id)
+        except Exception as e:
+            print("Error sending FCM:", e)
 
-        # Send notification via WebSocket
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            f"notifications_{recipient_id}",
-            {
-                "type": "notification_event",
-                "title": "Friend Request",
-                "body": f"{sender.name or sender.username} sent you a friend request!",
-                "sender_id": sender_id,
-                "screen": "FriendsRequests",
-                "notification_type": "friend_request"
-            }
-        )
-
-        return Response({'message': 'Friend request sent successfully'}, status=status.HTTP_201_CREATED)
-    
-    
+        return Response({'message': 'Friend request sent successfully'}, status=status.HTTP_201_CREATED)  
 
 
 class FriendRequestListView(APIView):
@@ -2264,10 +2415,34 @@ class RespondToFriendRequestView(APIView):
         except FriendRequest.DoesNotExist:
             return Response({'error': 'Friend request not found'}, status=status.HTTP_404_NOT_FOUND)
 
+        sender = fr.sender
+        recipient = fr.recipient
+
         if accept:
             # Add friendship both ways
             Friendship.objects.create(uID1=fr.sender, uID2=fr.recipient)
+            status_str = "accepted"
+        else:
+            status_str = "declined"
         fr.delete()
+
+        # Send notification to sender
+        UserNotification.objects.create(
+            user=sender,
+            title="Friend Request " + status_str.capitalize(),
+            body=f"{recipient.name or recipient.username} has {status_str} your friend request.",
+            type="friend_request_response",
+            screen="FriendsRequests",
+        )
+        device = FCMDevice.objects.filter(user=sender).first()
+        if device:
+            send_fcm_notification(
+                "Friend Request " + status_str.capitalize(),
+                f"{recipient.name or recipient.username} has {status_str} your friend request.",
+                {"screen": "Notifications", "type": "friend_request_response"},
+                sender.id
+            )
+
         return Response({'message': 'Friend request processed'}, status=status.HTTP_200_OK)
 
 
@@ -2290,30 +2465,55 @@ class CancelFriendRequestView(APIView):
 
 
 class CreateGroupView(APIView):
+    @transaction.atomic
     def post(self, request):
         serializer = CreateGroupSerializer(data=request.data)
-        if serializer.is_valid():
-            name = serializer.validated_data['name']
-            raw_ids = serializer.validated_data['members']
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-            member_ids = {mid for mid in raw_ids if mid is not None}
+        name = serializer.validated_data['name']
+        raw_ids = serializer.validated_data.get('members', [])
+        member_ids = {mid for mid in raw_ids if mid is not None}
 
-            if request.user and request.user.id:
-                member_ids.add(request.user.id)
+        # Create the group
+        group = Group.objects.create(name=name)
 
-            group = Group.objects.create(name=name)
+        # Add creator as the only confirmed member
+        if request.user and request.user.id:
+            GroupMembership.objects.create(groupID=group, uID=request.user)
 
-            # Only get users that actually exist
-            users = User.objects.filter(id__in=member_ids)
+        # Send invites to provided member IDs (if any)
+        if member_ids:
+            users_to_invite = User.objects.filter(id__in=member_ids).exclude(id=request.user.id)
 
-            for user in users:
-                GroupMembership.objects.create(groupID=group, uID=user)
+            for recipient in users_to_invite:
+                GroupInvite.objects.create(group=group, sender=request.user, recipient=recipient)
+                
+                UserNotification.objects.create(
+                    user=recipient,
+                    title="Group Invite",
+                    body=f"{request.user.name or request.user.username} invited you to join group '{group.name}'.",
+                    type="group_invite",
+                    screen="Groups",
+                )
 
-            return Response({'message': 'Group created successfully', 'group_id': group.id}, status=201)
+                device = FCMDevice.objects.filter(user=recipient).first()
+                if device:
+                    send_fcm_notification(
+                        "Group Invite",
+                        f"{request.user.name or request.user.username} invited you to join group '{group.name}'.",
+                        {"screen": "Notifications", "type": "group_invite"},
+                        recipient.id,
+                    )
 
-        else:
-            return Response(serializer.errors, status=400)
-
+        return Response(
+            {
+                "message": "Group created successfully",
+                "group_id": group.id,
+                "invites_sent": len(member_ids),
+            },
+            status=status.HTTP_201_CREATED,
+        )
     
 ################### Sudoku Game ###################
 
@@ -3680,6 +3880,22 @@ class ShareChallengeView(APIView):
                     chall=new_challenge, sender=request.user, recipient=friend, status=2
                 )
 
+                UserNotification.objects.create(
+                    user=friend,
+                    title="Personal Challenge Invite",
+                    body=f"{request.user.name or request.user.username} shared a challenge '{challenge_name}' with you.",
+                    type="personal_challenge_invite",
+                    screen="PersChall1",
+                )
+                device = FCMDevice.objects.filter(user=friend).first()
+                if device:
+                    send_fcm_notification(
+                        "Personal Challenge Invite",
+                        f"{request.user.name or request.user.username} shared a challenge '{challenge_name}' with you.",
+                        {"screen": "Notifications", "type": "personal_challenge_invite"},
+                        friend.id
+                    )
+
                 results.append({"friend": friend.id, "challenge": new_challenge.id})
 
             return Response({"message": "Challenge shared successfully", "results": results}, status=201)
@@ -3729,6 +3945,25 @@ class AcceptPersonalChallenge(APIView):
 
         inv.status = 1  # accepted
         inv.save(update_fields=['status'])
+
+        sender = inv.sender
+        status_str = "accepted" if isinstance(self, AcceptPersonalChallenge) else "declined"
+        UserNotification.objects.create(
+            user=sender,
+            title="Personal Challenge Response",
+            body=f"{inv.recipient.name or inv.recipient.username} has {status_str} your challenge invite.",
+            type="personal_challenge_response",
+            screen="PersChall1",
+        )
+        device = FCMDevice.objects.filter(user=sender).first()
+        if device:
+            send_fcm_notification(
+                "Personal Challenge Response",
+                f"{inv.recipient.name or inv.recipient.username} has {status_str} your challenge invite.",
+                {"screen": "Notifications", "type": "personal_challenge_response"},
+                sender.id
+            )
+
         return Response({"ok": True}, status=200)
 
 
@@ -3744,8 +3979,27 @@ class DeclinePersonalChallenge(APIView):
         inv.status = 0  # declined
         inv.save(update_fields=['status'])
 
+        sender = inv.sender
+        status_str = "accepted" if isinstance(self, AcceptPersonalChallenge) else "declined"
+        UserNotification.objects.create(
+            user=sender,
+            title="Personal Challenge Response",
+            body=f"{inv.recipient.name or inv.recipient.username} has {status_str} your challenge invite.",
+            type="personal_challenge_response",
+            screen="PersChall1",
+        )
+        device = FCMDevice.objects.filter(user=sender).first()
+        if device:
+            send_fcm_notification(
+                "Personal Challenge Response",
+                f"{inv.recipient.name or inv.recipient.username} has {status_str} your challenge invite.",
+                {"screen": "Notifications", "type": "personal_challenge_response"},
+                sender.id
+            )
+
         inv.chall.delete()
         return Response({"ok": True}, status=200)
+
 
 class SendMessageView(APIView):
     def post(self, request, user_id):
@@ -3760,46 +4014,21 @@ class SendMessageView(APIView):
             sender=sender,
             recipient=recipient,
             message=message_text,
-            timestamp=timezone.now()
-        )
-
-        # Broadcast message + notification
-        channel_layer = get_channel_layer()
-        ids = sorted([sender.id, recipient.id])
-        room_name = f"chat_user_{ids[0]}_{ids[1]}"
-
-        # Send message event to chat room
-        async_to_sync(channel_layer.group_send)(
-            room_name,
-            {
-                "type": "chat_message",
-                "message": message.message,
-                "sender": {
-                    "id": sender.id,
-                    "name": sender.name,
-                    "username": sender.username,
-                },
-                "recipient_id": recipient.id,
-                "group_id": None,
-                "timestamp": message.timestamp.isoformat(),
-            },
+            timestamp=timezone.now(),
+            is_read=0
         )
         
-        recipient_active = (
-            room_name in ACTIVE_CHAT_USERS
-            and recipient.id in ACTIVE_CHAT_USERS[room_name]
-        )
-
-        if not recipient_active:
-            async_to_sync(channel_layer.group_send)(
-                f"notifications_{recipient.id}",
-                {
-                    "type": "notify",
-                    "event": "new_message",
-                    "sender": sender.username,
+        device = FCMDevice.objects.filter(user=recipient).first()
+        if device:
+            send_fcm_notification(
+                token=device.token,
+                data={
+                    "screen": "Messages",
                     "sender_id": sender.id,
-                    "message": message.message,
-                    "timestamp": message.timestamp.isoformat(),
+                    "recipient_id": recipient.id,
+                    "message_id": message.id,
+                    "title": sender.name,
+                    "body": f"{message_text}",
                 },
             )
 
@@ -3826,47 +4055,48 @@ class SendMessageGroupView(APIView):
             sender=sender,
             groupID=group,
             message=message_text,
-            timestamp=timezone.now()
+            timestamp=timezone.now(),
+            is_read=0
         )
 
-        channel_layer = get_channel_layer()
-        room_name = f"chat_group_{group.id}"
+        # channel_layer = get_channel_layer()
+        # room_name = f"chat_group_{group.id}"
 
-        # Broadcast group message
-        async_to_sync(channel_layer.group_send)(
-            room_name,
-            {
-                "type": "chat_message",
-                "message": message.message,
-                "sender": {
-                    "id": sender.id,
-                    "name": sender.name,
-                    "username": sender.username,
-                },
-                "recipient_id": None,
-                "group_id": group.id,
-                "timestamp": message.timestamp.isoformat(),
-            },
-        )
-
-        # Notify other group members
+        # # Broadcast group message
+        # async_to_sync(channel_layer.group_send)(
+        #     room_name,
+        #     {
+        #         "type": "chat_message",
+        #         "message": message.message,
+        #         "sender": {
+        #             "id": sender.id,
+        #             "name": sender.name,
+        #             "username": sender.username,
+        #         },
+        #         "recipient_id": None,
+        #         "group_id": group.id,
+        #         "timestamp": message.timestamp.isoformat(),
+        #     },
+        # )
+        
         member_ids = GroupMembership.objects.filter(groupID=group).values_list("uID_id", flat=True)
-        for uid in member_ids:
-            if uid == sender.id:
-                continue
-            async_to_sync(channel_layer.group_send)(
-                f"notifications_{uid}",
-                {
-                    "type": "notify",
-                    "event": "new_group_message",
-                    "group_id": group.id,
-                    "group_name": group.name,
-                    "sender": sender.username,
-                    "sender_id": sender.id,
-                    "message": message.message,
-                    "timestamp": message.timestamp.isoformat(),
-                },
-            )
+        recipients = User.objects.filter(id__in=member_ids).exclude(id=sender.id)
+
+        for recipient in recipients:
+            device = FCMDevice.objects.filter(user=recipient).first()
+            if device:
+                send_fcm_notification(
+                    title=f"{sender.name or sender.username}, {group.name}",
+                    body=f"{sender.name or sender.username}: {message_text}",
+                    data={
+                        "screen": "Messages",
+                        "type": "group_message",
+                        "group_id": group.id,
+                        "sender_id": sender.id,
+                        "message_id": message.id,
+                    },
+                    user_id=recipient.id,
+                )
 
         return Response({"success": True, "id": message.id})
 
@@ -3915,65 +4145,6 @@ def send_expo_push_notification(user, title, body, data=None):
         return False
 
 
-class SendNotificationView(APIView):
-    def post(self, request):
-        """
-        Send a notification to a specific user:
-        - Saves it to DB
-        - Sends Expo push notification
-        """
-        timezone.activate(pytz.timezone("America/Denver"))
-        user_id = request.data.get("user_id")
-        title = request.data.get("title", "New Notification")
-        body = request.data.get("body", "")
-        ttype = request.data.get("type", "")
-        screen = request.data.get("screen", "")
-        challengeId = request.data.get("challengeId", "")
-        challName = request.data.get("challName", "")
-        whichChall = request.data.get("whichChall", "")
-
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        # Save to DB
-        notification = UserNotification.objects.create(
-            user=user,
-            title=title,
-            body=body,
-            type=ttype,
-            screen=screen,
-            challengeId=challengeId,
-            challName=challName,
-            whichChall=whichChall,
-        )
-
-        return Response(
-            {"success": True, "notification_id": notification.id},
-            status=status.HTTP_201_CREATED
-        )
-
-    def get(self, request):
-        """
-        Get all notifications for a given user.
-        Expects ?user_id=<id> in query params.
-        """
-        user_id = request.query_params.get("user_id")
-        if not user_id:
-            return Response({"error": "Missing user_id"}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        notifications = user.notifications.order_by("-created_at").values(
-            "id", "title", "body", "created_at", "read"
-        )
-
-        return Response({"notifications": list(notifications)}, status=status.HTTP_200_OK)
-
 class SavePushTokenView(APIView):
     def post(self, request):
         user_id = request.data.get("user_id")
@@ -4008,6 +4179,10 @@ class UserNotificationsView(APIView):
                 "challengeId": n.challengeId,
                 "challName": n.challName,
                 "whichChall": n.whichChall,
+                "groupId": n.groupId,
+                "accepted": str(n.accepted),
+                "startDate": str(n.startDate),
+                "endDate": str(n.endDate),
             }
             for n in notifications
         ]
@@ -4022,3 +4197,120 @@ class DeleteNotificationView(APIView):
             return Response({"success": True})
         except UserNotification.DoesNotExist:
             return Response({"error": "Not found"}, status=404)
+
+
+class SaveFCMTokenView(APIView):
+    def post(self, request):
+        user_id = request.data.get("user_id")
+        token = request.data.get("token")
+        platform = request.data.get("platform")
+
+        print("FCM token request data:", request.data)
+
+        if not user_id or not token or not platform:
+            return Response({"error": "Missing fields"}, status=400)
+
+        user = get_object_or_404(User, id=user_id)
+
+        try:
+            obj, created = FCMDevice.objects.update_or_create(
+                token=token,
+                defaults={'user': user, 'platform': platform}
+            )
+            print("FCM device saved:", obj, "created:", created)
+        except Exception as e:
+            print("Error saving FCM device:", e)
+            return Response({"error": str(e)}, status=500)
+
+        return Response({"success": True})
+
+
+class SendGroupInviteView(APIView):
+    @transaction.atomic
+    def post(self, request):
+        group_id = request.data.get("group_id")
+        recipient_id = request.data.get("recipient_id")
+        group = get_object_or_404(Group, id=group_id)
+        recipient = get_object_or_404(User, id=recipient_id)
+        sender = request.user
+
+        invite = GroupInvite.objects.create(group=group, sender=sender, recipient=recipient)
+        UserNotification.objects.create(
+            user=recipient,
+            title="Group Invite",
+            body=f"{sender.name or sender.username} invited you to join group '{group.name}'.",
+            type="group_invite",
+            screen="GroupInvites",
+        )
+        device = FCMDevice.objects.filter(user=recipient).first()
+        if device:
+            send_fcm_notification(
+                "Group Invite",
+                f"{sender.name or sender.username} invited you to join group '{group.name}'.",
+                {"screen": "Notifications", "type": "group_invite"},
+                recipient.id
+            )
+
+        return Response({"message": "Invite sent."}, status=201)
+
+
+class RespondGroupInviteView(APIView):
+    @transaction.atomic
+    def post(self, request, invite_id):
+        accept = request.data.get("accept")
+        invite = get_object_or_404(GroupInvite, id=invite_id)
+        group = invite.group
+        recipient = invite.recipient
+        sender = invite.sender
+
+        if accept:
+            GroupMembership.objects.create(groupID=group, uID=recipient)
+            invite.status = 1
+        else:
+            invite.status = 0
+        invite.save()
+
+        # Notify all group members
+        member_ids = GroupMembership.objects.filter(groupID=group).values_list("uID_id", flat=True)
+        for uid in member_ids:
+            if uid == recipient.id:
+                continue
+            user = User.objects.get(id=uid)
+            UserNotification.objects.create(
+                user=user,
+                title="Group Invite Response",
+                body=f"{recipient.name or recipient.username} has {'accepted' if accept else 'declined'} the invite to '{group.name}'.",
+                type="group_invite_response",
+                screen="Groups",
+            )
+            device = FCMDevice.objects.filter(user=user).first()
+            if device:
+                send_fcm_notification(
+                    "Group Invite Response",
+                    f"{recipient.name or recipient.username} has {'accepted' if accept else 'declined'} the invite to '{group.name}'.",
+                    {"screen": "Notifications", "type": "group_invite_response"},
+                    user.id
+                )
+        return Response({"message": "Response recorded."}, status=200)
+
+
+class GroupInviteListView(APIView):
+    def get(self, request, user_id):
+        invites = GroupInvite.objects.filter(recipient_id=user_id, status=2).select_related('group', 'sender')
+        data = [
+            {
+                "id": invite.id,
+                "group": {
+                    "id": invite.group.id,
+                    "name": invite.group.name,
+                },
+                "sender": {
+                    "id": invite.sender.id,
+                    "name": invite.sender.name or invite.sender.username,
+                    "username": invite.sender.username,
+                },
+                "created_at": invite.created_at,
+            }
+            for invite in invites
+        ]
+        return Response(data, status=200)
