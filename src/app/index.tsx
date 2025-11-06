@@ -31,6 +31,7 @@ import Categories from './pages/Games/Categories';
 import SomeCategories from './pages/Games/SomeCategories';
 import GameExpanded from './pages/Games/GameExpanded';
 import Games from './pages/Games/Games';
+import GameSelection from './pages/Games/GameSelection';
 import GroupScreen from './pages/Groups';
 import GroupInvites from './pages/Groups/GroupInvites';
 import CreateGroup from './pages/Groups/CreateGroup';
@@ -524,6 +525,11 @@ function App() {
         <Stack.Screen
           name="EditAvatar2"
           component={EditAvatar2}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="GameSelection"
+          component={GameSelection}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

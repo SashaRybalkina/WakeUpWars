@@ -17,7 +17,9 @@ export const endpoints = {
   collectBadge: () => `${BASE_URL}/api/collect-badge/`,
   collectBetCoins: () => `${BASE_URL}/api/collect-bet-coins/`,
   collectBetRefund: () => `${BASE_URL}/api/collect-bet-refund/`,
-  someCats: (categoryIds: number[]) => `${BASE_URL}/api/some-cats/?ids=${categoryIds.join(",")}`,
+  someCats: (categoryIds: number[], singOrMult: string) =>
+    `${BASE_URL}/api/some-cats/?ids=${categoryIds.join(",")}&sing_or_mult=${singOrMult}`,
+
   games: (catId: number, singOrMult: string) =>
     `${BASE_URL}/api/games/${catId}/${singOrMult}/`,
   singOrMultGames: (singOrMult: string) =>

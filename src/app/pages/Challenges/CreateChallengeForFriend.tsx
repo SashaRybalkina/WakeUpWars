@@ -289,10 +289,16 @@ const CreateChallengeForFriend: React.FC<Props> = ({ navigation }) => {
                           <TouchableOpacity
                             style={styles.addGameButton}
                             onPress={() => {
-                              navigation.navigate("Categories", {
-                                catType: "Friend",
-                                singOrMult: "Multiplayer",
-                                friendId,
+                              // navigation.navigate("Categories", {
+                              //   catType: "Friend",
+                              //   singOrMult: "Multiplayer",
+                              //   friendId,
+                              //   onGameSelected: (game: { id: number; name: string }) => {
+                              //     handleGameAdd(game)
+                              //   },
+                              // })
+                              navigation.navigate("GameSelection", {
+                                singOrMult: "Singleplayer",
                                 onGameSelected: (game: { id: number; name: string }) => {
                                   handleGameAdd(game)
                                 },

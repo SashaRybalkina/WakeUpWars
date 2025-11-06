@@ -347,18 +347,25 @@ const GroupChallCollab2: React.FC<Props> = ({ navigation }) => {
       <TouchableOpacity
         style={[styles.addGameButton, { width: 120, marginLeft: 8 }]} // same width as cards
         onPress={() => {
-          navigation.navigate("Categories", {
-            catType: "Group",
-            singOrMult: "Neither",
-            onGameSelected: (game: { id: number; name: string }) => {
-              handleGameAdd(game)
-            },
-            groupId,
-            challName: name,
-            groupMembers: members,
-            alarmSchedule
-          })
+          // navigation.navigate("Categories", {
+          //   catType: "Group",
+          //   singOrMult: "Neither",
+          //   onGameSelected: (game: { id: number; name: string }) => {
+          //     handleGameAdd(game)
+          //   },
+          //   groupId,
+          //   challName: name,
+          //   groupMembers: members,
+          //   alarmSchedule
+          // })
+            navigation.navigate("GameSelection", {
+              singOrMult: "Neither",
+              onGameSelected: (game: { id: number; name: string }) => {
+                handleGameAdd(game)
+              },
+            })
         }}
+
       >
         <LinearGradient
           colors={["rgba(255, 255, 255, 0.2)", "rgba(255, 255, 255, 0.1)"]}

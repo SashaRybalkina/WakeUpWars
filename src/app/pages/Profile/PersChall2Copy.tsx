@@ -20,6 +20,7 @@ import { scheduleAlarmsForChallenge, scheduleAlarmsForUser } from "../../alarmSe
 import { useUser } from "../../context/UserContext"
 import { getAccessToken } from "../../auth"
 import { getNextAlarmDate } from "../../../utils/dateUtils"
+import Categories from "../Games/Categories"
 
 type Props = {
   navigation: NavigationProp<any>
@@ -429,8 +430,14 @@ const toAmPm = (time24: string) => {
         <TouchableOpacity
           style={[styles.addGameButton, { width: 120, marginLeft: 8 }]}
           onPress={() => {
-            navigation.navigate("Categories", {
-              catType: "Personal",
+            // navigation.navigate("Categories", {
+            //   catType: "Personal",
+            //   singOrMult: "Singleplayer",
+            //   onGameSelected: (game: { id: number; name: string }) => {
+            //     handleGameAdd(game)
+            //   },
+            // })
+            navigation.navigate("GameSelection", {
               singOrMult: "Singleplayer",
               onGameSelected: (game: { id: number; name: string }) => {
                 handleGameAdd(game)

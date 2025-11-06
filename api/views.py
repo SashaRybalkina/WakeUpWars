@@ -463,20 +463,61 @@ class CatListView(APIView):
         return Response(serializer.data)
     
 
+# class SomeCatsListView(APIView):
+#     def get(self, request):
+#         ids_param = request.GET.get("ids")  # e.g., "1,2,3"
+#         if ids_param:
+#             try:
+#                 ids_list = [int(i) for i in ids_param.split(",")]
+#                 cats = GameCategory.objects.filter(id__in=ids_list)
+#             except ValueError:
+#                 return Response({"error": "Invalid ids"}, status=400)
+#         else:
+#             cats = GameCategory.objects.all()
+        
+#         serializer = CatSerializer(cats, many=True)
+#         return Response(serializer.data)
+
+
 class SomeCatsListView(APIView):
     def get(self, request):
-        ids_param = request.GET.get("ids")  # e.g., "1,2,3"
+        ids_param = request.GET.get("ids")  # e.g. "1,2,3"
+        sing_or_mult = request.GET.get("sing_or_mult")  # "Singleplayer", "Multiplayer", or "Neither"
+
+        # Validate
+        if sing_or_mult not in ["Singleplayer", "Multiplayer", "Neither"]:
+            return Response({"error": "Invalid sing_or_mult value"}, status=400)
+
+        # Determine isMultiplayer flag
+        if sing_or_mult == "Singleplayer":
+            isMult = False
+        elif sing_or_mult == "Multiplayer":
+            isMult = True
+        else:
+            isMult = None
+
+        # Get categories
         if ids_param:
             try:
-                ids_list = [int(i) for i in ids_param.split(",")]
-                cats = GameCategory.objects.filter(id__in=ids_list)
+                ids_list = [int(i) for i in ids_param.split(",") if i.strip()]
+                cats = GameCategory.objects.filter(id__in=ids_list) if ids_list else GameCategory.objects.all()
             except ValueError:
                 return Response({"error": "Invalid ids"}, status=400)
         else:
             cats = GameCategory.objects.all()
-        
-        serializer = CatSerializer(cats, many=True)
-        return Response(serializer.data)
+
+        # Build data
+        data = []
+        for cat in cats:
+            games = Game.objects.filter(category=cat, isMultiplayer=isMult)
+            data.append({
+                "id": cat.id,
+                "categoryName": cat.categoryName,
+                "games": GameSerializer(games, many=True).data
+            })
+
+        return Response(data)
+
     
 
 class GameListView(APIView):

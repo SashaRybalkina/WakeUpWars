@@ -160,6 +160,7 @@ urlpatterns = [
     path('collect-bet-coins/', CollectBetCoinsView.as_view(), name='collect-bet-coins'),
     path('collect-bet-refund/', CollectBetRefundView.as_view(), name='collect-bet-refund'),
     path('some-cats/', SomeCatsListView.as_view(), name='some-cats'),
+
     path('games/<int:cat_id>/<str:sing_or_mult>/', GameListView.as_view(), name='game-list'),
     path('games/<str:sing_or_mult>/', SingOrMultGameListView.as_view(), name='sing-or-mult-game-list'),
     path('hello/', HelloWorldView.as_view(), name='hello'),

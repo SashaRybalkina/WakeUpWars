@@ -522,14 +522,21 @@ const onTimeChange = (event: any, time?: Date) => {
       <TouchableOpacity
         style={[styles.addGameButton, { width: 120, marginLeft: 8 }]}
         onPress={() => {
-          navigation.navigate("SomeCategories", {
-            catType: "Public",
-            categories: categories,
-            singOrMult: singOrMult,
-            onGameSelected: (game: { id: number; name: string }) => {
-              handleGameAdd(game)
-            },
-          })
+          // navigation.navigate("SomeCategories", {
+          //   catType: "Public",
+          //   categories: categories,
+          //   singOrMult: singOrMult,
+          //   onGameSelected: (game: { id: number; name: string }) => {
+          //     handleGameAdd(game)
+          //   },
+          // })
+            navigation.navigate("GameSelection", {
+              categories,
+              singOrMult,
+              onGameSelected: (game: { id: number; name: string }) => {
+                handleGameAdd(game)
+              },
+            })
         }}
       >
         <LinearGradient
