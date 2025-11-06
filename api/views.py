@@ -3068,42 +3068,72 @@ class ValidateWordleMoveView(APIView):
     """
 
     def post(self, request):
-        game_id = request.data.get("game_state_id")
+        game_state_id = request.data.get("game_state_id")
         row = request.data.get("row")
         guess = request.data.get("guess")
         user = request.user
 
-        if game_id is None or row is None or guess is None:
+        if game_state_id is None or row is None or guess is None:
             return Response({"error": "Missing parameters"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Ensure the game state exists
+        # Ensure the game state exists and load relations for gating/persistence
         try:
-            WordleGameState.objects.get(id=game_id)
+            gs = WordleGameState.objects.select_related("challenge", "game").get(id=game_state_id)
         except WordleGameState.DoesNotExist:
             return Response({"error": "Game not found"}, status=status.HTTP_404_NOT_FOUND)
 
+        # Best-effort gating tied to this game state (avoid undefined challenge_id)
         try:
-            gs = WordleGameState.objects.filter(challenge_id=challenge_id).order_by('-id').first()
-            if gs:
-                today = timezone.localdate()
-                # If any GamePerformance exists for today for this challenge+game, consider it ended
-                if GamePerformance.objects.filter(challenge_id=challenge_id, game_id=gs.game_id, date=today).exists():
-                    return Response(
-                        {'code': 'GAME_ENDED', 'detail': 'This game has already finished for today.'},
-                        status=status.HTTP_403_FORBIDDEN,
-                    )
-                now = timezone.now()
-                if gs.joins_closed or (gs.join_deadline_at and now > gs.join_deadline_at):
-                    return Response(
-                        {'code': 'JOINS_CLOSED', 'detail': 'The join window has closed. Please join next time.'},
-                        status=status.HTTP_403_FORBIDDEN,
-                    )
+            today = timezone.localdate()
+            if GamePerformance.objects.filter(challenge=gs.challenge, game=gs.game, date=today).exists():
+                return Response(
+                    {'code': 'GAME_ENDED', 'detail': 'This game has already finished for today.'},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            now = timezone.now()
+            if gs.joins_closed or (gs.join_deadline_at and now > gs.join_deadline_at):
+                return Response(
+                    {'code': 'JOINS_CLOSED', 'detail': 'The join window has closed. Please join next time.'},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
         except Exception:
             # best-effort gating; proceed if checks fail
             pass
-        # Call utils to validate the move and update state
-        # result = async_to_sync(validate_wordle_move)(game_id, user, guess, row)
-        result = validate_wordle_move(game_id, user, guess, row)
+
+        # Validate move and compute leaderboard
+        result = validate_wordle_move(game_state_id, user, guess, row)
+
+        # Persist immediately for single-player so ChallDetails can show Recent Performances right away
+        try:
+            is_multiplayer = bool(getattr(gs.game, 'isMultiplayer', False))
+        except Exception:
+            is_multiplayer = False
+
+        if result.get('is_complete') and not is_multiplayer:
+            # Try to extract this user's final score from the returned scores list
+            score_list = result.get('scores') or []
+            my_score = 0
+            for s in score_list:
+                if s.get('username') == user.username:
+                    try:
+                        my_score = int(s.get('score', 0))
+                    except Exception:
+                        my_score = 0
+                    break
+            # Fallback to score_awarded if correct on this move
+            if my_score == 0 and result.get('is_correct'):
+                try:
+                    my_score = int(result.get('score_awarded') or 0)
+                except Exception:
+                    my_score = 0
+
+            GamePerformance.objects.update_or_create(
+                challenge=gs.challenge,
+                game=gs.game,
+                user=user,
+                date=timezone.localdate(),
+                defaults={"score": my_score, "auto_generated": False},
+            )
 
         return Response(result, status=status.HTTP_200_OK)
 
