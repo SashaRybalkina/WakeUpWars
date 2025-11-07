@@ -195,9 +195,10 @@ def apply_progress_update(game_state_id: int, user, correct_typed: int, total_er
         # _schedule_background_save_to_db(game_state_id)
 
     elapsed = (time.time() - start_time) * 1000
-    logger.warning(
-        f"[CACHE][END] user={user.username} progress={progress:.2f}% acc={accuracy:.2f}% took={elapsed:.2f}ms"
-    )
+    if int(progress) % 10 == 0 or progress >= 100.0:
+        logger.warning(
+            f"[CACHE][END] user={user.username} progress={progress:.2f}% acc={accuracy:.2f}% took={elapsed:.2f}ms"
+        )
 
     # === 📤 Return snapshot for broadcast ===
     return {

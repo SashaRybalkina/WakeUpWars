@@ -204,6 +204,10 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
         # start_time = time()
         # logger.debug(f"[TIMING][DB_START] user={self.user.username} typed={total_typed} errors={total_errors}")
 
+        logger.warning(
+            f"[PROGRESS][RECV] user={self.user.username} typed={total_typed} errors={total_errors}"
+        )
+
         # Apply progress update and get player's updated data
         result = await apply_progress_update_async(self.game_id, self.user, total_typed, total_errors)
 
@@ -219,6 +223,10 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
             # "client_sent_at": result.get("client_sent_at", None) or recv_ts,
         }
 
+        logger.warning(
+            f"[PROGRESS][SEND] {self.user.username} broadcasting progress={player_snapshot['progress']:.2f}%"
+        )
+
         # ✅ Broadcast only this player's update to all connected clients
         await self.channel_layer.group_send(
             self.room_group_name,
@@ -227,6 +235,8 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
                 "player": player_snapshot,
             },
         )
+
+        logger.warning(f"[PROGRESS][SENT] {self.user.username} done broadcast")
 
     @database_sync_to_async
     def _get_game_leaderboard(self):
@@ -382,8 +392,8 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
     # 💾 Helper Methods (DB/Cache)
     # =========================
     async def _delayed_cleanup(self):
-        """Wait for a short time before clearing cache (防止提早清掉 cache)."""
-        await asyncio.sleep(30)  # delay 30 seconds before cleanup
+        """Wait for a short time before clearing cache ."""
+        await asyncio.sleep(10)  # delay 10 seconds before cleanup
         conns = set(cache.get(_conns_key(self.game_id)) or [])
         if not conns:  # no active connections
             cache.delete_many([
