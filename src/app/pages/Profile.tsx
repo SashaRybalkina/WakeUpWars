@@ -582,7 +582,7 @@ const collectBadge = async (badgeId: number) => {
         </TouchableOpacity> */}
 
         
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.logoutButton}
           activeOpacity={0.8}
           onPress={() =>
@@ -616,7 +616,7 @@ const collectBadge = async (badgeId: number) => {
             style={styles.logoutIcon}
           />
           <Text style={styles.logoutText}>Group Typing Race Test</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
 
 

@@ -101,41 +101,47 @@ const formatTime = (seconds: number) => {
 // ===============================
 const TypingRace: React.FC<Props> = ({ navigation }) => {
   const route = useRoute();
-  const { challId, challName = 'Typing Race' } = (route.params as any) || {};
+  const params = (route.params as any) || {};
+  const challId = params.challId ?? params.challengeId;
+  const challName = params.challName ?? 'Typing Race';
   const { user } = useUser();
+
+  console.log("[DEBUG] TypingRace route params:", params);
+  console.log("[DEBUG] challId resolved:", challId);
 
   // ===============================
   // 🧠 Helper: Save scores to backend
   // ===============================
-  const saveScores = async (payload: {
-    challenge_id: number;
-    game_name?: string;
-    date?: string;
-    scores: { username: string; score: number; accuracy?: number; inaccuracy?: number }[];
-  }) => {
-    try {
-      const accessToken = await getAccessToken();
-      if (!accessToken) throw new Error('Not authenticated');
+  // const saveScores = async (payload: {
+  //   challenge_id: number;
+  //   game_name?: string;
+  //   date?: string;
+  //   scores: { username: string; score: number; accuracy?: number; inaccuracy?: number }[];
+  // }) => {
+  //   try {
+  //     const accessToken = await getAccessToken();
+  //     if (!accessToken) throw new Error('Not authenticated');
 
-      const res = await fetch(endpoints.submitGameScores(), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(payload),
-      });
+      
+  //     const res = await fetch(endpoints.submitGameScores(), {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         Authorization: `Bearer ${accessToken}`,
+  //       },
+  //       body: JSON.stringify(payload),
+  //     });
 
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Submit failed: ${text}`);
-      }
+  //     if (!res.ok) {
+  //       const text = await res.text();
+  //       throw new Error(`Submit failed: ${text}`);
+  //     }
 
-      console.log('[DEBUG] Score saved successfully to leaderboard');
-    } catch (e) {
-      console.error('Failed to save score:', e);
-    }
-  };
+  //     console.log('[DEBUG] Score saved successfully to leaderboard');
+  //   } catch (e) {
+  //     console.error('Failed to save score:', e);
+  //   }
+  // };
 
   // ===============================
   // 🧭 Game State
@@ -409,7 +415,7 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
 
           const p = msg.player;
           if (p.username === user?.username) return;
-          console.log(`[CLIENT][RECV] ${p.username} progress=${p.progress.toFixed(2)}%`);
+          //console.log(`[CLIENT][RECV] ${p.username} progress=${p.progress.toFixed(2)}%`);
           setPlayerProgress(prev =>
             prev.map(pp => {
               if (pp.username !== p.username) return pp;
@@ -503,7 +509,7 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
         //client_sent_at: sendTime, // 
       })
     );
-    console.log(`[CLIENT][SEND] ${user?.username} progress=${progress.toFixed(2)}%`);
+    //console.log(`[CLIENT][SEND] ${user?.username} progress=${progress.toFixed(2)}%`);
   };
 
   /** Notify server when finished */
@@ -520,6 +526,9 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
       try {
         const accessToken = await getAccessToken();
         if (!accessToken) throw new Error('Not authenticated');
+
+        console.log("[DEBUG] TypingRace route params:", params);
+        console.log("[DEBUG] challId resolved:", challId);
 
         // create the game
         const res = await fetch(endpoints.typingRaceCreate, {
@@ -707,19 +716,23 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Submit failed');
 
-        await saveScores({
-          challenge_id: challId,
-          game_name: challName,
-          date: new Date().toISOString().slice(0, 10),
-          scores: [
-            {
-              username: user?.username || 'You',
-              score: data.final_score ?? accuracy,
-              accuracy,
-              inaccuracy: 100 - accuracy,
-            },
-          ],
-        });
+        // ✅ leaderboard update is now handled fully in the backend finalize endpoint
+        // The backend automatically updates GamePerformance / Leaderboard based on game_state_id
+        console.log('[DEBUG] Game finalized successfully, leaderboard updated via backend.');
+
+        // await saveScores({
+        //   challenge_id: challId,
+        //   game_name: challName,
+        //   date: new Date().toISOString().slice(0, 10),
+        //   scores: [
+        //     {
+        //       username: user?.username || 'You',
+        //       score: data.final_score ?? accuracy,
+        //       accuracy,
+        //       inaccuracy: 100 - accuracy,
+        //     },
+        //   ],
+        // });
       } catch (err) {
         console.error(err);
         Alert.alert('Error', 'Failed to submit result.');

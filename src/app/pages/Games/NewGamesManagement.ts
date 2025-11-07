@@ -4,7 +4,7 @@
  * Defines the standard, internal keys we'll use to represent each unique game type.
  * This ensures type safety and consistency 
  * ***************/
-export type GameKey = 'sudoku' | 'wordle' | 'pattern';
+export type GameKey = 'sudoku' | 'wordle' | 'pattern' | 'typingrace';
 
 /**
  * This is the single source of truth for all game-specific display information.
@@ -24,6 +24,10 @@ export const GAME_META: Record<GameKey, { image: any; desc: string }> = {
     image: require('../../images/patternGame.png'),
     desc: 'Watch the color sequence, remember it, and repeat!',
   },
+  typingrace: {
+    image: require('../../images/typingrace.png'),
+    desc: 'Test your typing speed and accuracy in a competitive race.',
+  },
 };
 
 /**
@@ -36,7 +40,9 @@ export const GAME_ID_TO_KEY: Record<number, GameKey> = {
   11: 'pattern', // Personal Pattern
   12: 'pattern', // Group Pattern
   30: 'wordle', // Personal Wordle
-  32: 'wordle' // Group Wordle
+  32: 'wordle', // Group Wordle
+  46: 'typingrace', // Singleplayer Typing Race
+  47: 'typingrace', // Group Typing Race
 };
 
 /**
@@ -50,6 +56,9 @@ export const GAME_NAME_ALIAS: Record<string, GameKey> = {
   'group pattern memorization': 'pattern',
   'wordle': 'wordle',
   'group wordle': 'wordle',
+  'typing race': 'typingrace',
+  'singleplayer typing race': 'typingrace',
+  'group typing race': 'typingrace',
 };
 
 

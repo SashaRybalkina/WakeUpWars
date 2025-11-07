@@ -204,9 +204,9 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
         # start_time = time()
         # logger.debug(f"[TIMING][DB_START] user={self.user.username} typed={total_typed} errors={total_errors}")
 
-        logger.warning(
-            f"[PROGRESS][RECV] user={self.user.username} typed={total_typed} errors={total_errors}"
-        )
+        # logger.warning(
+        #     f"[PROGRESS][RECV] user={self.user.username} typed={total_typed} errors={total_errors}"
+        # )
 
         # Apply progress update and get player's updated data
         result = await apply_progress_update_async(self.game_id, self.user, total_typed, total_errors)
@@ -223,9 +223,9 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
             # "client_sent_at": result.get("client_sent_at", None) or recv_ts,
         }
 
-        logger.warning(
-            f"[PROGRESS][SEND] {self.user.username} broadcasting progress={player_snapshot['progress']:.2f}%"
-        )
+        # logger.warning(
+        #     f"[PROGRESS][SEND] {self.user.username} broadcasting progress={player_snapshot['progress']:.2f}%"
+        # )
 
         # ✅ Broadcast only this player's update to all connected clients
         await self.channel_layer.group_send(
@@ -236,7 +236,7 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
             },
         )
 
-        logger.warning(f"[PROGRESS][SENT] {self.user.username} done broadcast")
+        #logger.warning(f"[PROGRESS][SENT] {self.user.username} done broadcast")
 
     @database_sync_to_async
     def _get_game_leaderboard(self):
