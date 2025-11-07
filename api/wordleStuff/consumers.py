@@ -344,6 +344,25 @@ class WordleConsumer(AsyncWebsocketConsumer):
             'server_now': event.get('server_now'),
         }))
 
+    async def player_timeout(self, event):
+        # Only act if this timeout targets me
+        if event.get('user_id') == getattr(self.user, 'id', None):
+            await self.send(text_data=json.dumps({'type': 'timeout'}))
+            await self.close(code=4003)
+
+    async def timer_expired(self, event):
+        # Backend finalized due to global timer
+        await self.send(text_data=json.dumps({
+            'type': 'timer_expired',
+            'leaderboard': event.get('leaderboard', []),
+            'server_now': event.get('server_now'),
+            'auto_completed': event.get('auto_completed', True),
+        }))
+        try:
+            await self.close(code=4004)
+        except Exception:
+            pass
+
 
     # ===== Helper: join deadline check =====
     async def _check_join_deadline(self, gs):
