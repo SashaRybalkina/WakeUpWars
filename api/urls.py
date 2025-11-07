@@ -21,7 +21,7 @@ from .views import (AcceptPersonalChallenge, ConversationView, DeclinePersonalCh
                     ValidatePatternMoveView, CreateWordleGameView, ValidateWordleMoveView, 
                     SavePushTokenView, UserNotificationsView, DeleteNotificationView,
                     GroupLeaderboardView,
-                    GroupDailyHistoryView,
+                    GroupDailyHistoryView, GameTimerExpiredView,
 )
 
 from django.urls import path, include
@@ -125,7 +125,8 @@ from .views import (
     SendGroupInviteView,
     RespondGroupInviteView,
     CreateTypingRaceGameView,
-    FinalizeTypingRaceResultView
+    FinalizeTypingRaceResultView,
+    GameTimerExpiredView,
 )
 
 
@@ -251,4 +252,6 @@ urlpatterns = [
     path('typing-race/create/', CreateTypingRaceGameView.as_view(), name='typing-race-create'),
     path('typing-race/finalize/', FinalizeTypingRaceResultView.as_view(), name='typing-race-finalize'),
 
+    # Game timer expiry (frontend-driven)
+    path('game/timer-expired/', GameTimerExpiredView.as_view(), name='game-timer-expired'),
 ]

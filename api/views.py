@@ -59,6 +59,7 @@ import traceback
 from api.services.skill import recompute_skill_for_user
 from api.services.skill_config import SKILL_CONFIG
 from api.tasks import open_join_window
+from channels.layers import get_channel_layer
 
 ### Pattern Memorization###
 from api.patternMem.utils import get_or_create_pattern_game, validate_pattern_move
@@ -4777,3 +4778,123 @@ class FinalizeTypingRaceResultView(APIView):
         )
 
         return Response(result, status=status.HTTP_200_OK)
+
+
+class GameTimerExpiredView(APIView):
+    """
+    Frontend-driven finalization: when the 5-minute UI timer ends,
+    the client POSTs here to finalize the game state.
+
+    Body:
+      - model: one of 'SudokuGameState' | 'WordleGameState' | 'PatternMemorizationGameState'
+      - game_state_id: int
+    Effects:
+      - For Sudoku: reconcile scores from SudokuGamePlayer, then zero-fill missing participants
+      - For others: zero-fill missing participants
+      - Mark joins_closed = True, broadcast 'timer.expired' and current leaderboard
+    """
+    def post(self, request):
+        model_name = request.data.get('model')
+        gs_id = request.data.get('game_state_id')
+        if not model_name or not gs_id:
+            return Response({'error': 'Missing model or game_state_id'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            Model = globals()[model_name]
+        except KeyError:
+            return Response({'error': 'Unknown model'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            gs = Model.objects.select_related('challenge', 'game').get(pk=gs_id)
+        except Model.DoesNotExist:
+            return Response({'error': 'Game state not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        play_date = timezone.localdate()
+        # Reconcile Sudoku scores first (mirror tasks.broadcast_leaderboard)
+        if model_name == 'SudokuGameState':
+            try:
+                players = (
+                    SudokuGamePlayer.objects
+                    .select_related('player')
+                    .filter(gameState_id=gs_id)
+                )
+                # Progress-based: denominator should be the initial empty cells
+                # Estimate as (filled_so_far + empties_remaining_now)
+                total_correct = sum(int(getattr(p, 'accuracyCount', 0) or 0) for p in players)
+                try:
+                    empties_remaining = sum(
+                        1 for row in (gs.puzzle or []) for v in (row or []) if v in (0, None)
+                    )
+                except Exception:
+                    empties_remaining = 0
+                denom = max(1, total_correct + empties_remaining)
+
+                submitted_ids = set()
+                for p in players:
+                    correct = int(getattr(p, 'accuracyCount', 0) or 0)
+                    score = round((correct / denom) * 100, 2)
+                    GamePerformance.objects.update_or_create(
+                        challenge=gs.challenge,
+                        game=gs.game,
+                        user=p.player,
+                        date=play_date,
+                        defaults={"score": score},
+                    )
+                    submitted_ids.add(p.player_id)
+            except Exception:
+                pass
+
+        # Zero-fill remaining participants
+        participant_ids = set(
+            ChallengeMembership.objects
+            .filter(challengeID=gs.challenge)
+            .values_list('uID_id', flat=True)
+        )
+        existing_ids = set(
+            GamePerformance.objects
+            .filter(challenge=gs.challenge, game=gs.game, date=play_date)
+            .values_list('user_id', flat=True)
+        )
+        for uid in participant_ids - existing_ids:
+            GamePerformance.objects.update_or_create(
+                challenge=gs.challenge,
+                game=gs.game,
+                user_id=uid,
+                date=play_date,
+                defaults={"score": 0, "auto_generated": True},
+            )
+
+        # Lock further joins
+        try:
+            if not getattr(gs, 'joins_closed', False):
+                gs.joins_closed = True
+                gs.save(update_fields=['joins_closed'])
+        except Exception:
+            pass
+
+        # Broadcast timer.expired and current leaderboard
+        leaderboard = list(
+            GamePerformance.objects
+            .filter(challenge=gs.challenge, game=gs.game, date=play_date)
+            .select_related('user')
+            .values('user__username', 'score')
+        )
+        try:
+            prefix = {
+                'SudokuGameState': 'sudoku',
+                'WordleGameState': 'wordle',
+                'PatternMemorizationGameState': 'pattern',
+            }[model_name]
+            group = f"{prefix}_{gs.id}"
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                group,
+                {
+                    'type': 'timer.expired',
+                    'leaderboard': leaderboard,
+                    'auto_completed': True,
+                    'server_now': timezone.now().isoformat(),
+                }
+            )
+        except Exception:
+            pass
+
+        return Response({'success': True, 'finalized': True, 'auto_completed': True, 'leaderboard': leaderboard}, status=status.HTTP_200_OK)

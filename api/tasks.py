@@ -183,34 +183,37 @@ def broadcast_leaderboard(model_name: str, gs_id: int, for_date_iso: str | None 
     # Reconcile/finalize Sudoku scores if not already present
     if model_name == 'SudokuGameState':
         try:
-            # Compute scores from SudokuGamePlayer stats
+            # Respect existing GamePerformance (e.g., set by the completer at finish)
             players = (
                 SudokuGamePlayer.objects
                 .select_related('player')
                 .filter(gameState_id=gs_id)
             )
-            submitted_ids = set()
-            for p in players:
-                correct = int(getattr(p, 'accuracyCount', 0) or 0)
-                incorrect = int(getattr(p, 'inaccuracyCount', 0) or 0)
-                attempts = max(1, correct + incorrect)
-                score = round((correct / attempts) * 100, 2)
-                GamePerformance.objects.update_or_create(
-                    challenge=gs.challenge,
-                    game=gs.game,
-                    user=p.player,
-                    date=play_date,
-                    defaults={"score": score},
-                )
-                submitted_ids.add(p.player_id)
-
-            # Fill zeros for remaining participants
+            existing_ids = set(
+                GamePerformance.objects
+                .filter(challenge=gs.challenge, game=gs.game, date=play_date)
+                .values_list('user_id', flat=True)
+            )
             participant_ids = set(
                 ChallengeMembership.objects
                 .filter(challengeID=gs.challenge)
                 .values_list('uID_id', flat=True)
             )
-            for uid in participant_ids - submitted_ids:
+
+            # For any player without a row yet, assign 0
+            for p in players:
+                if p.player_id not in existing_ids:
+                    GamePerformance.objects.update_or_create(
+                        challenge=gs.challenge,
+                        game=gs.game,
+                        user=p.player,
+                        date=play_date,
+                        defaults={"score": 0, "auto_generated": True},
+                    )
+                    existing_ids.add(p.player_id)
+
+            # Zero-fill remaining participants for the day
+            for uid in participant_ids - existing_ids:
                 GamePerformance.objects.update_or_create(
                     challenge=gs.challenge,
                     game=gs.game,
