@@ -2,7 +2,7 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 import logging
 from django.db import transaction
-from django.db.models import Q, Count, F, Value, Sum
+from django.db.models import Q, Count, F, Value, Sum, Max
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 
@@ -457,6 +457,71 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
                                         "type": "badge_unlocked",
                                     }
                                     send_fcm_notification(title, body, data, recipient_id)
+
+                        # --- Notify members who did not finish the final game ---
+                        # Only for non-personal, non-singleplayer challenges
+                        if ch.groupID is not None and not ch.isSinglePlayer:
+                            try:
+                                # Get all participants
+                                all_members = list(ch.members.all())
+
+                                # Determine final challenge day (the latest performance date)
+                                final_day = (
+                                    GamePerformance.objects
+                                    .filter(challenge=ch)
+                                    .aggregate(last_day=Coalesce(Max('date'), Value(None)))
+                                    .get('last_day')
+                                )
+                                if not final_day:
+                                    return
+
+                                # Get users who have performances on the final day
+                                participants_final_day = set(
+                                    GamePerformance.objects
+                                    .filter(challenge=ch, date=final_day)
+                                    .values_list('user_id', flat=True)
+                                )
+
+                                # Identify members who never played the final day
+                                non_final_members = [m for m in all_members if m.id not in participants_final_day]
+
+                                # Also check if anyone finished earlier than the last finisher
+                                # (i.e., their last recorded performance predates the final_day)
+                                early_finishers = list(
+                                    User.objects.filter(
+                                        id__in=[
+                                            m.id for m in all_members
+                                            if GamePerformance.objects
+                                            .filter(challenge=ch, user=m)
+                                            .aggregate(last_play=Coalesce(Max('date'), Value(None)))['last_play'] < final_day
+                                        ]
+                                    )
+                                )
+
+                                # Merge and deduplicate
+                                to_notify = set(non_final_members + early_finishers)
+
+                                for member in to_notify:
+                                    UserNotification.objects.create(
+                                        user=member,
+                                        title="Challenge Completed!",
+                                        body=f"The challenge '{ch.name}' has ended. You didn’t finish the final game — check your progress!",
+                                        type="challenge_update",
+                                        screen="Challenges",
+                                    )
+
+                                    device = FCMDevice.objects.filter(user_id=member.id).first()
+                                    if device:
+                                        title = "Challenge Completed!"
+                                        body = f"The challenge '{ch.name}' has ended. You didn’t finish the final game — check your progress!"
+                                        data = {
+                                            "screen": "Challenges",
+                                            "type": "challenge_update",
+                                        }
+                                        send_fcm_notification(title, body, data, member.id)
+
+                            except Exception:
+                                logging.exception("Failed to notify non-final participants")
 
         except Exception:
             logging.exception("daily progress rollup (post_save) failed")
