@@ -190,32 +190,40 @@ const Groups: React.FC<Props> = ({ navigation }) => {
           </RNScrollView>
         )}
 
-        <TouchableOpacity style={styles.floatingButton} onPress={goToCreateGroup}>
-          <Ionicons name="add" size={30} color="#FFF" />
-        </TouchableOpacity>
+        {from !== "Messages" && (
+        <>
+          <TouchableOpacity style={styles.floatingButton} onPress={goToCreateGroup}>
+            <Ionicons name="add" size={30} color="#FFF" />
+          </TouchableOpacity>
+        </>
+        )}
       </View>
 
-      <View style={styles.navBar}>
-        <TouchableOpacity style={styles.navButton} onPress={goToChallenges}>
-          <Ionicons name="star-outline" size={28} color="#FFF" />
-          <Text style={styles.navText}>Challenges</Text>
-        </TouchableOpacity>
+      {from !== "Messages" && (
+      <>
+        <View style={styles.navBar}>
+          <TouchableOpacity style={styles.navButton} onPress={goToChallenges}>
+            <Ionicons name="star-outline" size={28} color="#FFF" />
+            <Text style={styles.navText}>Challenges</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.navButton} onPress={goToGroups}>
-          <Ionicons name="people" size={28} color="#FFD700" />
-          <Text style={styles.activeNavText}>Groups</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.navButton} onPress={goToGroups}>
+            <Ionicons name="people" size={28} color="#FFD700" />
+            <Text style={styles.activeNavText}>Groups</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.navButton} onPress={goToMessages}>
-          <Ionicons name="mail-outline" size={28} color="#FFF" />
-          <Text style={styles.navText}>Messages</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.navButton} onPress={goToMessages}>
+            <Ionicons name="mail-outline" size={28} color="#FFF" />
+            <Text style={styles.navText}>Messages</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.navButton} onPress={goToProfile}>
-          <Ionicons name="person-outline" size={28} color="#FFF" />
-          <Text style={styles.navText}>Profile</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity style={styles.navButton} onPress={goToProfile}>
+            <Ionicons name="person-outline" size={28} color="#FFF" />
+            <Text style={styles.navText}>Profile</Text>
+          </TouchableOpacity>
+        </View>
+      </>
+      )}
     </ImageBackground>
   )
 }
