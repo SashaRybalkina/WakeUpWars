@@ -2683,7 +2683,16 @@ class ValidateSudokuMoveView(APIView):
         # result = validate_sudoku_move(game_state, user, index, value)
         result = async_to_sync(validate_sudoku_move)(game_state.id, user, index, value)
 
-        if result['is_correct']:
+        # Handle ignored moves (cell already correctly filled)
+        if result.get('type') == 'ignored':
+            return Response({
+                'success': True,
+                'result': 'ignored',
+                'puzzle': game_state.puzzle,
+                'completed': False
+            }, status=200)
+
+        if result.get('is_correct'):
             return Response({
                 'success': True,
                 'result': 'correct',
@@ -2991,7 +3000,7 @@ class ValidatePatternMoveView(APIView):
         if "scores" in result and result["scores"] is not None:
             payload["scores"] = result["scores"]
 
-        if result.get("is_correct"):
+        if result.get('is_correct'):
             return Response({"success": True, "result": "correct", **payload}, status=status.HTTP_200_OK)
         else:
             return Response({"success": False, "result": "incorrect", **payload}, status=status.HTTP_200_OK)
@@ -3025,28 +3034,9 @@ class CreateWordleGameView(APIView):
             Challenge.objects.get(id=challenge_id)
         except Challenge.DoesNotExist:
             return Response({"error": "Challenge not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        try:
-            gs = WordleGameState.objects.filter(challenge_id=challenge_id).order_by('-id').first()
-            if gs:
-                today = timezone.localdate()
-                # If any GamePerformance exists for today for this challenge+game, consider it ended
-                if GamePerformance.objects.filter(challenge_id=challenge_id, game_id=gs.game_id, date=today).exists():
-                    return Response(
-                        {'code': 'GAME_ENDED', 'detail': 'This game has already finished for today.'},
-                        status=status.HTTP_403_FORBIDDEN,
-                    )
-                now = timezone.now()
-                if gs.joins_closed or (gs.join_deadline_at and now > gs.join_deadline_at):
-                    return Response(
-                        {'code': 'JOINS_CLOSED', 'detail': 'The join window has closed. Please join next time.'},
-                        status=status.HTTP_403_FORBIDDEN,
-                    )
-        except Exception:
-            # best-effort gating; proceed if checks fail
-            pass
         
         # Use utils to create or get a Wordle game state
+        # The helper now uses proper get_or_create with unique constraints to prevent race conditions
         game_data = get_or_create_game_wordle(challenge_id, user)
 
         return Response(game_data, status=status.HTTP_200_OK)
@@ -3232,7 +3222,16 @@ class ValidateSudokuMoveView(APIView):
         # result = validate_sudoku_move(game_state, user, index, value)
         result = async_to_sync(validate_sudoku_move)(game_state.id, user, index, value)
 
-        if result['is_correct']:
+        # Handle ignored moves (cell already correctly filled)
+        if result.get('type') == 'ignored':
+            return Response({
+                'success': True,
+                'result': 'ignored',
+                'puzzle': game_state.puzzle,
+                'completed': False
+            }, status=200)
+
+        if result.get('is_correct'):
             return Response({
                 'success': True,
                 'result': 'correct',
