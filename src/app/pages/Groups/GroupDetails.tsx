@@ -78,92 +78,93 @@ const GroupDetails: React.FC<Props> = ({ navigation }) => {
 
 
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!user?.id) {
-        console.error("userId is missing!");
-        return;
-      }
+useFocusEffect(
+  useCallback(() => {
+    if (!user?.id) {
+      console.error("userId is missing!");
+      return;
+    }
 
-      console.log("[GroupDetails] focus triggered, starting fetch");
-      setIsLoading(true);
+    console.log("[GroupDetails] focus triggered, starting fetch");
+    setIsLoading(true);
 
-      const fetchGroupData = async () => {
-        console.log("[GroupDetails] set isLoading → true");
-        setIsLoading(true)
-        try {
-          const accessToken = await getAccessToken();
-          if (!accessToken) {
-            throw new Error("Not authenticated");
-          }
+    const fetchGroupData = async () => {
+      try {
+        const accessToken = await getAccessToken();
+        if (!accessToken) throw new Error("Not authenticated");
 
-          const response = await fetch(endpoints.groupProfile(groupId), {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`
-                }
-              });
+        // Start all fetches concurrently
+        const [groupRes, lbRes, inviteRes] = await Promise.allSettled([
+          fetch(endpoints.groupProfile(groupId), { headers: { Authorization: `Bearer ${accessToken}` } }),
+          fetch(endpoints.groupLeaderboard(groupId), { headers: { Authorization: `Bearer ${accessToken}` } }),
+          fetch(endpoints.getChallengeInvites(Number(user.id), groupId), { headers: { Authorization: `Bearer ${accessToken}` } }),
+        ]);
 
-          const data = await response.json()
-          console.log(data)
-          // Add totalDays if not present and determine if challenge is completed
+        // --- Group Data ---
+        if (groupRes.status === "fulfilled") {
+          const data = await groupRes.value.json();
           if (data.challenges) {
-            const now = new Date()
+            const now = new Date();
             data.challenges = data.challenges.map((challenge: Challenge) => ({
               ...challenge,
               totalDays: challenge.totalDays ?? 30,
               isCompleted: challenge.isCompleted || false,
-            }))
+            }));
           }
+          setGroupData(data);
+        } else {
+          console.error("Failed to fetch group profile:", groupRes.reason);
+        }
 
-          setGroupData(data)
-
-          // ---- load group leaderboard (overall) ----
+        // --- Leaderboard ---
+        if (lbRes.status === "fulfilled") {
+          setLbLoading(true);
+          setLbError(null);
           try {
-            setLbLoading(true)
-            setLbError(null)
-            const lbRes = await fetch(endpoints.groupLeaderboard(groupId), {
-              headers: { Authorization: `Bearer ${accessToken}` }
-            })
-            const lbText = await lbRes.text()
-            const d: any = lbText ? JSON.parse(lbText) : null
-            const rows: LeaderRow[] = Array.isArray(d) ? d : (d?.leaderboard ?? [])
-            setLbRows(rows)
-            setLbSince(d?.since ?? null)
-            setLbUntil(d?.until ?? null)
+            const text = await lbRes.value.text();
+            const d: any = text ? JSON.parse(text) : null;
+            const rows: LeaderRow[] = Array.isArray(d) ? d : (d?.leaderboard ?? []);
+            setLbRows(rows);
+            setLbSince(d?.since ?? null);
+            setLbUntil(d?.until ?? null);
           } catch (e) {
-            setLbError('Failed to load leaderboard')
+            setLbError("Failed to parse leaderboard");
           } finally {
-            setLbLoading(false)
+            setLbLoading(false);
           }
+        } else {
+          console.error("Failed to fetch leaderboard:", lbRes.reason);
+          setLbError("Failed to load leaderboard");
+        }
 
-          // Check for pending invites
-          const inviteResponse = await fetch(endpoints.getChallengeInvites(Number(user.id), groupId), {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`
-                }
-              });
-          const inviteData = await inviteResponse.json();
+        // --- Pending Invites ---
+        if (inviteRes.status === "fulfilled") {
+          const inviteData = await inviteRes.value.json();
           const formatted = inviteData.invited_challenges.map(
             (item: PendingChallenge) => ({
               id: item.id,
               name: item.name,
               startDate: item.startDate,
               endDate: item.endDate,
-              accepted: item.accepted
+              accepted: item.accepted,
             })
           );
           setPendingChallenges(formatted);
-
-        } catch (error) {
-          console.error("Failed to fetch group details:", error)
-        } finally {
-          setIsLoading(false)
+        } else {
+          console.error("Failed to fetch invites:", inviteRes.reason);
         }
+
+      } catch (error) {
+        console.error("Failed to fetch group details:", error);
+      } finally {
+        setIsLoading(false);
       }
-  
-      fetchGroupData()
-    }, [user?.id, groupId])
-  );
+    };
+
+    fetchGroupData();
+  }, [user?.id, groupId])
+);
+
     
   const goToMessages = () => navigation.navigate("Messages")
   const goToGroups = () => navigation.navigate("Groups")

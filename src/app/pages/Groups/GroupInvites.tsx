@@ -16,6 +16,7 @@ import { ScrollView } from "tamagui"
 import { useUser } from "../../context/UserContext"
 import { BASE_URL, endpoints } from "../../api"
 import { getAccessToken } from "../../auth"
+import { useGroups } from "../../context/GroupsContext"
 
 type Props = {
   navigation: NavigationProp<any>
@@ -58,6 +59,7 @@ const isGroupInviteArray = (data: unknown): data is GroupInvite[] => {
 
 const GroupInvites: React.FC<Props> = ({ navigation }) => {
   const { user } = useUser()
+  const { invalidateGroups } = useGroups();
   const [invites, setInvites] = useState<GroupInvite[]>([])
   const [loading, setLoading] = useState(true)
   const [processingId, setProcessingId] = useState<number | null>(null)
@@ -147,7 +149,11 @@ const GroupInvites: React.FC<Props> = ({ navigation }) => {
       }
 
       setInvites(invites.filter((inv) => inv.id !== inviteId))
-      Alert.alert("Success", accept ? "You’ve joined the group!" : "Group invite declined.")
+      invalidateGroups();
+      // Alert.alert("Success", accept ? "You’ve joined the group!" : "Group invite declined.")
+              Alert.alert("Success", accept ? "You’ve joined the group!" : "Group invite declined.", [
+                { text: "OK", onPress: () => navigation.navigate("Groups") },
+              ])
     } catch (error: any) {
       Alert.alert("Error", error.message || `Failed to ${accept ? "accept" : "decline"} invite`)
     } finally {

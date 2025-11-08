@@ -555,227 +555,200 @@ return (
       {loading ? (
         <ActivityIndicator size="large" color="#FFD700" />
       ) : (
-    <ScrollView
-      contentContainerStyle={styles.scrollContentContainer}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.challengeInfoContainer}>
-        <Text style={styles.challengeTitle}>{pendingChallengeName}</Text>
-        <Text style={styles.challengeEndDate}>Starts: {pendingChallengeStartDate}</Text>
-        <Text style={styles.challengeEndDate}>Ends: {pendingChallengeEndDate}</Text>
-      </View>
-
-
-    <View style={styles.container}>
-      <Text style={styles.coinText}>Participation fee: {participationFee}</Text>
-      <Text style={styles.coinEmoji}>🪙</Text>
+<ScrollView
+  contentContainerStyle={styles.scrollContentContainer}
+  showsVerticalScrollIndicator={false}
+>
+  {/* Challenge Info */}
+  <View style={styles.challengeCard}>
+    <Text style={styles.challengeTitle}>{pendingChallengeName}</Text>
+    <View style={styles.challengeDetailsRow}>
+      <Text style={styles.challengeDateText}>Starts: {pendingChallengeStartDate}</Text>
+      <Text style={styles.challengeDateText}>Ends: {pendingChallengeEndDate}</Text>
     </View>
-
-
-
-
-
-          {/* Days + Alarms Section */}
-          <View style={styles.alarmSection}>
-            <Text style={styles.sectionTitle}>Challenge Days</Text>
-            <ScrollView horizontal contentContainerStyle={{ flexDirection: "row", paddingVertical: 8 }}>
-{activeDays.map((dayNum, idx) => {
-  const dayLabel = DAYS[dayNum - 1];
-  // find the schedule object for this label
-  const dayData = schedule.find((d) => DayOfWeekLabels[d.dayOfWeek] === dayLabel)
-  const isActive = dayData?.dayOfWeek === selectedDay
-
-  return (
-    <View key={idx} style={{ alignItems: "center", marginHorizontal: 6 }}>
-      <TouchableOpacity
-        style={[styles.dayCircle, isActive && styles.activeDayCircle]}
-        onPress={() => dayData && setSelectedDay(dayData.dayOfWeek)} // set selectedDay
-      >
-        <Text style={[styles.dayText, isActive && styles.activeDayText]}>{dayLabel}</Text>
-      </TouchableOpacity>
+    <View style={styles.feeRow}>
+      <Text style={styles.coinText}>Participation Fee:</Text>
+      <Text style={styles.coinValue}>{participationFee} 🪙</Text>
     </View>
-  )
-})}
-
-            </ScrollView>
-          </View>
-
-          {/* Games Section */}
-<View style={styles.gamesSection}>
-  <View style={styles.gamesSectionHeader}>
-    <Text style={styles.sectionTitle}>
-      {selectedDay ? `Games for ${DayOfWeekLabels[selectedDay]}` : "Select a day"}
-    </Text>
   </View>
-            {visibleGames.length > 0 ? (
-              <ScrollView
-                horizontal={true}
-                showsHorizontalScrollIndicator={true}
-                contentContainerStyle={styles.gamesScrollContainer}
-              >
-                <View style={styles.gamesGrid}>
-                  {visibleGames.map((game, index) => {
-                    // const name = (game[0] || "").trim();
-                    const lower = game.name.toLowerCase();
-                    const isSudoku = lower.includes("sudoku");   
-                    const isPattern = lower.includes("pattern"); 
 
+  {/* Days Selection */}
+  <View style={styles.section}>
+    <Text style={styles.sectionTitle}>Challenge Days</Text>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.daysScroll}
+    >
+      {activeDays.map((dayNum, idx) => {
+        const dayLabel = DAYS[dayNum - 1];
+        const dayData = schedule.find(d => DayOfWeekLabels[d.dayOfWeek] === dayLabel);
+        const isActive = dayData?.dayOfWeek === selectedDay;
+
+        return (
+          <TouchableOpacity
+            key={idx}
+            style={[styles.dayBubble, isActive && styles.dayBubbleActive]}
+            onPress={() => dayData && setSelectedDay(dayData.dayOfWeek)}
+          >
+            <Text style={[styles.dayBubbleText, isActive && styles.dayBubbleTextActive]}>
+              {dayLabel}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </ScrollView>
+  </View>
+
+  {/* Games Section */}
+  <View style={styles.section}>
+    <Text style={styles.sectionTitle}>
+      {selectedDay ? `Games for ${DayOfWeekLabels[selectedDay]}` : "Select a Day"}
+    </Text>
+    {visibleGames.length > 0 ? (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        {visibleGames.map((game, index) => {
+          const lower = game.name.toLowerCase();
+          const isSudoku = lower.includes("sudoku");
+          const isPattern = lower.includes("pattern");
+          const image = isSudoku
+            ? require("../../images/sudoku.png")
+            : isPattern
+            ? require("../../images/patternGame.png")
+            : null;
+
+          return (
+            <TouchableOpacity key={index} style={styles.gameCard}>
+              <Text style={styles.gameTitle}>{game.name}</Text>
+              {image ? (
+                <ImageBackground source={image} style={styles.gameImage} resizeMode="contain" />
+              ) : (
+                <>
+                  <Text style={styles.gameDetail}>Repeats: -</Text>
+                  <Text style={styles.gameDetail}>Minutes: -</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    ) : (
+      <View style={styles.emptyGamesContainer}>
+        <Text style={styles.emptyGamesText}>Select a day to see games</Text>
+      </View>
+    )}
+  </View>
+
+  {/* Availability Editor */}
+  <View style={styles.section}>
+    <Text style={styles.sectionTitle}>Edit Your Availability</Text>
+
+    {/* Centered container sized to chart */}
+    <View style={styles.chartWrapper}>
+      <View style={{ flexDirection: 'row' }}>
+        {/* Fixed left column (times) */}
+        <View>
+          <View style={styles.cell} />
+          {TIMES.map((time, timeIdx) => (
+            <View key={timeIdx} style={styles.cell}>
+              <Text style={styles.headerText}>{formatTo12Hour(time)}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Scrollable grid */}
+        <ScrollView horizontal>
+          <View>
+            {/* Header row (days) */}
+            <View style={styles.row}>
+              {activeDays.map(dayNum => (
+                <View key={dayNum} style={styles.cell}>
+                  <Text style={styles.headerText}>{DAYS[dayNum - 1]}</Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Scrollable body */}
+            <ScrollView>
+              {TIMES.map((time, timeIdx) => (
+                <View key={timeIdx} style={styles.row}>
+                  {activeDays.map(dayOfWeek => {
+                    const users = availability.filter(
+                      e => e.dayOfWeek === dayOfWeek && toHHMM(e.alarmTime) === time
+                    );
                     return (
                       <TouchableOpacity
-                        key={index}
-                        style={[styles.gameCard, isSudoku && styles.sudokuGameCard]}
-                        // onPress={() => handleGamePress(game, index)}
+                        key={`${dayOfWeek}-${timeIdx}`}
+                        style={[styles.cell, styles.interactiveCell]}
+                        onPress={() => toggleCell(dayOfWeek, timeIdx)}
                       >
-                        <Text style={styles.gameTitle}>{game.name}</Text>
-
-                        {isSudoku ? (
-                          <>
-                            <ImageBackground
-                              source={require("../../images/sudoku.png")}
-                              style={styles.sudokuImage}
-                              resizeMode="contain"
-                            />
-                          </>
-                        ) : isPattern ? (
-                          <>
-                            <ImageBackground
-                              source={require("../../images/patternGame.png")}
-                              style={styles.sudokuImage}
-                              resizeMode="contain"
-                            />
-                          </>
-                        ) : (
-                          <>
-                            <Text style={styles.gameDetail}>Repeats: -</Text>
-                            <Text style={styles.gameDetail}>Minutes: -</Text>
-                          </>
+                        {users.length > 0 && (
+                          <View pointerEvents="none" style={styles.stripeOverlay}>
+                            {users.map((u, i) => (
+                              <View
+                                key={i}
+                                style={{
+                                  flex: 1,
+                                  backgroundColor: userColorMap[u.uID] || 'rgba(255,255,255,0.2)',
+                                }}
+                              />
+                            ))}
+                          </View>
                         )}
                       </TouchableOpacity>
                     );
                   })}
                 </View>
-              </ScrollView>
-            ) : (
-
-    <View style={styles.emptyGamesContainer}>
-      <Text style={styles.emptyGamesText}>Select a day to see games</Text>
+              ))}
+            </ScrollView>
+          </View>
+        </ScrollView>
+      </View>
     </View>
-    
+  </View>
+
+  {/* Legends & Buttons */}
+  {availability.length > 0 && (
+    <View style={styles.legendContainer}>
+      {Array.from(new Map(availability.map(({ uID, name }) => [uID, name])).entries()).map(
+        ([id, name]) => (
+          <View key={id} style={styles.legendItem}>
+            <View style={[styles.legendColor, { backgroundColor: userColorMap[id] }]} />
+            <Text style={styles.legendText}>{name}</Text>
+          </View>
+        )
+      )}
+    </View>
   )}
 
-</View>
+  {declinedList.length > 0 && (
+    <View style={styles.legendContainer}>
+      <Text style={styles.legendText}>Declined:</Text>
+      {declinedList.map((memName, index) => (
+        <Text key={index} style={styles.memberName}>
+          {memName}
+        </Text>
+      ))}
+    </View>
+  )}
 
+  <TouchableOpacity style={styles.saveButton} onPress={handleSubmit}>
+    <Text style={styles.saveButtonText}>Save My Availability</Text>
+  </TouchableOpacity>
 
-
-
-
-
-      <Text style={styles.title}>Edit Your Availability</Text>
-
-
-        <View style={styles.formSection}>
-          <Text style={styles.sectionLabel}>Select Availability</Text>
-          <ScrollView horizontal>
-            <View style={styles.grid}>
-              <View style={styles.row}>
-                <View style={styles.cell} />
-                {activeDays.map((dayNum) => {
-                  const dayLabel = DAYS[dayNum - 1]; // since DAYS[0] = "Mon"
-                  return (
-                    <View key={dayNum} style={styles.cell}>
-                      <Text style={styles.headerText}>{dayLabel}</Text>
-                    </View>
-                  );
-                })}
-              </View>
-
-              {TIMES.map((time, timeIdx) => (
-                <View key={timeIdx} style={styles.row}>
-                  <View style={styles.cell}>
-                    <Text style={styles.headerText}>{formatTo12Hour(time)}</Text>
-                  </View>
-
-{activeDays.map((dayOfWeek) => {
-  const users = availability.filter(
-    entry => entry.dayOfWeek === dayOfWeek && toHHMM(entry.alarmTime) === time
-  );
-  const isUserHere = users.some(u => u.uID === user?.id);
-
-  return (
-    <TouchableOpacity
-      key={`${dayOfWeek}-${timeIdx}`}
-      style={[styles.cell, styles.interactiveCell]}
-      onPress={() => toggleCell(dayOfWeek, timeIdx)} // pass actual dayOfWeek
-    >
-      {users.length > 0 && (
-        <View pointerEvents="none" style={styles.stripeOverlay}>
-          {users.map((u, i) => (
-            <View
-              key={i}
-              style={{
-                flex: 1,
-                backgroundColor: userColorMap[u.uID] || 'rgba(255,255,255,0.2)',
-              }}
-            />
-          ))}
-        </View>
-      )}
+  {accepted !== 1 && (
+    <TouchableOpacity style={styles.saveButton} onPress={handleDecline}>
+      <Text style={styles.saveButtonText}>Decline Challenge Invite</Text>
     </TouchableOpacity>
-  );
-})}
+  )}
 
+  {isInitiator && uniqueUserIds.length > 1 && (
+    <TouchableOpacity style={styles.saveButton} onPress={handleFinalizeSchedule}>
+      <Text style={styles.saveButtonText}>Finalize Challenge</Text>
+    </TouchableOpacity>
+  )}
+</ScrollView>
 
-                </View>
-              ))}
-            </View>
-          </ScrollView>
-        </View>
-
-
-      {availability.length > 0 && (() => {
-        const nameMap = new Map(availability.map(({ uID, name }) => [uID, name]));
-        return (
-          <View style={styles.legendContainer}>
-            {Array.from(nameMap.entries()).map(([id, name]) => (
-              <View key={id} style={styles.legendItem}>
-                <View style={[styles.legendColor, { backgroundColor: userColorMap[id] }]} />
-                <Text style={styles.legendText}>{name}</Text>
-              </View>
-            ))}
-          </View>
-        );
-      })()}
-
-
-      {declinedList.length > 0 && (
-        <View style={styles.legendContainer}>
-          <Text style={styles.legendText}>Declined:</Text>
-          {declinedList.map((memName, index) => (
-            <Text key={index} style={styles.memberName}>
-              {memName}
-            </Text>
-          ))}
-        </View>
-      )}
-
-
-      <TouchableOpacity style={styles.saveButton} onPress={handleSubmit}>
-        <Text style={styles.saveButtonText}>Save My Availability</Text>
-      </TouchableOpacity>
-
-      {accepted !== 1 && (
-        <TouchableOpacity style={styles.saveButton} onPress={handleDecline}>
-          <Text style={styles.saveButtonText}>Decline Challenge Invite</Text>
-        </TouchableOpacity>
-      )}
-
-      {isInitiator && uniqueUserIds.length > 1 && (
-        <TouchableOpacity style={styles.saveButton} onPress={handleFinalizeSchedule}>
-          <Text style={styles.saveButtonText}>Finalize Challenge</Text>
-        </TouchableOpacity>
-      )}
-
-    </ScrollView>
 
       )}
 
@@ -1014,17 +987,17 @@ challengeEndDate: {
     flexDirection: "row",
     paddingRight: 20,
   },
-  gameCard: {
-    backgroundColor: "rgba(50, 50, 60, 0.7)",
-    borderRadius: 15,
-    padding: 12,
-    width: 130,
-    marginRight: 12,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-    height: 130,
-  },
+  // gameCard: {
+  //   backgroundColor: "rgba(50, 50, 60, 0.7)",
+  //   borderRadius: 15,
+  //   padding: 12,
+  //   width: 130,
+  //   marginRight: 12,
+  //   alignItems: "center",
+  //   borderWidth: 1,
+  //   borderColor: "rgba(255, 255, 255, 0.1)",
+  //   height: 130,
+  // },
   sudokuGameCard: {
     borderColor: "rgba(255, 215, 0, 0.3)",
     backgroundColor: "rgba(60, 60, 70, 0.8)",
@@ -1059,6 +1032,99 @@ challengeEndDate: {
     fontSize: 18,
     marginLeft: 4,
   },
+challengeCard: {
+  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  borderRadius: 18,
+  padding: 20,
+  marginBottom: 25,
+  borderWidth: 1,
+  borderColor: 'rgba(255, 255, 255, 0.25)',
+  alignItems: 'center',
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 3 },
+  shadowOpacity: 0.25,
+  shadowRadius: 5,
+},
+challengeDetailsRow: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  width: '100%',
+  marginTop: 6,
+},
+challengeDateText: {
+  color: '#FFF',
+  fontSize: 13,
+  fontStyle: 'italic',
+  opacity: 0.9,
+},
+feeRow: {
+  marginTop: 10,
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+coinValue: {
+  fontSize: 16,
+  fontWeight: '600',
+  color: '#FFD700',
+  marginLeft: 6,
+},
+
+section: {
+  marginBottom: 25,
+  alignItems: 'center',
+},
+daysScroll: {
+  flexDirection: 'row',
+  gap: 10,
+  paddingVertical: 10,
+},
+dayBubble: {
+  width: 44,
+  height: 44,
+  borderRadius: 22,
+  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+dayBubbleActive: {
+  backgroundColor: '#FFD700',
+},
+dayBubbleText: {
+  color: '#FFF',
+  fontWeight: '600',
+},
+dayBubbleTextActive: {
+  color: '#000',
+},
+
+gameCard: {
+  backgroundColor: 'rgba(255,255,255,0.12)',
+  borderRadius: 16,
+  padding: 14,
+  marginHorizontal: 8,
+  alignItems: 'center',
+  width: 140,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.3,
+  shadowRadius: 4,
+},
+gameImage: {
+  width: 60,
+  height: 60,
+  marginTop: 6,
+},
+
+chartWrapper: {
+  backgroundColor: 'rgba(255,255,255,0.1)',
+  borderRadius: 16,
+  padding: 10,
+  borderWidth: 1,
+  borderColor: 'rgba(255,255,255,0.25)',
+  alignSelf: 'center',
+},
+
 });
 
 export default EditAvailability;

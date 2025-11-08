@@ -23,6 +23,7 @@ type Group = {
 };
 import { BASE_URL, endpoints } from "../../api"
 import { getAccessToken } from "../../auth"
+import { useGroups } from "../../context/GroupsContext"
 
 type Props = {
   navigation: NavigationProp<any>
@@ -37,6 +38,7 @@ type Friend = {
 
 const CreateGroup: React.FC<Props> = ({ navigation }) => {
   const { user } = useUser()
+  const { invalidateGroups } = useGroups();
   const [groupName, setGroupName] = useState<string>("");
   const [allGroups, setAllGroups] = useState<Group[]>([]);
   const [friends, setFriends] = useState<Friend[]>([])
@@ -126,12 +128,27 @@ const CreateGroup: React.FC<Props> = ({ navigation }) => {
         body: JSON.stringify(payload),
       })
 
-      setTimeout(() => {
-        setCreating(false)
+          if (!response.ok) {
+              const error = await response.json();
+              throw new Error(error.message || "Failed to create group");
+          }
+  
+          const data = await response.json();
+          console.log('Created group:', data);
+
+          invalidateGroups();
+
+  
         Alert.alert("Success", "Group created successfully", [
           { text: "OK", onPress: () => navigation.navigate("Groups") },
         ])
-      }, 1000)
+
+      // setTimeout(() => {
+      //   setCreating(false)
+      //   Alert.alert("Success", "Group created successfully", [
+      //     { text: "OK", onPress: () => navigation.navigate("Groups") },
+      //   ])
+      // }, 1000)
     } catch (error) {
       console.error("Failed to create group:", error)
       Alert.alert("Error", "Failed to create group. Please try again.")

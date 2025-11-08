@@ -81,6 +81,8 @@ const GroupChallCollab: React.FC<Props> = ({ navigation }) => {
   const { user } = useUser()
 
   const [name, setName] = useState("")
+
+  const horizontalScrollRef = useRef<ScrollView>(null);
   // const [selectedDate, setSelectedDate] = useState(new Date())
   // const [showDatePicker, setShowDatePicker] = useState(false)
   // const [durationValue, setDurationValue] = useState(1); // default 1
@@ -240,40 +242,56 @@ const convertTo24Hour = (time12: string) => {
             </View>
           </View> */}
 
-          <View style={styles.formSection}>
-            <Text style={styles.label}>Select Availability</Text>
-            <ScrollView horizontal>
-              <View>
-                <View style={styles.row}>
-                  <View style={styles.cell} />
-                  {DAYS.map((day, idx) => (
-                    <View key={idx} style={styles.cell}>
-                      <Text style={styles.cellText}>{day}</Text>
-                    </View>
-                  ))}
-                </View>
+<View style={styles.formSection}>
+  <Text style={styles.label}>Select Availability</Text>
 
-                {TIMES.map((time, timeIdx) => (
-                  <View key={timeIdx} style={styles.row}>
-                    <View style={styles.cell}>
-                      <Text style={styles.cellText}>{time}</Text>
-                    </View>
-                    {DAYS.map((_, dayIdx) => (
-                      <TouchableOpacity
-                        key={`${dayIdx}-${timeIdx}`}
-                        onPress={() => toggleCell(dayIdx, timeIdx)}
-                        style={[
-                          styles.cell,
-                          styles.interactiveCell,
-                          isCellSelected(dayIdx, timeIdx) && styles.selectedCell,
-                        ]}
-                      />
-                    ))}
-                  </View>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
+  <View style={{ flexDirection: 'row', flex: 1 }}>
+    {/* Fixed left column (times) */}
+    <View>
+      {/* Empty corner cell to align with header row */}
+      <View style={styles.cell} />
+      {TIMES.map((time, timeIdx) => (
+        <View key={timeIdx} style={styles.cell}>
+          <Text style={styles.cellText}>{time}</Text>
+        </View>
+      ))}
+    </View>
+
+    {/* Scrollable section for days and grid */}
+    <ScrollView horizontal>
+      <View>
+        {/* Top row (days) */}
+        <View style={styles.row}>
+          {DAYS.map((day, idx) => (
+            <View key={idx} style={styles.cell}>
+              <Text style={styles.cellText}>{day}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Scrollable grid below days */}
+        <ScrollView>
+          {TIMES.map((time, timeIdx) => (
+            <View key={timeIdx} style={styles.row}>
+              {DAYS.map((_, dayIdx) => (
+                <TouchableOpacity
+                  key={`${dayIdx}-${timeIdx}`}
+                  onPress={() => toggleCell(dayIdx, timeIdx)}
+                  style={[
+                    styles.cell,
+                    styles.interactiveCell,
+                    isCellSelected(dayIdx, timeIdx) && styles.selectedCell,
+                  ]}
+                />
+              ))}
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+    </ScrollView>
+  </View>
+</View>
+
 
           <TouchableOpacity style={styles.createButton} onPress={handleNext}>
             <LinearGradient
@@ -422,6 +440,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
   },
+
 })
 
 

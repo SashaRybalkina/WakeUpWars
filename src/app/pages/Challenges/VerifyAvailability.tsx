@@ -234,40 +234,57 @@ useFocusEffect(
           >
 
 
-          <View style={styles.formSection}>
-            <Text style={styles.label}>Edit Availability</Text>
-            <ScrollView horizontal>
-              <View>
-                <View style={styles.row}>
-                  <View style={styles.cell} />
-                  {DAYS.map((day, idx) => (
-                    <View key={idx} style={styles.cell}>
-                      <Text style={styles.cellText}>{day}</Text>
-                    </View>
-                  ))}
-                </View>
 
-                {TIMES.map((time, timeIdx) => (
-                  <View key={timeIdx} style={styles.row}>
-                    <View style={styles.cell}>
-                      <Text style={styles.cellText}>{formatTo12Hour(time)}</Text>
-                    </View>
-                    {DAYS.map((_, dayIdx) => (
-                      <TouchableOpacity
-                        key={`${dayIdx}-${timeIdx}`}
-                        onPress={() => toggleCell(dayIdx, timeIdx)}
-                        style={[
-                          styles.cell,
-                          styles.interactiveCell,
-                          isCellSelected(dayIdx, timeIdx) && styles.selectedCell,
-                        ]}
-                      />
-                    ))}
-                  </View>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
+<View style={styles.formSection}>
+  <Text style={styles.label}>Edit Availability</Text>
+
+  <View style={{ flexDirection: 'row', flex: 1 }}>
+    {/* Fixed left column (times) */}
+    <View>
+      {/* Empty corner cell to align with header row */}
+      <View style={styles.cell} />
+      {TIMES.map((time, timeIdx) => (
+        <View key={timeIdx} style={styles.cell}>
+          <Text style={styles.cellText}>{time}</Text>
+        </View>
+      ))}
+    </View>
+
+    {/* Scrollable section for days and grid */}
+    <ScrollView horizontal>
+      <View>
+        {/* Top row (days) */}
+        <View style={styles.row}>
+          {DAYS.map((day, idx) => (
+            <View key={idx} style={styles.cell}>
+              <Text style={styles.cellText}>{day}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Scrollable grid below days */}
+        <ScrollView>
+          {TIMES.map((time, timeIdx) => (
+            <View key={timeIdx} style={styles.row}>
+              {DAYS.map((_, dayIdx) => (
+                <TouchableOpacity
+                  key={`${dayIdx}-${timeIdx}`}
+                  onPress={() => toggleCell(dayIdx, timeIdx)}
+                  style={[
+                    styles.cell,
+                    styles.interactiveCell,
+                    isCellSelected(dayIdx, timeIdx) && styles.selectedCell,
+                  ]}
+                />
+              ))}
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+    </ScrollView>
+  </View>
+</View>
+
 
           <TouchableOpacity style={styles.createButton} onPress={handleSubmit}>
             <LinearGradient

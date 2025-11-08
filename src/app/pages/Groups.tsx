@@ -8,6 +8,7 @@ import { useUser } from "../context/UserContext"
 import { useFocusEffect, useRoute } from "@react-navigation/native";
 import { getAccessToken } from "../auth"
 import * as SecureStore from "expo-secure-store"
+import { useGroups } from "../context/GroupsContext"
 
 type Props = {
   navigation: NavigationProp<any>
@@ -20,74 +21,21 @@ type Group = {
 
 const Groups: React.FC<Props> = ({ navigation }) => {
   const { user } = useUser()
+  const { groups, inviteCount, refreshGroups, isLoading, invalid } = useGroups();
   const route = useRoute()
   const from = route?.params?.from;
-  const [groups, setGroups] = useState<Group[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [inviteCount, setInviteCount] = useState(0)
+  // const [groups, setGroups] = useState<Group[]>([])
+  // const [isLoading, setIsLoading] = useState(true)
+  // const [inviteCount, setInviteCount] = useState(0)
 
-  const fetchWithAutoRefresh = async (url: string) => {
-    let accessToken = await getAccessToken();
-    if (!accessToken) throw new Error("Not authenticated");
-    let res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-    if (res.status !== 401) return res;
-
-    const refresh = await SecureStore.getItemAsync("refresh");
-    if (!refresh) return res;
-
-    const r = await fetch(endpoints.tokenRefresh, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh }),
-    });
-    if (!r.ok) return res;
-    const data = await r.json().catch(() => ({}));
-    if (!data?.access) return res;
-    await SecureStore.setItemAsync("access", data.access);
-    accessToken = data.access;
-    return await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-  };
 
   useFocusEffect(
     useCallback(() => {
-      if (!user?.id) {
-        console.error("userId is missing!");
-        return;
-      }
-  
-      const fetchGroups = async () => {
-        setIsLoading(true);
-        try {
-                const accessToken = await getAccessToken();
-                if (!accessToken) {
-                  throw new Error("Not authenticated");
-                }
-          const response = await fetch(endpoints.groups(Number(user.id)), {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`
-                }
-              });
-          const data = await response.json();
-          setGroups(data);
-
-          const invitesResponse = await fetchWithAutoRefresh(endpoints.groupInvites(Number(user.id)));
-          if (invitesResponse.ok) {
-            const invitesData = await invitesResponse.json().catch(() => []);
-            setInviteCount(Array.isArray(invitesData) ? invitesData.length : 0);
-          } else {
-            setInviteCount(0);
-          }
-
-        } catch (error) {
-          console.error("Failed to fetch groups:", error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-  
-      fetchGroups();
-    }, [user?.id])
+      if (invalid) refreshGroups();
+    }, [invalid, refreshGroups])
   );
+
+
   
   const goToChallenges = () => navigation.navigate("Challenges")
   const goToGroups = () => navigation.navigate("Groups")
