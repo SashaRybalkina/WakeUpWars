@@ -753,6 +753,7 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: 12,
     marginTop: 4,
+    textAlign: "center"
   },
   actionButton: {
     borderRadius: 12,

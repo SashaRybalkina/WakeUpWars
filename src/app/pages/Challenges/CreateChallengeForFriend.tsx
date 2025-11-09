@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
   dayButtonWithTime: { backgroundColor: "rgba(138,43,226,0.3)", borderColor: "#8A2BE2", height: 60 },
   dayText: { color: "#FFF", fontSize: 16, fontWeight: "600" },
   dayTextSelected: { color: "#FFD700" },
-  timeText: { color: "#FFF", fontSize: 12, marginTop: 4 },
+  timeText: { color: "#FFF", fontSize: 12, marginTop: 4, textAlign: "center"},
   actionButton: { borderRadius: 12, overflow: "hidden", marginTop: 15 },
   buttonGradient: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 12 },
   buttonIcon: { marginRight: 8 },

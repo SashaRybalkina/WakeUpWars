@@ -489,6 +489,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginLeft: 4,
     flexShrink: 1,
+    textAlign: "center",
   },
   gamesSection: {
     marginBottom: 20,
