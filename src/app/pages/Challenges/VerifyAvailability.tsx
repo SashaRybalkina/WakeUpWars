@@ -51,7 +51,7 @@ const TIMES = Array.from({ length: 80 }, (_, i) => {
 type SelectedCell = { day: number; time: number }; // day: 0-6, time: 0-11 
 
 const VerifyAvailability: React.FC<Props> = ({ navigation }) => { 
-  const { user } = useUser()
+  const { user, logout } = useUser()
   console.log("in verify")
 
   // const [selectedCells, setSelectedCells] = useState<SelectedCell[]>([]);
@@ -125,7 +125,11 @@ useFocusEffect(
       try {
               const accessToken = await getAccessToken();
               if (!accessToken) {
-                throw new Error("Not authenticated");
+                        await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
               }
         const res = await fetch(endpoints.getUserAvailability(Number(user?.id)), {
                 headers: {
@@ -188,7 +192,11 @@ useFocusEffect(
         try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-        throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
       }
 
         

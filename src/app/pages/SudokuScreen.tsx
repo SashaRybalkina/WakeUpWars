@@ -123,7 +123,7 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
   };
   console.log("SudokuScreen route params:", route.params);
 
-  const { user, setSkillLevels } = useUser();
+  const { user, setSkillLevels, logout } = useUser();
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   // will only have a color if in a multiplayer game
@@ -194,7 +194,11 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
       try {
               const accessToken = await getAccessToken();
               if (!accessToken) {
-                throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
               }
         const res = await fetch(endpoints.skillLevels(Number(user?.id)), {
                 headers: {
@@ -246,7 +250,11 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
      try {
         const accessToken = await getAccessToken();
         if (!accessToken) {
-          throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
         }
 
         const doPost = async () => fetch(endpoints.submitGameScores(), {
@@ -276,7 +284,11 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
     try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-        throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
       }
 
       const res = await fetch(endpoints.createSudokuGame, {
@@ -553,8 +565,13 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
           // single-player API fallback
           // Single-player — validate via API
       const accessToken = await getAccessToken();
+      
       if (!accessToken) {
-        throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
       }
 
           const res = await fetch(endpoints.validateSudokuMove, {

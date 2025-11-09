@@ -66,7 +66,7 @@ function normalizeSchedule(raw: any): {
 
 const EditChallengeSharingFriends: React.FC<Props> = ({ navigation, route }) => {
   const { challId, challName } = route.params || {};
-  const { user } = useUser();
+  const { user, logout } = useUser();
   console.log("[FRONTEND] Entering EditChallengeSharingFriends with challId:", challId, "challName:", challName);
 
   const [alarmSchedule, setAlarmSchedule] = useState<any[]>([])
@@ -110,7 +110,11 @@ const EditChallengeSharingFriends: React.FC<Props> = ({ navigation, route }) => 
         
       const accessToken = await getAccessToken();
       if (!accessToken) {
-        throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
       }
         const detailReq = axios.get(endpoints.challengeDetail(challId), {
           headers: {
@@ -206,7 +210,11 @@ useEffect(() => {
     try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-        throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
       }
 
       if (!user?.id) return;

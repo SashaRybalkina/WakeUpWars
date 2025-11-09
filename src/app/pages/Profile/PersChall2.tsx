@@ -17,7 +17,7 @@ type Props = {
 const DAYS = ["M", "T", "W", "TH", "F", "S", "SU"]
 
 const PersChall2: React.FC<Props> = ({ navigation }) => {
-  const { user } = useUser()
+  const { user, logout } = useUser()
   const [name, setName] = useState("")
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [showDatePicker, setShowDatePicker] = useState(false)
@@ -278,7 +278,11 @@ const PersChall2: React.FC<Props> = ({ navigation }) => {
     try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-        throw new Error("Not authenticated");
+                            await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
       }
 
       // Step 2: Send the POST request

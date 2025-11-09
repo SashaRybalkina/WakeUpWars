@@ -114,7 +114,7 @@ const EditAvailability: React.FC<Props> = ({ navigation }) => {
 
     console.log(pendingChallengeId)
 
-  const { user } = useUser();
+  const { user, logout } = useUser();
 
   const [availability, setAvailability] = useState<AvailabilityEntry[]>([]);
   const [userAvailability, setUserAvailability] = useState<AvailabilityEntry[]>([]);
@@ -174,7 +174,11 @@ const fetchAvailabilities = async () => {
   try {
           const accessToken = await getAccessToken();
           if (!accessToken) {
-            throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
           }
     const res = await fetch(endpoints.getAvailabilities(pendingChallengeId, Number(user.id)), {
                 headers: {
@@ -355,7 +359,11 @@ const handleSubmit = async () => {
 
       const accessToken = await getAccessToken();
       if (!accessToken) {
-        throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
       }
 
     const res = await fetch(
@@ -425,7 +433,11 @@ const handleSubmit = async () => {
         try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-        throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
       }
 
       const res = await fetch(endpoints.declineChallengeInvite(Number(user?.id), pendingChallengeId), {
@@ -486,7 +498,11 @@ const handleSubmit = async () => {
       try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-        throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
       }
 
         const res = await fetch(endpoints.finalizeCollaborativeGroupChallengeSchedule(pendingChallengeId), {

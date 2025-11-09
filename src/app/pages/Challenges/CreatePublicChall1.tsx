@@ -13,12 +13,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import { NavigationProp } from "@react-navigation/native";
 import { BASE_URL, endpoints } from "../../api";
 import { getAccessToken } from "../../auth";
+import { useUser } from "../../context/UserContext";
 
 type Props = {
   navigation: NavigationProp<any>;
 };
 
 const CreatePublicChall: React.FC<Props> = ({ navigation }) => {
+  const { logout } = useUser();
   const [singOrMult, setSingOrMult] = useState<"Singleplayer" | "Multiplayer" | null>(null);
   const [categories, setCategories] = useState<{ id: number; categoryName: string }[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<{ id: number; name: string }[]>([]);
@@ -30,7 +32,11 @@ const CreatePublicChall: React.FC<Props> = ({ navigation }) => {
       try {
               const accessToken = await getAccessToken();
               if (!accessToken) {
-                throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
               }
         // TODO: fetch only the categories for multiplayer/singleplayer (whatever was selected)
         const response = await fetch(endpoints.cats(), {

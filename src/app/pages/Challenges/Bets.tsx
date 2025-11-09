@@ -55,7 +55,7 @@ const Bets: React.FC<Props> = ({ navigation }) => {
     challengeMembers: Member[],
     isCompleted: boolean }
 
-  const { user } = useUser()
+  const { user, logout } = useUser()
 
   const [isLoading, setIsLoading] = useState(true)
   const [bets, setBets] = useState<Bet[]>([]);
@@ -70,7 +70,14 @@ const Bets: React.FC<Props> = ({ navigation }) => {
     setIsLoading(true);
     try {
         const accessToken = await getAccessToken();
-        if (!accessToken) throw new Error("Not authenticated");
+
+        if (!accessToken) {
+                                await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+        }
 
         const response = await fetch(endpoints.getChallengeBets(challId, Number(user.id)), {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -150,7 +157,13 @@ const Bets: React.FC<Props> = ({ navigation }) => {
     const handleRespond = async (betId: number, accept: boolean) => {  
       try {
           const accessToken = await getAccessToken();
-          if (!accessToken) throw new Error("Not authenticated");
+          if (!accessToken) {
+                                  await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+          }
   
   
           const payload = {
@@ -620,7 +633,7 @@ const BetCard: React.FC<{ bet: Bet; user: any; challengeMembers: Member[]; onRef
     try {
       setIsCollecting(true);
       const accessToken = await getAccessToken();
-      if (!accessToken) throw new Error("Not authenticated");
+      if (!accessToken) {throw new Error("Not authenticated");}
 
       const res = await fetch(endpoints.collectBetCoins(), {  
         method: "POST",

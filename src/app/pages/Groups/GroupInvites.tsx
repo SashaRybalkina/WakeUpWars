@@ -58,7 +58,7 @@ const isGroupInviteArray = (data: unknown): data is GroupInvite[] => {
 }
 
 const GroupInvites: React.FC<Props> = ({ navigation }) => {
-  const { user } = useUser()
+  const { user, logout } = useUser()
   const { invalidateGroups } = useGroups();
   const [invites, setInvites] = useState<GroupInvite[]>([])
   const [loading, setLoading] = useState(true)
@@ -66,7 +66,13 @@ const GroupInvites: React.FC<Props> = ({ navigation }) => {
 
   const fetchWithAutoRefresh = async (url: string) => {
     let accessToken = await getAccessToken()
-    if (!accessToken) throw new Error("Not authenticated")
+    if (!accessToken) {
+                            await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+    }
 
     let res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } })
     if (res.status !== 401) return res
@@ -132,7 +138,13 @@ const GroupInvites: React.FC<Props> = ({ navigation }) => {
     try {
       setProcessingId(inviteId)
       const accessToken = await getAccessToken()
-      if (!accessToken) throw new Error("Not authenticated")
+      if (!accessToken) {
+                              await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+      }
 
       const response = await fetch(endpoints.respondToGroupInvite(inviteId), {
         method: "POST",

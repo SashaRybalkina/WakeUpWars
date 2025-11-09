@@ -89,7 +89,7 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
     whichChall: 'wordle',
   };
 
-  const { user } = useUser();
+  const { user, logout } = useUser();
 
   const [grid, setGrid] = useState<string[][]>(
     Array.from({ length: MAX_ATTEMPTS }, () => Array(GRID_SIZE).fill('')),
@@ -187,7 +187,11 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
 
       const accessToken = await getAccessToken();
       if (!accessToken) {
-        throw new Error("Not authenticated");
+                            await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
       }
 
       const res = await fetch(endpoints.createWordleGame, {
@@ -470,8 +474,11 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
     try {
       const accessToken = await getAccessToken(); // ✅ get token before request
       if (!accessToken) {
-        console.error("[Wordle] No access token found");
-        return;
+                            await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
       }
 
       const res = await fetch(endpoints.validateWordleMove, {

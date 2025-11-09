@@ -18,7 +18,7 @@ type Memoji = {
 const EditAva: React.FC<Props> = ({ navigation }) => {
   const route = useRoute();
   const { currentMemojiId } = route.params as { currentMemojiId: number | null };
-  const { user } = useUser();
+  const { user, logout } = useUser();
 
   const [avatars, setAvatars] = useState<Memoji[]>([]);
   const [selectedMemoji, setSelectedMemoji] = useState<number | null>(currentMemojiId);
@@ -26,6 +26,13 @@ const EditAva: React.FC<Props> = ({ navigation }) => {
   const fetchAvatars = async () => {
     if (!user) return;
     const access = await getAccessToken();
+    if (!access) {
+                                  await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+    }
     const res = await fetch(endpoints.baseMemojies(), {
       headers: { Authorization: `Bearer ${access}` },
     });

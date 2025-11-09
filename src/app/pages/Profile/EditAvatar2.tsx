@@ -37,11 +37,18 @@ const EditAvatar2: React.FC<Props> = ({ navigation }) => {
   '#D9BAFF',
   ];
 
-  const { user } = useUser();
+  const { user, logout } = useUser();
 
   const fetchAvatars = async () => {
     if (!user) return;
     const access = await getAccessToken();
+    if (!access) {
+                                  await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+    }
     const res = await fetch(endpoints.extraMemojies(Number(user.id), baseMemojiId), {
       headers: { Authorization: `Bearer ${access}` },
     });
@@ -61,6 +68,13 @@ const EditAvatar2: React.FC<Props> = ({ navigation }) => {
     if (numCoins < price) return;
 
     const access = await getAccessToken();
+    if (!access) {
+                                  await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+    }
     const res = await fetch(endpoints.purchaseMemoji(Number(user?.id), memojiId), {
       method: 'POST',
       headers: {
@@ -87,6 +101,13 @@ const EditAvatar2: React.FC<Props> = ({ navigation }) => {
 
     try {
       const access = await getAccessToken();
+      if (!access) {
+                                    await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+      }
       const res = await fetch(endpoints.setCurrentMemoji(Number(user?.id)), {
         method: 'POST',
         headers: {

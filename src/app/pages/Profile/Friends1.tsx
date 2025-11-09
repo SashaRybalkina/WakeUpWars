@@ -25,7 +25,7 @@ type Friend = {
 }
 
 const Friends1: React.FC<Props> = ({ navigation }) => {
-  const { user } = useUser()
+  const { user, logout } = useUser()
   const route = useRoute()
   const from = route?.params?.from;
   const params = route.params as { groupId?: number } | undefined
@@ -38,7 +38,13 @@ const Friends1: React.FC<Props> = ({ navigation }) => {
   // Retry once on 401 by refreshing the access token with the stored refresh token
   const fetchWithAutoRefresh = async (url: string) => {
     let accessToken = await getAccessToken();
-    if (!accessToken) throw new Error("Not authenticated");
+    if (!accessToken) {
+                                  await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+    }
     let res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
     if (res.status !== 401) return res;
 
@@ -69,7 +75,11 @@ const Friends1: React.FC<Props> = ({ navigation }) => {
         setLoading(true)
         const accessToken = await getAccessToken();
         if (!accessToken) {
-          throw new Error("Not authenticated");
+                            await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
         }
         const response = await fetchWithAutoRefresh(endpoints.friends(Number(user.id)))
         // Be robust to empty or non-JSON responses

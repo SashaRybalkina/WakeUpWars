@@ -24,8 +24,8 @@ type Props = {
   navigation: any
 }
 
-const Conversation: React.FC<Props> = ({ route }) => {
-  const { user } = useUser()
+const Conversation: React.FC<Props> = ({ route, navigation }) => {
+  const { user, logout } = useUser()
   const { otherUserId, groupId, groupName, otherUserName } = route.params
 
   const [messages, setMessages] = useState<any[]>([])
@@ -88,7 +88,13 @@ const Conversation: React.FC<Props> = ({ route }) => {
         } else return
 
         const accessToken = await getAccessToken()
-        if (!accessToken) throw new Error("Not authenticated")
+        if (!accessToken) {
+                            await logout();
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Login" }],
+                  });
+        }
 
         const response = await fetch(url, {
           method: "GET",

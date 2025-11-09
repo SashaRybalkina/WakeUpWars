@@ -37,7 +37,7 @@ type Friend = {
 }
 
 const CreateGroup: React.FC<Props> = ({ navigation }) => {
-  const { user } = useUser()
+  const { user, logout } = useUser()
   const { invalidateGroups } = useGroups();
   const [groupName, setGroupName] = useState<string>("");
   const [allGroups, setAllGroups] = useState<Group[]>([]);
@@ -54,7 +54,11 @@ const CreateGroup: React.FC<Props> = ({ navigation }) => {
         setLoading(true)
               const accessToken = await getAccessToken();
               if (!accessToken) {
-                throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
               }
         
         const response = await fetch(endpoints.friends(Number(user.id)), {
@@ -117,7 +121,11 @@ const CreateGroup: React.FC<Props> = ({ navigation }) => {
 
       const accessToken = await getAccessToken();
       if (!accessToken) {
-        throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
       }
       const response = await fetch(endpoints.createGroup, {
         method: "POST",

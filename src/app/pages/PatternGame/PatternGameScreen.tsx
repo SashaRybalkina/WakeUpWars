@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { getAccessToken } from '../../auth';
+import { useUser } from '../../context/UserContext';
 
 // Must match backend utils.ALLOWED_ELEMENTS
 const COLORS = ['red', 'blue', 'green', 'yellow'];
@@ -92,6 +93,8 @@ const wsUrlFor = (gameStateId: number, accessToken: string) => {
 const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
   // Use only the formal route params
   const challengeId: number | undefined = route?.params?.challengeId;
+
+  const { logout } = useUser();
 
   // -------- Game state --------
   const [loading, setLoading] = useState(true);
@@ -176,7 +179,11 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
     async (id: number) => {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-        throw new Error("Not authenticated");
+                            await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
       }
       const url = wsUrlFor(id, accessToken);
       const ws = new WebSocket(url);
@@ -300,7 +307,11 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
 
       const accessToken = await getAccessToken();
       if (!accessToken) {
-        throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
       }
 
         const res = await fetch(endpoints.patternCreate, {
@@ -363,7 +374,11 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
 
       const accessToken = await getAccessToken();
       if (!accessToken) {
-        throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
       }
       const res = await fetch(endpoints.patternCreate, {
         method: 'POST',
@@ -426,7 +441,11 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
       setSubmitting(true);
       const accessToken = await getAccessToken();
       if (!accessToken) {
-        throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
       }
       const res = await fetch(endpoints.patternValidate, {
         method: 'POST',

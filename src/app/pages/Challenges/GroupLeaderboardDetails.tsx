@@ -19,6 +19,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import axios from "axios";
 import { endpoints, groupLeaderboardHistory } from "../../api";
 import { getAccessToken } from "../../auth";
+import { useUser } from "../../context/UserContext";
 
 type LeaderRow = { name: string; points: number; rank: number };
 type RouteParams = { groupId: number; myName: string };
@@ -43,6 +44,7 @@ const GroupLeaderboardDetails: React.FC<Props> = ({ navigation }) => {
   const { params } = useRoute() as { params: RouteParams };
   const { groupId, myName } = params;
 
+  const { logout } = useUser()
   const [rows, setRows] = useState<LeaderRow[]>([]);
   const [history, setHistory] = useState<Record<string, LeaderRow[]>>({});
   const [loading, setLoading] = useState(true);
@@ -64,7 +66,13 @@ const GroupLeaderboardDetails: React.FC<Props> = ({ navigation }) => {
       setErr(null);
       try {
         const accessToken = await getAccessToken();
-        if (!accessToken) throw new Error("Not authenticated");
+        if (!accessToken) {
+                                await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+        }
         const res = await axios.get(endpoints.groupLeaderboard(groupId), {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
@@ -90,7 +98,13 @@ const GroupLeaderboardDetails: React.FC<Props> = ({ navigation }) => {
       setErr(null);
       try {
         const accessToken = await getAccessToken();
-        if (!accessToken) throw new Error("Not authenticated");
+        if (!accessToken) {
+                                await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+        }
         const url = groupLeaderboardHistory(groupId, startDate ?? undefined, endDate ?? undefined);
         const res = await axios.get(url, { headers: { Authorization: `Bearer ${accessToken}` } });
         if (!ignore) setHistory(res.data.history ?? {});

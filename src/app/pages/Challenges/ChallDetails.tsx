@@ -80,7 +80,7 @@ const ChallDetails: React.FC<Props> = ({ navigation }) => {
   }
   console.log("ChallDetails route params:", route.params);
 
-  const { user } = useUser()
+  const { user, logout } = useUser()
   const myName = user?.username || ""
 
   const [daysComplete, setDaysComplete] = useState(0)
@@ -140,7 +140,11 @@ const ChallDetails: React.FC<Props> = ({ navigation }) => {
       try {
               const accessToken = await getAccessToken();
               if (!accessToken) {
-                throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
               }
         const res = await axios.get(`${endpoints.challengeDetail(challId)}?t=${Date.now()}`, {
                 headers: {
@@ -181,7 +185,11 @@ const ChallDetails: React.FC<Props> = ({ navigation }) => {
 
         const accessToken = await getAccessToken();
         if (!accessToken) {
-          throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
         }
 
           const res = await fetch(`${endpoints.leaderboard(challId)}?t=${Date.now()}`, {
@@ -232,7 +240,13 @@ const loadPerformances = async () => {
     setPerfError(null);
 
     const accessToken = await getAccessToken();
-    if (!accessToken) throw new Error("Not authenticated");
+    if (!accessToken) {
+                            await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+    }
 
     const res = await fetch(endpoints.getPerformances(challId), {
                 headers: {
@@ -276,8 +290,11 @@ const loadPerformances = async () => {
           try {
             let accessToken = await getAccessToken();
             if (!accessToken) {
-              await new Promise(r => setTimeout(r, 400));
-              accessToken = await getAccessToken();
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
             }
             if (!accessToken) return;
             const res = await axios.get(`${endpoints.challengeDetail(challId)}?t=${Date.now()}`, {
@@ -307,6 +324,13 @@ const loadPerformances = async () => {
             try {
               await loadLeaderboard();
               const accessToken = await getAccessToken();
+              if (!accessToken) {
+                                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+              }
               if (accessToken) {
                 const res = await axios.get(`${endpoints.challengeDetail(challId)}?t=${Date.now()}`, {
                   headers: { Authorization: `Bearer ${accessToken}` }

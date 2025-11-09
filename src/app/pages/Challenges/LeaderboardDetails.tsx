@@ -19,6 +19,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import axios from "axios";
 import { endpoints, leaderboardHistory } from "../../api";   // <- helper added in api.ts
 import { getAccessToken } from "../../auth";
+import { useUser } from "../../context/UserContext";
 
 type LeaderRow = { name: string; points: number; rank: number };
 type RouteParams = { challId: number; myName: string };
@@ -49,6 +50,7 @@ const LeaderboardDetails: React.FC<Props> = ({ navigation }) => {
   /* ───────────────────────── params ───────────────────────── */
   const { params } = useRoute() as { params: RouteParams };
   const { challId, myName } = params;
+  const { logout } = useUser();
 
   /* ──────────────────────── state ─────────────────────────── */
   const [rows, setRows]       = useState<LeaderRow[]>([]);
@@ -78,7 +80,11 @@ const LeaderboardDetails: React.FC<Props> = ({ navigation }) => {
       try {
               const accessToken = await getAccessToken();
               if (!accessToken) {
-                throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
               }
               
         const res = await axios.get(endpoints.leaderboard(challId), {
@@ -109,7 +115,11 @@ const LeaderboardDetails: React.FC<Props> = ({ navigation }) => {
         try {
                 const accessToken = await getAccessToken();
                 if (!accessToken) {
-                  throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
                 }
           // GET /api/challenge-detail/<id>/  →  { startDate: "YYYY-MM-DD", endDate: "YYYY-MM-DD", ... }
           const res = await axios.get(endpoints.challengeDetail(challId), {
@@ -144,7 +154,11 @@ const LeaderboardDetails: React.FC<Props> = ({ navigation }) => {
       try {
               const accessToken = await getAccessToken();
               if (!accessToken) {
-                throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
               }
         const url = leaderboardHistory(challId, startDate ?? undefined, endDate ?? undefined);
         const res = await axios.get(url, {

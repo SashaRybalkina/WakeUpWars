@@ -34,7 +34,7 @@ const MakeBet: React.FC<Props> = ({ navigation }) => {
     existingOpponents: number[],
     isCompleted: boolean }
 
-  const { user } = useUser()
+  const { user, logout } = useUser()
   const [recipientId, setRecipientId] = useState<number | undefined>(undefined);
   const [betAmount, setBetAmount] = useState<string>('')
 
@@ -76,7 +76,13 @@ const MakeBet: React.FC<Props> = ({ navigation }) => {
 
     try {
         const accessToken = await getAccessToken();
-        if (!accessToken) throw new Error("Not authenticated");
+        if (!accessToken) {
+                                await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+        }
 
 
         const payload = {

@@ -12,7 +12,7 @@ type Props = {
 }
 
 const NotificationsPage: React.FC<Props> = ({ navigation }) => {
-  const { user } = useUser()
+  const { user, logout } = useUser()
   const [notifications, setNotifications] = useState<any[]>([])
   const wsRef = useRef<WebSocket | null>(null)
 
@@ -20,6 +20,13 @@ const NotificationsPage: React.FC<Props> = ({ navigation }) => {
     if (!user?.id) return
     try {
       const accessToken = await getAccessToken()
+      if (!accessToken) {
+                                    await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+      }
       const res = await fetch(endpoints.notifications(Number(user.id)), {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
@@ -81,6 +88,13 @@ const NotificationsPage: React.FC<Props> = ({ navigation }) => {
 
   const deleteNotification = async (id: number) => {
     const token = await getAccessToken()
+    if (!token) {
+                                  await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+    }
     await fetch(`${BASE_URL}/api/notifications/${id}/delete/`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },

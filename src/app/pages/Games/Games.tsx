@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { NavigationProp, useRoute } from '@react-navigation/native';
 import { endpoints } from '../../api';
 import { getAccessToken } from '../../auth';
+import { useUser } from '../../context/UserContext';
 
 type Props = {
   navigation: NavigationProp<any>;
@@ -41,6 +42,7 @@ const Games: React.FC<Props> = ({ navigation }) => {
   // Public, Singpleplayer,
   // Public, Multiplayer
 
+  const { logout } = useUser();
   const [games, setGames] = useState<{ id: number; name: String }[]>([]);
 
   useEffect(() => {
@@ -48,7 +50,11 @@ const Games: React.FC<Props> = ({ navigation }) => {
       try {
               const accessToken = await getAccessToken();
               if (!accessToken) {
-                throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
               }
         // fetch the games in whatever category was selected
         const response = await fetch(endpoints.games(catId, singOrMult), {

@@ -19,7 +19,7 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
     whichChall: string
     // whichCall will be "Personal", "Group", or "Public"
   }
-  const { user } = useUser()
+  const { user, logout } = useUser()
   const [challs, setChalls] = useState<any[]>([])
 
   useFocusEffect(
@@ -30,7 +30,11 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
         try {
           const accessToken = await getAccessToken();
           if (!accessToken) {
-            throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
           }
           const response = await axios.get(
             endpoints.currentChallenges(Number(user.id), whichChall), {

@@ -29,7 +29,7 @@ type Props = {
 const { width } = Dimensions.get("window")
 
 const Messages: React.FC<Props> = ({ navigation }) => {
-  const { user, activeConversationId, activeGroupId } = useUser()
+  const { user, activeConversationId, activeGroupId, logout } = useUser()
   const [selected, setSelected] = useState("Friends")
   const [friendMessages, setFriendMessages] = useState<any[]>([])
   const [groupConversations, setGroupConversations] = useState<any[]>([])
@@ -47,6 +47,13 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     if (!user?.id) return
     try {
       const accessToken = await getAccessToken();
+                          if (!accessToken) {
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+                    }
       const response = await fetch(`${BASE_URL}/api/user/${user.id}/recent-messages/`, {
         headers: { Authorization: `Bearer ${accessToken}` }
       });
@@ -62,6 +69,13 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     if (!user?.id) return
     try {
       const accessToken = await getAccessToken();
+                          if (!accessToken) {
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+                    }
       const response = await fetch(`${BASE_URL}/api/user/${user.id}/recent-group-messages/`, {
         headers: { Authorization: `Bearer ${accessToken}` }
       });

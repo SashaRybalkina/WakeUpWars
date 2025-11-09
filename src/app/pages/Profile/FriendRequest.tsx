@@ -48,7 +48,7 @@ const isFriendRequestArray = (data: unknown): data is FriendRequest[] => {
 }
 
 const FriendsRequests: React.FC<Props> = ({ navigation }) => {
-  const { user } = useUser()
+  const { user, logout } = useUser()
   const [requests, setRequests] = useState<FriendRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [processingId, setProcessingId] = useState<number | null>(null)
@@ -56,7 +56,13 @@ const FriendsRequests: React.FC<Props> = ({ navigation }) => {
   // Retry once on 401 by refreshing with stored refresh token
   const fetchWithAutoRefresh = async (url: string) => {
     let accessToken = await getAccessToken();
-    if (!accessToken) throw new Error("Not authenticated");
+    if (!accessToken) {
+                                  await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+    }
     let res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
     if (res.status !== 401) return res;
 
@@ -126,7 +132,11 @@ const FriendsRequests: React.FC<Props> = ({ navigation }) => {
 
       const accessToken = await getAccessToken();
       if (!accessToken) {
-        throw new Error("Not authenticated");
+                            await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
       }
       const response = await fetch(endpoints.respondToFriendRequest(requestId), {
         method: "POST",

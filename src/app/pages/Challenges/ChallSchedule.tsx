@@ -75,7 +75,7 @@ const ChallSchedule = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const [isMember, setIsMember] = useState<boolean>()
   const [isLoading, setIsLoading] = useState<boolean>(true)
 
-  const { user } = useUser()
+  const { user, logout } = useUser()
 
   // Full schedule from backend (contains both alarms and games)
   const [schedule, setSchedule] = useState<
@@ -109,7 +109,11 @@ useEffect(() => {
     try {
             const accessToken = await getAccessToken();
             if (!accessToken) {
-              throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
             }
       const [scheduleRes, alarmsRes] = await Promise.all([
         axios.get(endpoints.getChallengeSchedule(challId), {
@@ -218,7 +222,11 @@ const addGameToDay = async (game: { id: number; name: string }) => {
 
               const accessToken = await getAccessToken();
               if (!accessToken) {
-                throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
               }
         const res = await fetch(endpoints.addGameToSchedule(), {
             method: 'POST',
@@ -308,7 +316,11 @@ const addGameToDay = async (game: { id: number; name: string }) => {
   
                 const accessToken = await getAccessToken();
                 if (!accessToken) {
-                  throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
                 }
           const res = await fetch(endpoints.joinPublicChallenge(Number(user?.id)), {
               method: 'POST',
@@ -672,7 +684,11 @@ const getInitials = (name: string): string => {
 
               const accessToken = await getAccessToken();
               if (!accessToken) {
-                throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
               }
         // 2. Mark in backend that user has set their alarms
         const res = await fetch(

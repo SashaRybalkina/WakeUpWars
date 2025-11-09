@@ -46,7 +46,7 @@ type PendingPublicChallenge = {
 
 
 const PublicChallenges: React.FC<Props> = ({ navigation }) => {
-  const { user } = useUser()
+  const { user, logout } = useUser()
 
   const [isLoading, setIsLoading] = useState(true)
 
@@ -71,7 +71,11 @@ const PublicChallenges: React.FC<Props> = ({ navigation }) => {
 
                 const accessToken = await getAccessToken();
                 if (!accessToken) {
-                  throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
                 }
           const response = await fetch(endpoints.getPendingPublicChallenges(Number(user.id)), {
                 headers: {

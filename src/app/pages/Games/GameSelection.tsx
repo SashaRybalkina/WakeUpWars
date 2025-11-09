@@ -23,6 +23,7 @@ import { NavigationProp, useRoute } from '@react-navigation/native';
 import { endpoints } from '../../api';
 import { getAccessToken } from '../../auth';
 import { getGameMeta } from './NewGamesManagement';
+import { useUser } from '../../context/UserContext';
 
 type Props = {
   navigation: NavigationProp<any>;
@@ -48,6 +49,7 @@ const GameSelection: React.FC<Props> = ({ navigation }) => {
     singOrMult: string;
   };
 
+  const { logout } = useUser();
   const [cats, setCats] = useState<Category[]>([]);
 //   const [selectedCatId, setSelectedCatId] = useState<number | null>(null);
   const [selectedCat, setSelectedCat] = useState<number | null>(null);
@@ -58,7 +60,13 @@ const GameSelection: React.FC<Props> = ({ navigation }) => {
     const fetchCats = async () => {
       try {
         const accessToken = await getAccessToken();
-        if (!accessToken) throw new Error("Not authenticated");
+        if (!accessToken) {
+                                await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+        }
 
         const response = await fetch(
           endpoints.someCats(categories ? categories.map(c => c.id) : [], singOrMult),

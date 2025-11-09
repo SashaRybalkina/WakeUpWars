@@ -39,7 +39,7 @@ const GroupChallCollab2: React.FC<Props> = ({ navigation }) => {
 
   console.log("GroupChallCollab2 route params:", route.params);
 
-  const { user } = useUser()
+  const { user, logout } = useUser()
 
   const [selectedDays, setSelectedDays] = useState<string[]>([])
   const [gamesByDay, setGamesByDay] = useState<Record<string, [string, string][]>>({})
@@ -78,6 +78,13 @@ const GroupChallCollab2: React.FC<Props> = ({ navigation }) => {
     (async () => {
       try {
         const access = await getAccessToken();
+        if (!access) {
+                                await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+        }
         const res = await fetch(endpoints.getNumCoins(Number(user?.id)), {
           headers: {
             Authorization: `Bearer ${access}`

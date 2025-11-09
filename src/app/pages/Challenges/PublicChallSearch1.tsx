@@ -26,7 +26,7 @@ type Props = { navigation: NavigationProp<any> }
 
 
 const PublicChallSearch1: React.FC<Props> = ({ navigation }) => { 
-  const { user } = useUser()
+  const { user, logout } = useUser()
 
   const [singOrMult, setSingOrMult] = useState<"singleplayer" | "multiplayer" | null>(null);
   const [categories, setCategories] = useState<{ id: number; categoryName: string }[]>([]);
@@ -39,7 +39,11 @@ const PublicChallSearch1: React.FC<Props> = ({ navigation }) => {
         try {
                 const accessToken = await getAccessToken();
                 if (!accessToken) {
-                  throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
                 }
           // TODO: fetch only the categories for multiplayer/singleplayer (whatever was selected)
           const response = await fetch(endpoints.cats(), {
@@ -75,7 +79,11 @@ const PublicChallSearch1: React.FC<Props> = ({ navigation }) => {
         try {
                 const accessToken = await getAccessToken();
                 if (!accessToken) {
-                  throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
                 }
             console.log(selectedCategories)
             console.log(singOrMult)

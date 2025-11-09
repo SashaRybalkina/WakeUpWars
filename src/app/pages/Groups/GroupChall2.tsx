@@ -19,6 +19,7 @@ import { getMetaFromTuple } from "../Games/NewGamesManagement"
 import { getAccessToken } from "../../auth"
 import { scheduleAlarmsForChallenge } from "../../alarmService"
 import { getNextAlarmDate } from "../../../utils/dateUtils"
+import { useUser } from "../../context/UserContext"
 
 type Props = {
   navigation: NavigationProp<any>
@@ -42,6 +43,8 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
     groupId: number
     groupMembers: { id: number; name: string }[]
   }
+
+  const { logout } = useUser();
 
   useEffect(() => {
     console.log("GroupChall2 Group Members:", groupMembers)
@@ -330,7 +333,11 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
     try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-        throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
       }
   
   

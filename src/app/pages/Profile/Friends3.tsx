@@ -7,7 +7,7 @@ import UserProfileCard from "../Components/UserProfileCard"
 import { BASE_URL, endpoints } from "../../api"
 import { LinearGradient } from "expo-linear-gradient"
 import { getAccessToken } from "../../auth"
-import { SkillLevel } from '../../context/UserContext';
+import { SkillLevel, useUser } from '../../context/UserContext';
 
 type Props = {
   navigation: NavigationProp<any>
@@ -23,6 +23,8 @@ const Friends3: React.FC<Props> = ({ navigation }) => {
   const route = useRoute()
   const { friendId, groupId } = route.params as { friendId: number; groupId?: number }
   console.log(`groupId: ${groupId}`)
+
+  const { logout } = useUser();
 
   const [isLoading, setIsLoading] = useState(false)
   const [buttonScale] = useState(new Animated.Value(1))
@@ -46,7 +48,11 @@ const Friends3: React.FC<Props> = ({ navigation }) => {
         try {
                 const access = await getAccessToken();
                 if (!access) {
-                  throw new Error("Not authenticated");
+                            await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
                 }
         const res = await fetch(endpoints.userData(friendId), {
           headers: {
@@ -80,6 +86,13 @@ const Friends3: React.FC<Props> = ({ navigation }) => {
 
   const fetchBadges = async () => {
     const access = await getAccessToken();
+    if (!access) {
+                                  await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+    }
     const res = await fetch(endpoints.badges(friendId), {
       headers: { Authorization: `Bearer ${access}` },
     });
@@ -113,7 +126,13 @@ const Friends3: React.FC<Props> = ({ navigation }) => {
   
     try {
       const accessToken = await getAccessToken();
-      if (!accessToken) throw new Error("Not authenticated");
+      if (!accessToken) {
+                                    await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+      }
   
       const response = await fetch(endpoints.sendGroupInvite(), {
         method: "POST",

@@ -62,7 +62,7 @@ const GroupDetails: React.FC<Props> = ({ navigation }) => {
   const route = useRoute()
   const { groupId } = route.params as { groupId: number }
   
-  const { user } = useUser()
+  const { user, logout } = useUser()
 
   const [groupData, setGroupData] = useState<GroupData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -91,7 +91,13 @@ useFocusEffect(
     const fetchGroupData = async () => {
       try {
         const accessToken = await getAccessToken();
-        if (!accessToken) throw new Error("Not authenticated");
+        if (!accessToken) {
+                                await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+        }
 
         // Start all fetches concurrently
         const [groupRes, lbRes, inviteRes] = await Promise.allSettled([

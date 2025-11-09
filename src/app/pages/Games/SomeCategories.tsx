@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { NavigationProp, useRoute } from '@react-navigation/native';
 import { endpoints } from '../../api';
 import { getAccessToken } from '../../auth';
+import { useUser } from '../../context/UserContext';
 
 type Props = {
   navigation: NavigationProp<any>;
@@ -32,13 +33,18 @@ const SomeCategories: React.FC<Props> = ({ navigation }) => {
   console.log("SomeCategories route params:", route.params);
 
   const [cats, setCats] = useState<{ id: number; categoryName: string }[]>([]);
+  const { logout } = useUser();
   
   useEffect(() => {
     const fetchCats = async () => {
       try {
               const accessToken = await getAccessToken();
               if (!accessToken) {
-                throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
               }
         // fetch the categories for multiplayer/singleplayer (whatever was selected)
         const response = await fetch(endpoints.someCats(categories.map(c => c.id)), {

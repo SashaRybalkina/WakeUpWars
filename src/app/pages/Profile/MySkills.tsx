@@ -10,7 +10,7 @@ import { endpoints } from '../../api';
 type Props = { navigation: NavigationProp<any> };
 
 const MySkills: React.FC<Props> = ({ navigation }) => {
-  const { skillLevels, setSkillLevels } = useUser();
+  const { skillLevels, setSkillLevels, logout } = useUser();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,6 +21,13 @@ const MySkills: React.FC<Props> = ({ navigation }) => {
         setLoading(true);
         setError(null);
         const access = await getAccessToken();
+        if (!access) {
+                                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+        }
         const res = await fetch(endpoints.skillLevels(), {
           headers: { Authorization: `Bearer ${access}` },
         });

@@ -102,7 +102,7 @@ const formatTime = (seconds: number) => {
 const TypingRace: React.FC<Props> = ({ navigation }) => {
   const route = useRoute();
   const { challId, challName = 'Typing Race' } = (route.params as any) || {};
-  const { user } = useUser();
+  const { user, logout } = useUser();
 
   // ===============================
   // 🧠 Helper: Save scores to backend
@@ -217,6 +217,13 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
   const connectWebSocket = async (id: number) => {
     try {
       const accessToken = await getAccessToken();
+      if (!accessToken) {
+                                    await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+      }
       const wsUrl = `${BASE_URL.replace(/^http/, 'ws')}/ws/typingrace/${id}/?token=${accessToken}`;
       const ws = new WebSocket(wsUrl);
 
@@ -494,7 +501,13 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
     const fetchGame = async () => {
       try {
         const accessToken = await getAccessToken();
-        if (!accessToken) throw new Error('Not authenticated');
+        if (!accessToken) {
+                                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+        }
 
         // create the game
         const res = await fetch(endpoints.typingRaceCreate, {
@@ -613,7 +626,13 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
 
       
       const accessToken = await getAccessToken();
-      if (!accessToken) throw new Error('Not authenticated');
+      if (!accessToken) {
+                                    await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+      }
 
       
       const res = await fetch(endpoints.typingRaceCreate, {
@@ -665,7 +684,13 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
       );
       try {
         const accessToken = await getAccessToken();
-        if (!accessToken) throw new Error('Not authenticated');
+        if (!accessToken) {
+                                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+        }
 
         const res = await fetch(endpoints.typingRaceFinalize, {
           method: 'POST',

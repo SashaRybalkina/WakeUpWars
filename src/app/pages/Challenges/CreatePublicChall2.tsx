@@ -45,7 +45,7 @@ const CreatePublicChall2: React.FC<Props> = ({ navigation }) => {
   }
   console.log("CreatePublicChall2 route params:", route.params);
 
-  const { user } = useUser();
+  const { user, logout } = useUser();
 
   // Note: just inserting this user as "group members" since this is a public challenge
   // they're creating
@@ -90,6 +90,13 @@ const CreatePublicChall2: React.FC<Props> = ({ navigation }) => {
     (async () => {
       try {
         const access = await getAccessToken();
+                      if (!access) {
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+              }
         const res = await fetch(endpoints.getNumCoins(Number(user?.id)), {
           headers: {
             Authorization: `Bearer ${access}`

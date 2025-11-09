@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet, ActivityIndicator, ImageBackground,
 import type { NavigationProp, RouteProp, ParamListBase } from '@react-navigation/native';
 import { getAccessToken } from '../../auth';
 import { endpoints } from '../../api';
+import { useUser } from '../../context/UserContext';
 
 type SkillDetailRouteParams = { categoryId: number; categoryName?: string };
 type Props = {
@@ -10,7 +11,7 @@ type Props = {
   route: RouteProp<ParamListBase, string>;
 };
 
-const SkillDetail: React.FC<Props> = ({ route }) => {
+const SkillDetail: React.FC<Props> = ({ route, navigation }) => {
   const params = (route?.params ?? {}) as Partial<SkillDetailRouteParams>;
   const categoryId = params.categoryId as number;
   const categoryNameParam = params.categoryName;
@@ -24,6 +25,8 @@ const SkillDetail: React.FC<Props> = ({ route }) => {
   const [startDateStr, setStartDateStr] = useState<string>(''); // YYYY-MM-DD
   const [endDateStr, setEndDateStr] = useState<string>('');   // YYYY-MM-DD
 
+  const { logout } = useUser();
+
   const title = categoryNameParam || detail?.category?.name || 'Skill';
 
   useEffect(() => {
@@ -33,6 +36,13 @@ const SkillDetail: React.FC<Props> = ({ route }) => {
         setLoading(true);
         setError(null);
         const access = await getAccessToken();
+        if (!access) {
+                                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+        }
         const [dRes, hRes] = await Promise.all([
           fetch(endpoints.skillLevelDetail(categoryId), { headers: { Authorization: `Bearer ${access}` } }),
           fetch(endpoints.skillLevelHistory(categoryId, 200), { headers: { Authorization: `Bearer ${access}` } }),

@@ -57,7 +57,7 @@ const PersChall3: React.FC<Props> = ({ navigation }) => {
 
     console.log("PersChall3 route params:", route.params);
 
-  const { user } = useUser();
+  const { user, logout } = useUser();
 
   const parseLocalDate = (dateStr: string) => {
     const [y, m, d] = dateStr.split("-").map(Number);
@@ -175,7 +175,13 @@ function countAlarmDaysBetween(startDate: Date, endDate: Date, alarmDays: number
 
     try {
         const accessToken = await getAccessToken();
-        if (!accessToken) throw new Error("Not authenticated");
+        if (!accessToken) {
+                                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+        }
 
         if (chall_type == 'Personal') {
             const payload = {
@@ -222,29 +228,6 @@ function countAlarmDaysBetween(startDate: Date, endDate: Date, alarmDays: number
         }
 
         if (chall_type == 'Friend') {
-    // const payload = {
-    //   userId: user?.id,
-    //   name,
-    //   startDate: start_date,
-    //   endDate: end_date,
-    //   totalDays: total_days,
-    //   schedule: selectedDays.map(day => ({
-    //     day,
-    //     dayOfWeek: dayToInt[day],
-    //     time: dayTimeMapping[day],
-    //     games: (gamesByDay[day] || []).map(([id, name]) => ({ id: Number(id), name })),
-    //   })),
-    //   members: [friendId], 
-    // }
-
-      // const response = await fetch(endpoints.shareChallenge(), {
-      //   method: "POST",
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     "Authorization": `Bearer ${accessToken}`,
-      //   },
-      //   body: JSON.stringify(payload),
-      // })
 
             const payload = {
               userId: user?.id,
@@ -294,7 +277,11 @@ function countAlarmDaysBetween(startDate: Date, endDate: Date, alarmDays: number
 
             const accessToken = await getAccessToken();
             if (!accessToken) {
-              throw new Error("Not authenticated");
+                            await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
             }
 
             console.log("[FRONTEND] Share payload:", payload);

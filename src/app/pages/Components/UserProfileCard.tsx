@@ -40,7 +40,7 @@ type Badge = {
 
 
 const UserProfileCard: React.FC<Props> = ({ name, currentMemoji, bgColor, numCoins, isCurrentUser = true, skillLevelsOverride, disableSkillDetail, badgesGiven }) => {
-  const { skillLevels, user } = useUser();
+  const { skillLevels, user, logout } = useUser();
   const navigation = useNavigation<any>();
   const [tab, setTab] = React.useState<'skills' | 'badges'>('skills');
   const [infoVisible, setInfoVisible] = React.useState(false);
@@ -80,6 +80,13 @@ const UserProfileCard: React.FC<Props> = ({ name, currentMemoji, bgColor, numCoi
   const fetchBadges = async () => {
     if (!user) return;
     const access = await getAccessToken();
+    if (!access) {
+                            await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+    }
     const res = await fetch(endpoints.badges(Number(user.id)), {
       headers: { Authorization: `Bearer ${access}` },
     });
@@ -97,7 +104,11 @@ const collectBadge = async (badgeId: number) => {
       try {
         const accessToken = await getAccessToken();
         if (!accessToken) {
-          throw new Error("Not authenticated");
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
         }
   
         const response = await fetch(endpoints.collectBadge(), {

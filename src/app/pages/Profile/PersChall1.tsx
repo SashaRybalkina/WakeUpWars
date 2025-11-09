@@ -33,7 +33,7 @@ type Challenge = {
 
 
 const PersChall1: React.FC<Props> = ({ navigation }) => {
-  const { user } = useUser()
+  const { user, logout } = useUser()
   const [challenges, setChallenges] = useState<Challenge[]>([])
   const [pendingChallenges, setPendingChallenges] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -46,7 +46,11 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
       // fetch all personal challenges
       const accessToken = await getAccessToken();
       if (!accessToken) {
-        throw new Error("Not authenticated");
+                            await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
       }
     
           const response = await fetch(endpoints.getPersonalChallenges(Number(user?.id)), {
@@ -149,7 +153,11 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
     try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-        throw new Error("Not authenticated");
+                            await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
       }
 
       // await scheduleAlarmsForUser(challId, challName, Number(user?.id));
@@ -183,7 +191,11 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
     try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-        throw new Error("Not authenticated");
+                            await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
       }
 
       const res = await fetch(endpoints.declinePersonalChallenge(Number(user!.id), challId), {

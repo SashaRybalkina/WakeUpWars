@@ -36,7 +36,7 @@ type UserType = {
 }
 
 const FriendsSearch: React.FC<Props> = ({ navigation }) => {
-  const { user } = useUser()
+  const { user, logout } = useUser()
   const [users, setUsers] = useState<UserType[]>([])
   const [filteredUsers, setFilteredUsers] = useState<UserType[]>([])
   const [searchQuery, setSearchQuery] = useState("")
@@ -51,7 +51,11 @@ const FriendsSearch: React.FC<Props> = ({ navigation }) => {
         setLoading(true)
         const accessToken = await getAccessToken();
         if (!accessToken) {
-          throw new Error("Not authenticated");
+                            await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
         }
         // Fetch all users (robust JSON parsing)
         const response = await fetch(endpoints.allUsers(), {
@@ -133,7 +137,11 @@ const FriendsSearch: React.FC<Props> = ({ navigation }) => {
     try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-        throw new Error("Not authenticated");
+                            await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
       }
       
       const res = await fetch(endpoints.sentFriendRequests(Number(user.id)), {
@@ -221,7 +229,11 @@ const FriendsSearch: React.FC<Props> = ({ navigation }) => {
 
       const accessToken = await getAccessToken();
       if (!accessToken) {
-        throw new Error("Not authenticated");
+                            await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
       }
       const response = await fetch(endpoints.sendFriendRequest(), {
         method: "POST",
