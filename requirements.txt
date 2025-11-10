@@ -21,3 +21,4 @@ dj-database-url>=2.0.0
 pytz==2025.2
 requests==2.32.0
 firebase-admin==6.6.0
+redis==5.0.1

@@ -791,14 +791,14 @@ return (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 50, 
+    paddingTop: 40, 
     paddingHorizontal: 10,
   },
   background: {
     flex: 1,
   },
   scrollContentContainer: {
-  paddingTop: 50,
+  paddingTop: 20,
   paddingHorizontal: 12,
   paddingBottom: 100, // give room for last button
 },

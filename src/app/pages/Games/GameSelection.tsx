@@ -43,8 +43,9 @@ type Category = {
 
 const GameSelection: React.FC<Props> = ({ navigation }) => {
   const route = useRoute();
-  const { categories, onGameSelected, singOrMult } = route.params as {
-    onGameSelected: (game: { id: number; name: string }) => void;
+  const { categories, onGameSelected, onGameSelected2, singOrMult } = route.params as {
+    onGameSelected: ((game: { id: number; name: string }) => void) | null;
+    onGameSelected2: ((game: { id: number; name: string }, categoryId: number) => void) | null;
     categories: { id: number; name: string }[] | null;
     singOrMult: string;
   };
@@ -86,8 +87,14 @@ const GameSelection: React.FC<Props> = ({ navigation }) => {
   }, []);
 
 
-  const handleSelect = (id: number, name: string) => {
-    onGameSelected({ id, name });
+  const handleSelect = (id: number, name: string, categoryId: number) => {
+    if (onGameSelected) {
+      onGameSelected({ id, name });
+    }
+    else if (onGameSelected2) {
+      onGameSelected2({id, name}, categoryId)
+    }
+    
     navigation.goBack();
   };
 
@@ -173,7 +180,7 @@ const GameSelection: React.FC<Props> = ({ navigation }) => {
         {/* Select button stays independent */}
         <TouchableOpacity
           style={styles.selectButton}
-          onPress={() => handleSelect(game.id, game.name)}
+          onPress={() => handleSelect(game.id, game.name, selectedCategory.id)}
         >
           <Text style={styles.selectButtonText}>Select</Text>
         </TouchableOpacity>

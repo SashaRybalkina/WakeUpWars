@@ -64,6 +64,9 @@ const CreatePublicChall2: React.FC<Props> = ({ navigation }) => {
   const [gamesByDay, setGamesByDay] = useState<Record<string, [string, string][]>>({})
   const [numUserCoins, setNumUserCoins] = useState<number>(0)
   const [participationFee, setParticipationFee] = useState('');
+  const [fulfilledCategories, setFulfilledCategories] = useState<number[]>([])
+
+  const [selectedGameDay, setSelectedGameDay] = useState<string | null>(null);
 
   // reward state
   // const [rewardType, setRewardType] = useState<RewardTypeKey>('money');
@@ -109,16 +112,21 @@ const CreatePublicChall2: React.FC<Props> = ({ navigation }) => {
     })();
   }, [user]);
 
+  // const toggleDay = (day: string) => {
+  //   if (selectedDays.includes(day)) {
+  //     setSelectedDays((prev) => prev.filter((d) => d !== day))
+  //   } else {
+  //     if (selectedDays.length > 0) {
+  //       setSelectedDays([day])
+  //     } else {
+  //       setSelectedDays((prev) => [...prev, day])
+  //     }
+  //   }
+  // }
   const toggleDay = (day: string) => {
-    if (selectedDays.includes(day)) {
-      setSelectedDays((prev) => prev.filter((d) => d !== day))
-    } else {
-      if (selectedDays.length > 0) {
-        setSelectedDays([day])
-      } else {
-        setSelectedDays((prev) => [...prev, day])
-      }
-    }
+    setSelectedDays((prev) =>
+      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+    )
   }
 
   // const onDateChange = (_: any, date?: Date) => {
@@ -226,13 +234,25 @@ const onTimeChange = (event: any, time?: Date) => {
     setShowTimePicker(false)
   }
 
-  const handleGameAdd = (game: { id: number; name: string }) => {
-    const updated = { ...gamesByDay }
-    selectedDays.forEach((day) => {
-      if (!updated[day]) updated[day] = []
-      updated[day].push([game.id.toString(), game.name])
-    })
+  const handleGameAdd = (game: { id: number; name: string }, categoryId: number) => {
+    if (!selectedGameDay) return;
+
+    // const updated = { ...gamesByDay }
+    // selectedDays.forEach((day) => {
+    //   if (!updated[day]) updated[day] = []
+    //   updated[day].push([game.id.toString(), game.name])
+    // })
+  const updated = { ...gamesByDay };
+  if (!updated[selectedGameDay]) updated[selectedGameDay] = [];
+  updated[selectedGameDay].push([game.id.toString(), game.name]);
     setGamesByDay(updated)
+
+    setFulfilledCategories(prev => {
+      if (!prev.includes(categoryId)) {
+        return [...prev, categoryId];
+      }
+      return prev;
+    });
   }
 
   const handleGameRemove = (day: string, index: number) => {
@@ -275,6 +295,15 @@ const onTimeChange = (event: any, time?: Date) => {
     if (Object.keys(dayTimeMapping).length === 0) {
       Alert.alert("Error", "Please select at least one day and set an alarm time")
       return
+    }
+
+    const missingCategories = categories
+      .map(c => c.id)
+      .filter(id => !fulfilledCategories.includes(id));
+
+    if (missingCategories.length > 0) {
+      Alert.alert('Error', 'Please select at least one game for every category.');
+      return;
     }
 
     console.log("Day-Time Mapping:", dayTimeMapping)
@@ -487,7 +516,99 @@ const onTimeChange = (event: any, time?: Date) => {
           </View>
 
 
+{Object.keys(dayTimeMapping).length > 0 && (
+  <View style={styles.formSection}>
+    <Text style={styles.sectionTitle}>Select Day to Add Games</Text>
+    
+    {/* Day buttons, sorted in weekday order */}
+    <ScrollView 
+    horizontal 
+    showsHorizontalScrollIndicator={false} 
+    contentContainerStyle={styles.daysScrollContent}
+    >
+      {Object.keys(dayTimeMapping)
+        .sort((a, b) => dayToInt[a] - dayToInt[b])
+        .map((day) => {
+          const isSelected = selectedGameDay === day;
 
+          return (
+            <TouchableOpacity
+              key={day}
+              style={[styles.dayButton, isSelected && styles.dayButtonSelected]}
+              onPress={() => setSelectedGameDay(day)}
+            >
+              <Text style={[styles.dayText, isSelected && styles.dayTextSelected]}>
+                {day}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+    </ScrollView>
+
+    {/* Games for the selected day */}
+    {selectedGameDay && gamesByDay[selectedGameDay]?.length > 0 && (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 4, alignItems: 'flex-start' }}
+      >
+        {gamesByDay[selectedGameDay].map((game, index) => {
+          const { image } = getMetaFromTuple(game);
+          return (
+            <TouchableOpacity
+              key={index}
+              style={[styles.gameCard, { width: 160, marginRight: 8 }]}
+              onPress={() => handleGameRemove(selectedGameDay, index)}
+            >
+              <View style={styles.gameContent}>
+                <Text style={styles.gameTitle}>{game[1]}</Text>
+                <Ionicons
+                  name="close-circle"
+                  size={20}
+                  color="rgba(255,255,255,0.7)"
+                  style={styles.removeIcon}
+                />
+              </View>
+
+              <ImageBackground
+                source={image}
+                style={styles.gameImage}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    )}
+
+    {/* Add Game button (only if no games yet for selected day) */}
+    {selectedGameDay && (!gamesByDay[selectedGameDay] || gamesByDay[selectedGameDay].length === 0) && (
+      <TouchableOpacity
+        style={[styles.addGameButton, { width: 120, marginLeft: 8 }]}
+        onPress={() => {
+          navigation.navigate("GameSelection", {
+            categories,
+            singOrMult,
+            onGameSelected2: (game: { id: number; name: string }, categoryId: number) => {
+              handleGameAdd(game, categoryId);
+            },
+          });
+        }}
+      >
+        <LinearGradient
+          colors={["rgba(255, 255, 255, 0.2)", "rgba(255, 255, 255, 0.1)"]}
+          style={styles.addGameGradient}
+        >
+          <Ionicons name="add-circle-outline" size={24} color="#FFF" />
+          <Text style={styles.addGameText}>Add Game</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+    )}
+  </View>
+)}
+
+
+{/* 
 {selectedDays.length === 1 && (
   <View style={styles.formSection}>
     <Text style={styles.sectionTitle}>Games for {selectedDays[0]}</Text>
@@ -525,7 +646,7 @@ const onTimeChange = (event: any, time?: Date) => {
         );
       })}
 
-      {/* Add Game Button */}
+
       {(selectedDays && selectedDays[0] && (!gamesByDay[selectedDays[0]]) || (selectedDays && selectedDays[0] && gamesByDay[selectedDays[0]].length === 0)) && (
       <TouchableOpacity
         style={[styles.addGameButton, { width: 120, marginLeft: 8 }]}
@@ -541,8 +662,8 @@ const onTimeChange = (event: any, time?: Date) => {
             navigation.navigate("GameSelection", {
               categories,
               singOrMult,
-              onGameSelected: (game: { id: number; name: string }) => {
-                handleGameAdd(game)
+              onGameSelected2: (game: { id: number; name: string }, categoryId: number) => {
+                handleGameAdd(game, categoryId)
               },
             })
         }}
@@ -558,89 +679,11 @@ const onTimeChange = (event: any, time?: Date) => {
     )}
     </ScrollView>
   </View>
-)}
+)}  */}
 
 
 
 
-{/* 
-
-          {selectedDays.length === 1 && (
-            <View style={styles.formSection}>
-              <Text style={styles.sectionTitle}>Games for {selectedDays[0]}</Text>
-              <View style={styles.gamesContainer}>
-                {(selectedDays[0] && gamesByDay[selectedDays[0]] || []).map((game, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.gameCard}
-                    onPress={() => selectedDays[0] && handleGameRemove(selectedDays[0], index)}
-                  >
-                    <View style={styles.gameContent}>
-                      <Text style={styles.gameTitle}>{game[1]}</Text>
-                      <Ionicons name="close-circle" size={20} color="rgba(255,255,255,0.7)" style={styles.removeIcon} />
-                    </View>
-                    {((game[1] === "Sudoku") && (
-                      <ImageBackground
-                      source={require('../../images/sudoku.png')}
-                      style={styles.gameImage}
-                      resizeMode="contain"
-                    />
-                    ))}
-                    {((game[1] === "Wordle" || game[1] === "Singleplayer Wordle") && (
-                      <ImageBackground
-                      source={require('../../images/wordle.png')}
-                      style={styles.gameImage}
-                      resizeMode="contain"
-                    />
-                    ))}
-                    {((game[1] === "Pattern" || game[1] === "Pattern Game") && (
-                      <ImageBackground
-                      source={require('../../images/patternGame.png')}
-                      style={styles.gameImage}
-                      resizeMode="contain"
-                    />
-                    ))}
-                  </TouchableOpacity>
-                ))}
-
-                <TouchableOpacity
-                  style={styles.addGameButton}
-                  onPress={() => {
-                    navigation.navigate("SomeCategories", {
-                      catType: "Public",
-                      categories: categories,
-                      singOrMult: singOrMult,
-                      onGameSelected: (game: { id: number; name: string }) => {
-                        handleGameAdd(game)
-                      },
-                    })
-                  }}
-                  // onPress={() => {
-                  //   navigation.navigate("Games", {
-                  //     catType: "Public",
-                  //     category: category,
-                  //     singOrMult: singOrMult,
-                  //     groupId : null,
-                  //     groupMembers : null,
-                  //     onGameSelected: (game: { id: number; name: string }) => {
-                  //       handleGameAdd(game)
-                  //     },
-                  //     challId : null,
-                  //     challName : null
-                  //   })
-                  // }}
-                >
-                  <LinearGradient
-                    colors={["rgba(255, 255, 255, 0.2)", "rgba(255, 255, 255, 0.1)"]}
-                    style={styles.addGameGradient}
-                  >
-                    <Ionicons name="add-circle-outline" size={24} color="#FFF" />
-                    <Text style={styles.addGameText}>Add Game</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )} */}
 
 
           <View style={styles.rewardHeader}>
