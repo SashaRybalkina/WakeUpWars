@@ -105,6 +105,7 @@ export const endpoints = {
   createGroup: `${BASE_URL}/api/create-group/`,
   createSudokuGame: `${BASE_URL}/api/sudoku/create/`,
   validateSudokuMove: `${BASE_URL}/api/sudoku/validate/`,
+  finalizeSudokuResult: `${BASE_URL}/api/sudoku/finalize/`,
   createWordleGame: `${BASE_URL}/api/wordle/create/`,
   validateWordleMove: `${BASE_URL}/api/wordle/validate/`,
   typingRaceCreate: `${BASE_URL}/api/typing-race/create/`,

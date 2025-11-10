@@ -56,6 +56,7 @@ def get_or_create_game(challenge_id, user, allow_join: bool = True):
     return {
         "game_state_id": game_state.id,
         "puzzle": game_state.puzzle,
+        "solution": game_state.solution ,
         "is_multiplayer": is_multiplayer,
         # expose timings for waiting room
         "created_at": (game_state.created_at.isoformat() if game_state.created_at else None),
