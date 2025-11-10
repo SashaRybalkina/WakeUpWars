@@ -425,27 +425,6 @@ const ChallScheduleOrig = ({ navigation }: { navigation: NavigationProp<any> }) 
         </ScrollView>
       </View>
 
-      <View style={styles.navBar}>
-        <TouchableOpacity style={styles.navButton}>
-          <Ionicons name="star" size={28} color="#FFD700" />
-          <Text style={styles.activeNavText}>Challenges</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={goToGroups}>
-          <Ionicons name="people-outline" size={28} color="#FFF" />
-          <Text style={styles.navText}>Groups</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={goToMessages}>
-          <Ionicons name="mail-outline" size={28} color="#FFF" />
-          <Text style={styles.navText}>Messages</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={goToProfile}>
-          <Ionicons name="person-outline" size={28} color="#FFF" />
-          <Text style={styles.navText}>Profile</Text>
-        </TouchableOpacity>
-      </View>
     </ImageBackground>
   )
 }
@@ -759,18 +738,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 16,
     marginLeft: 8,
-  },
-  navBar: {
-    backgroundColor: "#211F26",
-    flexDirection: "row",
-    height: 80,
-    justifyContent: "space-around",
-    alignItems: "center",
-    paddingBottom: 15,
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
   },
   navButton: {
     justifyContent: "center",

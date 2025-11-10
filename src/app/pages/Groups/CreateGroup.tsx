@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  Image,
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import type { NavigationProp } from "@react-navigation/native"
@@ -24,6 +25,7 @@ type Group = {
 import { BASE_URL, endpoints } from "../../api"
 import { getAccessToken } from "../../auth"
 import { useGroups } from "../../context/GroupsContext"
+import NavBar from "../Components/NavBar"
 
 type Props = {
   navigation: NavigationProp<any>
@@ -34,6 +36,11 @@ type Friend = {
   name: string
   username: string
   selected?: boolean
+  avatar?: {
+    id: number;
+    imageUrl: string;
+    backgroundColor: string;
+  };
 }
 
 const CreateGroup: React.FC<Props> = ({ navigation }) => {
@@ -246,9 +253,25 @@ const CreateGroup: React.FC<Props> = ({ navigation }) => {
                       style={[styles.friendItem, friend.selected && styles.friendItemSelected]}
                       onPress={() => toggleFriendSelection(friend.id)}
                     >
-                      <View style={[styles.friendAvatar, { backgroundColor }]}>
+                      {/* <View style={[styles.friendAvatar, { backgroundColor }]}>
                         <Text style={styles.friendInitials}>{getInitials(friend.name)}</Text>
-                      </View>
+                      </View> */}
+                    <View
+                      style={[
+                        styles.avatarContainer,
+                        { backgroundColor: friend.avatar?.backgroundColor || generatePastelColor(friend.name) },
+                      ]}
+                    >
+                      {friend.avatar?.imageUrl ? (
+                        <Image
+                          source={{ uri: `${BASE_URL}${friend.avatar.imageUrl}` }}
+                          style={{ width: 50, height: 50, borderRadius: 25 }}
+                          resizeMode="contain"
+                        />
+                      ) : (
+                        <Text style={styles.avatarText}>{getInitials(friend.name)}</Text>
+                      )}
+                    </View>
                       <View style={styles.friendInfo}>
                         <Text style={styles.friendName}>{friend.name}</Text>
                         <Text style={styles.friendUsername}>@{friend.username}</Text>
@@ -307,27 +330,14 @@ const CreateGroup: React.FC<Props> = ({ navigation }) => {
         </ScrollView>
       </View>
 
-      <View style={styles.navBar}>
-        <TouchableOpacity style={styles.navButton} onPress={goToChallenges}>
-          <Ionicons name="star-outline" size={28} color="#FFF" />
-          <Text style={styles.navText}>Challenges</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={goToGroups}>
-          <Ionicons name="people" size={28} color="#FFD700" />
-          <Text style={styles.activeNavText}>Groups</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={goToMessages}>
-          <Ionicons name="mail-outline" size={28} color="#FFF" />
-          <Text style={styles.navText}>Messages</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={goToProfile}>
-          <Ionicons name="person-outline" size={28} color="#FFF" />
-          <Text style={styles.navText}>Profile</Text>
-        </TouchableOpacity>
-      </View>
+      <NavBar
+        goToPublicChallenges={() => navigation.navigate("PublicChallenges")}
+        goToChallenges={() => navigation.navigate("Challenges")}
+        goToGroups={() => navigation.navigate("Groups")}
+        goToMessages={() => navigation.navigate("Messages")}
+        goToProfile={() => navigation.navigate("Profile")}
+        active="Groups"
+      />
     </ImageBackground>
   )
 }
@@ -545,18 +555,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
   },
-  navBar: {
-    backgroundColor: "#211F26",
-    flexDirection: "row",
-    height: 80,
-    justifyContent: "space-around",
-    alignItems: "center",
-    paddingBottom: 15,
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
   navButton: {
     justifyContent: "center",
     alignItems: "center",
@@ -572,6 +570,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
     fontWeight: "600",
+  },
+  avatarContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 15,
+    borderWidth: 2,
+    borderColor: '#FFD700',
+  },
+  avatarText: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#333",
   },
 })
 

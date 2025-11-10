@@ -26,6 +26,7 @@ import { useUser } from '../context/UserContext';
 import UserProfileCard from './Components/UserProfileCard';
 const { AlarmModule } = NativeModules;
 import { scheduleAlarmsForUser } from '../alarmService';
+import NavBar from './Components/NavBar';
 
 type Props = {
   navigation: NavigationProp<any>;
@@ -410,7 +411,7 @@ const collectBadge = async (badgeId: number) => {
         <View style={styles.bottomPadding} />
       </ScrollView>
 
-      {/* Navigation Bar stays fixed at the bottom */}
+      {/* Navigation Bar stays fixed at the bottom
       <View style={styles.navBar}>
         <TouchableOpacity style={styles.navButton} onPress={goToChallenges}>
           <Ionicons name="star-outline" size={28} color="#FFF" />
@@ -431,7 +432,17 @@ const collectBadge = async (badgeId: number) => {
           <Ionicons name="person" size={28} color="#FFD700" />
           <Text style={styles.activeNavText}>Profile</Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
+
+      <NavBar
+        goToPublicChallenges={() => navigation.navigate("PublicChallenges")}
+        goToChallenges={() => navigation.navigate("Challenges")}
+        goToGroups={() => navigation.navigate("Groups")}
+        goToMessages={() => navigation.navigate("Messages")}
+        goToProfile={() => navigation.navigate("Profile")}
+        active="Profile"
+      />
+
       </View>
     </ImageBackground>
   );

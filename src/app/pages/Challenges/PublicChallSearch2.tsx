@@ -1,7 +1,8 @@
-import { StyleSheet, ScrollView, TouchableOpacity, ImageBackground, View } from "react-native";
+import { StyleSheet, ScrollView, TouchableOpacity, ImageBackground, View, Text } from "react-native";
 import { NavigationProp, useLinkBuilder, useRoute } from '@react-navigation/native';
 import PendingPublicChallengeCard from "./PendingPublicChallengeCard"
 import { Ionicons } from "@expo/vector-icons";
+import NavBar from "../Components/NavBar";
 
 type Props = { navigation: NavigationProp<any> } 
 
@@ -27,8 +28,9 @@ interface ChallengeMatch {
 
 const PublicChallSearch2: React.FC<Props> = ({ navigation }) => {
   const route = useRoute();
-  const { matches } = route.params as {
-    matches: ChallengeMatch[]
+  const { matches, mySkillLevel } = route.params as {
+    matches: ChallengeMatch[];
+    mySkillLevel: number;
   };
 
   return (
@@ -38,34 +40,63 @@ const PublicChallSearch2: React.FC<Props> = ({ navigation }) => {
           <Ionicons name="arrow-back" size={28} color="#FFF" />
         </TouchableOpacity>
 
-        <ScrollView style={{ padding: 10 }}>
-          {matches.map((m, idx) => (
-            <TouchableOpacity
-                key={idx}
-                onPress={() =>
-                navigation.navigate("ChallSchedule", {
-                    challId: m.summary.id,
-                    challName: m.summary.name,
-                    fromSearch: true,
-                    userAverageSkillLevel: m.userAverageSkillLevel,
-                })
-                }
-                style={styles.challengeContainer}
-                >
-                    
-                <PendingPublicChallengeCard
-                    title={m.summary.name}
-                    icon={require("../../images/school.png")} // placeholder icon
-                    numEnrolledMembers={m.summary.numParticipants}
-                    totalDays={m.summary.totalDays}
-                    daysOfWeek={m.summary.daysOfWeek}
-                    categories={m.summary.categories}
-                    averageSkillLevel={m.summary.averageSkillLevel}
-                />
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+<ScrollView style={{ padding: 10 }} contentContainerStyle={styles.scrollViewContent}>
+  {matches.length === 0 ? (
+    <View style={styles.emptyStateContainer}>
+      <Ionicons name="search-outline" size={60} color="#FFD700" />
+      <Text style={styles.emptyStateText}>No Challenges Found</Text>
+      <Text style={styles.emptyStateSubText}>
+        Try adjusting your filters or check back later for new public challenges.
+      </Text>
+    </View>
+  ) : (
+    <>
+      {/* <View style={styles.skillLevelContainer}>
+        <Ionicons name="barbell-outline" size={22} color="#FFD700" />
+        <Text style={styles.skillLevelText}>
+          Your Skill Level: {matches[0]?.userAverageSkillLevel.toFixed(1)}
+        </Text>
+      </View> */}
+
+      {matches.map((m, idx) => (
+        <TouchableOpacity
+          key={idx}
+          onPress={() =>
+            navigation.navigate("ChallSchedule", {
+              challId: m.summary.id,
+              challName: m.summary.name,
+              fromSearch: true,
+              userAverageSkillLevel: m.userAverageSkillLevel,
+            })
+          }
+          style={styles.challengeContainer}
+        >
+          <PendingPublicChallengeCard
+            title={m.summary.name}
+            icon={require("../../images/school.png")}
+            numEnrolledMembers={m.summary.numParticipants}
+            totalDays={m.summary.totalDays}
+            daysOfWeek={m.summary.daysOfWeek}
+            categories={m.summary.categories}
+            averageSkillLevel={m.summary.averageSkillLevel}
+          />
+        </TouchableOpacity>
+      ))}
+    </>
+  )}
+</ScrollView>
+
+
       </View>
+
+      <NavBar
+        goToPublicChallenges={() => navigation.navigate("PublicChallenges")}
+        goToChallenges={() => navigation.navigate("Challenges")}
+        goToGroups={() => navigation.navigate("Groups")}
+        goToMessages={() => navigation.navigate("Messages")}
+        goToProfile={() => navigation.navigate("Profile")}
+        active="Public"
+      />
     </ImageBackground>
   );
 }
@@ -73,7 +104,7 @@ const PublicChallSearch2: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 50, 
+    paddingTop: 20, 
   },
   background: {
     flex: 1,
@@ -156,14 +187,8 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.8)",
     fontSize: 16,
     marginTop: 10,
-  },
-  navBar: {
-    backgroundColor: "#211F26",
-    flexDirection: "row",
-    height: 80,
-    justifyContent: "space-around",
-    alignItems: "center",
-    paddingBottom: 15,
+    paddingHorizontal: 20,
+    textAlign: "center",
   },
   navButton: {
     justifyContent: "center",
@@ -198,6 +223,29 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textAlign: "center",
   },
+skillLevelContainer: {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  marginBottom: 15,
+  backgroundColor: "rgba(255, 255, 255, 0.15)",
+  borderRadius: 12,
+  paddingVertical: 8,
+  paddingHorizontal: 15,
+  alignSelf: "center",
+  borderWidth: 1,
+  borderColor: "rgba(255, 255, 255, 0.2)",
+},
+skillLevelText: {
+  color: "#FFF",
+  fontSize: 16,
+  fontWeight: "600",
+  marginLeft: 8,
+  textShadowColor: "rgba(0, 0, 0, 0.2)",
+  textShadowOffset: { width: 1, height: 1 },
+  textShadowRadius: 2,
+},
+
 })
 
 export default PublicChallSearch2

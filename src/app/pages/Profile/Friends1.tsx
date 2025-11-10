@@ -8,6 +8,7 @@ import { ScrollView } from "tamagui"
 import { useUser } from "../../context/UserContext"
 import { BASE_URL, endpoints } from "../../api"
 import { getAccessToken } from "../../auth"
+import NavBar from "../Components/NavBar"
 
 type Props = {
   navigation: NavigationProp<any>
@@ -261,27 +262,14 @@ const Friends1: React.FC<Props> = ({ navigation }) => {
         )}
       </View>
 
-      <View style={styles.navBar}>
-        <TouchableOpacity style={styles.navButton} onPress={goToChallenges}>
-          <Ionicons name="star-outline" size={28} color="#FFF" />
-          <Text style={styles.navText}>Challenges</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={goToGroups}>
-          <Ionicons name="people-outline" size={28} color="#FFF" />
-          <Text style={styles.navText}>Groups</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={goToMessages}>
-          <Ionicons name="mail-outline" size={28} color="#FFF" />
-          <Text style={styles.navText}>Messages</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={goToProfile}>
-          <Ionicons name="person" size={28} color="#FFD700" />
-          <Text style={styles.activeNavText}>Profile</Text>
-        </TouchableOpacity>
-      </View>
+      <NavBar
+        goToPublicChallenges={() => navigation.navigate("PublicChallenges")}
+        goToChallenges={() => navigation.navigate("Challenges")}
+        goToGroups={() => navigation.navigate("Groups")}
+        goToMessages={() => navigation.navigate("Messages")}
+        goToProfile={() => navigation.navigate("Profile")}
+        active="Profile"
+      />
     </ImageBackground>
   )
 }

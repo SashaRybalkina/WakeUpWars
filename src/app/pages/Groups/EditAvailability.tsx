@@ -656,72 +656,86 @@ return (
   </View>
 
   {/* Availability Editor */}
-  <View style={styles.section}>
-    <Text style={styles.sectionTitle}>Edit Your Availability</Text>
+<View style={styles.formSection}>
+  <Text style={styles.sectionTitle}>Edit Your Availability</Text>
 
-    {/* Centered container sized to chart */}
-    <View style={styles.chartWrapper}>
-      <View style={{ flexDirection: 'row' }}>
-        {/* Fixed left column (times) */}
-        <View>
-          <View style={styles.cell} />
-          {TIMES.map((time, timeIdx) => (
-            <View key={timeIdx} style={styles.cell}>
-              <Text style={styles.headerText}>{formatTo12Hour(time)}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Scrollable grid */}
-        <ScrollView horizontal>
-          <View>
-            {/* Header row (days) */}
-            <View style={styles.row}>
-              {activeDays.map(dayNum => (
-                <View key={dayNum} style={styles.cell}>
-                  <Text style={styles.headerText}>{DAYS[dayNum - 1]}</Text>
-                </View>
-              ))}
-            </View>
-
-            {/* Scrollable body */}
-            <ScrollView>
-              {TIMES.map((time, timeIdx) => (
-                <View key={timeIdx} style={styles.row}>
-                  {activeDays.map(dayOfWeek => {
-                    const users = availability.filter(
-                      e => e.dayOfWeek === dayOfWeek && toHHMM(e.alarmTime) === time
-                    );
-                    return (
-                      <TouchableOpacity
-                        key={`${dayOfWeek}-${timeIdx}`}
-                        style={[styles.cell, styles.interactiveCell]}
-                        onPress={() => toggleCell(dayOfWeek, timeIdx)}
-                      >
-                        {users.length > 0 && (
-                          <View pointerEvents="none" style={styles.stripeOverlay}>
-                            {users.map((u, i) => (
-                              <View
-                                key={i}
-                                style={{
-                                  flex: 1,
-                                  backgroundColor: userColorMap[u.uID] || 'rgba(255,255,255,0.2)',
-                                }}
-                              />
-                            ))}
-                          </View>
-                        )}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              ))}
-            </ScrollView>
+  {/* Centered container sized to chart */}
+  {/* <View style={styles.chartWrapper}> */}
+    <View style={{ flexDirection: 'row' }}>
+      {/* Fixed left column (times) */}
+      <View>
+        <View style={styles.cell} />
+        {TIMES.map((time, timeIdx) => (
+          <View key={timeIdx} style={styles.cell}>
+            <Text style={styles.headerText}>{formatTo12Hour(time)}</Text>
           </View>
-        </ScrollView>
+        ))}
       </View>
+
+      {/* Scrollable grid */}
+      <ScrollView horizontal>
+        <View>
+          {/* Header row (days) */}
+          <View style={styles.row}>
+            {DAYS.map((day, dayIdx) => (
+              <View key={dayIdx} style={styles.cell}>
+                <Text style={styles.headerText}>{day}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Scrollable body */}
+          <ScrollView>
+            {TIMES.map((time, timeIdx) => (
+              <View key={timeIdx} style={styles.row}>
+                {DAYS.map((_, dayIdx) => {
+                  const dayOfWeek = dayIdx + 1;
+                  const isActive = activeDays.includes(dayOfWeek);
+
+                  const users = availability.filter(
+                    e =>
+                      e.dayOfWeek === dayOfWeek &&
+                      toHHMM(e.alarmTime) === time
+                  );
+
+                  return (
+                    <TouchableOpacity
+                      key={`${dayOfWeek}-${timeIdx}`}
+                      style={[
+                        styles.cell,
+                        styles.interactiveCell,
+                        !isActive && styles.disabledCell, // dim inactive days
+                      ]}
+                      disabled={!isActive}
+                      onPress={() => isActive && toggleCell(dayOfWeek, timeIdx)}
+                    >
+                      {users.length > 0 && (
+                        <View pointerEvents="none" style={styles.stripeOverlay}>
+                          {users.map((u, i) => (
+                            <View
+                              key={i}
+                              style={{
+                                flex: 1,
+                                backgroundColor:
+                                  userColorMap[u.uID] ||
+                                  'rgba(255,255,255,0.2)',
+                              }}
+                            />
+                          ))}
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      </ScrollView>
     </View>
   </View>
+{/* </View> */}
+
 
   {/* Legends & Buttons */}
   {availability.length > 0 && (
@@ -778,7 +792,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: 50, 
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
   },
   background: {
     flex: 1,
@@ -808,14 +822,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   cell: {
-    width: 50,
+    width: 60,
     height: 30,
     borderWidth: 1,
-    borderColor: '#ffffffd1',
+    borderColor: '#ccc',
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
-    overflow: 'hidden',
   },
   headerText: {
     color: '#FFF',
@@ -860,13 +872,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   formSection: {
-  backgroundColor: "rgba(255, 255, 255, 0.25)",
-  borderRadius: 16,
-  padding: 16,
-  marginBottom: 20,
-  borderWidth: 1,
-  borderColor: "rgba(255, 255, 255, 0.3)",
-},
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
 sectionLabel: {
   fontSize: 18,
   fontWeight: '600',
@@ -1140,6 +1152,11 @@ chartWrapper: {
   borderColor: 'rgba(255,255,255,0.25)',
   alignSelf: 'center',
 },
+disabledCell: {
+  opacity: 0.4, // visually dimmed
+  backgroundColor: '#f0f0f0', // light gray background
+},
+
 
 });
 

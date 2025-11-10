@@ -1506,6 +1506,12 @@ class ChallengeDetailView(APIView):
             'totalDays': challenge.totalDays,
             'daysOfWeek': days_of_week,
             'initiator_id': initiator_id,
+            'winner': (
+                {"username": challenge.winner.username, "id": challenge.winner.id}
+                if challenge.winner
+                else None
+            ),
+            'unlockedCoins': challenge.unlockedCoins,
             'reward_setting': RewardSettingSerializer(getattr(challenge,'reward_setting',None)).data if hasattr(challenge,'reward_setting') else None
         })
         
@@ -4001,6 +4007,27 @@ class CollectBetCoinsView(APIView):
 
         bet.isCollected = True
         bet.save()
+
+        return Response({"message": "Coins Collected!"}, status=status.HTTP_200_OK)
+    
+
+
+class CollectChallengeCoinsView(APIView):
+    @transaction.atomic
+    def post(self, request):
+        data = request.data
+        user_id = data['user_id']
+        chall_id = data['chall_id']
+        amount = data['amount']
+
+        user = get_object_or_404(User, id=user_id)
+        challenge = get_object_or_404(Challenge, id=chall_id)
+
+        user.numCoins += amount
+        user.save()
+
+        challenge.unlockedCoins = 0
+        challenge.save()
 
         return Response({"message": "Coins Collected!"}, status=status.HTTP_200_OK)
     

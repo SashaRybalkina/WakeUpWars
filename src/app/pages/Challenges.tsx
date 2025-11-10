@@ -3,6 +3,7 @@ import { ImageBackground, StyleSheet, Text, TouchableOpacity, View, StatusBar } 
 import { Ionicons } from "@expo/vector-icons"
 import type { NavigationProp } from "@react-navigation/native"
 import { Button } from "tamagui"
+import NavBar from "./Components/NavBar"
 
 type Props = {
   navigation: NavigationProp<any>
@@ -77,27 +78,14 @@ const Challenges: React.FC<Props> = ({ navigation }) => {
         </View>
       </View>
 
-      <View style={styles.navBar}>
-        <TouchableOpacity style={styles.navButton} onPress={goToChallenges}>
-          <Ionicons name="star" size={28} color="#FFD700" />
-          <Text style={styles.activeNavText}>Challenges</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={goToGroups}>
-          <Ionicons name="people-outline" size={28} color="#FFF" />
-          <Text style={styles.navText}>Groups</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={goToMessages}>
-          <Ionicons name="mail-outline" size={28} color="#FFF" />
-          <Text style={styles.navText}>Messages</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={goToProfile}>
-          <Ionicons name="person-outline" size={28} color="#FFF" />
-          <Text style={styles.navText}>Profile</Text>
-        </TouchableOpacity>
-      </View>
+      <NavBar
+        goToPublicChallenges={() => navigation.navigate("PublicChallenges")}
+        goToChallenges={() => navigation.navigate("Challenges")}
+        goToGroups={() => navigation.navigate("Groups")}
+        goToMessages={() => navigation.navigate("Messages")}
+        goToProfile={() => navigation.navigate("Profile")}
+        active="Challenges"
+      />
     </ImageBackground>
   )
 }

@@ -1032,18 +1032,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 8,
   },
-  navBar: {
-    backgroundColor: "#211F26",
-    flexDirection: "row",
-    height: 80,
-    justifyContent: "space-around",
-    alignItems: "center",
-    paddingBottom: 15,
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
   navButton: {
     justifyContent: "center",
     alignItems: "center",

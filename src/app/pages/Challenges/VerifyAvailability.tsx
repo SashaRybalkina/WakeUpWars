@@ -21,6 +21,7 @@ import {
 } from 'react-native';
 import { BASE_URL, endpoints } from '../../api';
 import { getAccessToken } from '../../auth';
+import NavBar from '../Components/NavBar';
 
 type Props = { navigation: NavigationProp<any> } 
 // Config 
@@ -305,6 +306,15 @@ useFocusEffect(
 
       </ScrollView>
       </View>
+
+      <NavBar
+        goToPublicChallenges={() => navigation.navigate("PublicChallenges")}
+        goToChallenges={() => navigation.navigate("Challenges")}
+        goToGroups={() => navigation.navigate("Groups")}
+        goToMessages={() => navigation.navigate("Messages")}
+        goToProfile={() => navigation.navigate("Profile")}
+        active="Public"
+      />
     </ImageBackground>
   )
 }

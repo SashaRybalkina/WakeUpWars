@@ -14,6 +14,7 @@ import { NavigationProp } from "@react-navigation/native";
 import { BASE_URL, endpoints } from "../../api";
 import { getAccessToken } from "../../auth";
 import { useUser } from "../../context/UserContext";
+import NavBar from "../Components/NavBar";
 
 type Props = {
   navigation: NavigationProp<any>;
@@ -197,6 +198,16 @@ const CreatePublicChall: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         </ScrollView>
       </View>
+
+      <NavBar
+        goToPublicChallenges={() => navigation.navigate("PublicChallenges")}
+        goToChallenges={() => navigation.navigate("Challenges")}
+        goToGroups={() => navigation.navigate("Groups")}
+        goToMessages={() => navigation.navigate("Messages")}
+        goToProfile={() => navigation.navigate("Profile")}
+        active="Public"
+      />
+
     </ImageBackground>
   );
 };

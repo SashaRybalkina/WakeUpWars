@@ -1,3 +1,4 @@
+import random
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.db.models import Sum
@@ -186,6 +187,7 @@ class Challenge(models.Model):
     isCompleted = models.BooleanField(default=False)
     daysCompleted = models.IntegerField(default=0)
     participationFee = models.IntegerField(default=0) # can't be null, if don't want fee, set to 0
+    unlockedCoins = models.IntegerField(default=0, db_default=0) 
 
     # ──────── NEW convenience helpers ────────────────────────────────────────
     members = models.ManyToManyField(
@@ -229,10 +231,18 @@ class Challenge(models.Model):
             .annotate(total=Sum('score'))
             .order_by('-total')
         )
-        top = qs.first()
-        if not top:
+        if not qs.exists():
             return None
-        return User.objects.get(id=top['user'])
+
+        # find all top scorers
+        top_total = qs.first()['total']
+        top_users = [row['user'] for row in qs if row['total'] == top_total]
+
+        if len(top_users) == 1:
+            return User.objects.get(id=top_users[0])
+        else:
+            # tie — pick randomly or return all
+            return User.objects.get(id=random.choice(top_users))
 
     # ─────────────────────────────────────────────────────────────────────────
     # Convenience wrapper the API view can call instead of duplicating logic.

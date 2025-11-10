@@ -128,6 +128,7 @@ from .views import (
     FinalizeTypingRaceResultView,
     CollectBetRefundView,
     GetPersonalChallengesView,
+    CollectChallengeCoinsView,
 )
 
 
@@ -160,6 +161,7 @@ urlpatterns = [
     path('cats/', CatListView.as_view(), name='cat-list'),
     path('collect-badge/', CollectBadgeView.as_view(), name='collect-badge'),
     path('collect-bet-coins/', CollectBetCoinsView.as_view(), name='collect-bet-coins'),
+    path('collect-challenge-coins/', CollectChallengeCoinsView.as_view(), name='collect-challenge-coins'),
     path('collect-bet-refund/', CollectBetRefundView.as_view(), name='collect-bet-refund'),
     path('some-cats/', SomeCatsListView.as_view(), name='some-cats'),
 

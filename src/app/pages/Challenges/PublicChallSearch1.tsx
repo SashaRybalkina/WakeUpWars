@@ -18,9 +18,11 @@ import {
   ImageBackground,
   TextInput,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { BASE_URL, endpoints } from '../../api';
 import { getAccessToken } from '../../auth';
+import NavBar from '../Components/NavBar';
 
 type Props = { navigation: NavigationProp<any> } 
 
@@ -31,6 +33,8 @@ const PublicChallSearch1: React.FC<Props> = ({ navigation }) => {
   const [singOrMult, setSingOrMult] = useState<"singleplayer" | "multiplayer" | null>(null);
   const [categories, setCategories] = useState<{ id: number; categoryName: string }[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<{ id: number; name: string }[]>([]);
+  const [loading, setLoading] = useState(false);
+
 
 
     useEffect(() => {
@@ -77,6 +81,7 @@ const PublicChallSearch1: React.FC<Props> = ({ navigation }) => {
         }
 
         try {
+          setLoading(true)
                 const accessToken = await getAccessToken();
                 if (!accessToken) {
                       await logout();
@@ -101,6 +106,8 @@ const PublicChallSearch1: React.FC<Props> = ({ navigation }) => {
 
         } catch (err: any) {
             Alert.alert('Error', err.message);
+        } finally {
+          setLoading(false)
         }
 
     }
@@ -199,18 +206,36 @@ const PublicChallSearch1: React.FC<Props> = ({ navigation }) => {
                         )}
 
 
-          <TouchableOpacity style={styles.createButton} onPress={handleSubmit}>
-            <LinearGradient
-              colors={['#FFD700', '#FFC107']}
-              style={styles.createButtonGradient}
-            >
-              <Text style={styles.createButtonText}>Search for Challenge</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+<TouchableOpacity
+  style={styles.createButton}
+  onPress={handleSubmit}
+  disabled={loading} // 👈 prevent double-clicking while loading
+>
+  <LinearGradient
+    colors={['#FFD700', '#FFC107']}
+    style={styles.createButtonGradient}
+  >
+    {loading ? (
+      <ActivityIndicator size="small" color="#000" />
+    ) : (
+      <Text style={styles.createButtonText}>Search for Challenge</Text>
+    )}
+  </LinearGradient>
+</TouchableOpacity>
+
 
 
       </ScrollView>
       </View>
+
+      <NavBar
+        goToPublicChallenges={() => navigation.navigate("PublicChallenges")}
+        goToChallenges={() => navigation.navigate("Challenges")}
+        goToGroups={() => navigation.navigate("Groups")}
+        goToMessages={() => navigation.navigate("Messages")}
+        goToProfile={() => navigation.navigate("Profile")}
+        active="Public"
+      />
     </ImageBackground>
   )
 }

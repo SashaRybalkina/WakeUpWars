@@ -88,6 +88,9 @@ const ChallDetails: React.FC<Props> = ({ navigation }) => {
   const [members, setMembers] = useState<Member[]>([])
   const [daysOfWeek, setDaysOfWeek] = useState<string[]>([])
   const [isFavorite, setIsFavorite] = useState(false)
+  const [winner, setWinner] = useState<{username: string; id: number} | null>(null)
+  const [unlockedCoins, setUnlockedCoins] = useState<number>(0)
+  const [isCollecting, setIsCollecting] = useState(false);
   const [progressAnim] = useState(new Animated.Value(0))
   // type Obligation = {
   //   id:number; challenge:number; payer:any; payee:any; currency:string; amount:string; remaining:string; status:string;
@@ -112,11 +115,6 @@ const ChallDetails: React.FC<Props> = ({ navigation }) => {
   const [perfError, setPerfError] = useState<string | null>(null);
 
 
-  // reward editor
-  const [reward, setReward] = useState<any|null>(null);   // fetched reward_setting
-  const [rewardType, setRewardType] = useState<'money'|'points'|'custom'>('money');
-  const [rewardAmount, setRewardAmount] = useState('');
-  const [rewardNote, setRewardNote] = useState('');
 
   const getDayLabel = (day: number): string => {
     return DayOfWeekLabels[day as DayOfWeek] || ""
@@ -165,9 +163,8 @@ const ChallDetails: React.FC<Props> = ({ navigation }) => {
         setTotalDays(data.totalDays ?? 30)
         console.log('total days??', data.totalDays)
         setMembers(data.members);
-        // setCanEditReward(!!data.initiator_id);
-        // setReward(data.reward_setting);
-        // console.log('reward setting??',!!data.reward_setting)
+        setWinner(data.winner)
+        setUnlockedCoins(data.unlockedCoins)
       } catch (err) {
         console.error(err)
       }
@@ -428,6 +425,35 @@ const loadPerformances = async () => {
     return `${rank}.`
   }
 
+
+  const collectWinnings = async (amount: number) => {
+    try {
+      setIsCollecting(true);
+      const accessToken = await getAccessToken();
+      if (!accessToken) {throw new Error("Not authenticated");}
+
+      const res = await fetch(endpoints.collectChallengeCoins(), {  
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ user_id: user?.id, chall_id: challId, amount }),
+      });
+
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      Alert.alert("🎉 Success", `You collected ${amount} 🪙!`);
+      setUnlockedCoins(0)
+      // await onRefresh();
+    } catch (err) {
+      console.error("Collect error:", err);
+      Alert.alert("Error", "Failed to collect winnings.");
+    } finally {
+      setIsCollecting(false);
+    }
+  };
+
+
   const progressWidth = progressAnim.interpolate({
     inputRange: [0, 1],
     outputRange: ["0%", "100%"],
@@ -494,6 +520,42 @@ const loadPerformances = async () => {
 </ScrollView>
 
           </View>
+
+
+
+{(whichChall === "Group" || whichChall === "Public") && winner && (
+  <>
+    <Text style={[styles.progressText, { textAlign: "center", marginBottom: 10 }]}>
+      The winner is {winner.username}! 🏆
+    </Text>
+
+    {winner?.id === user?.id && unlockedCoins > 0 && (
+      <TouchableOpacity
+        style={[styles.actionButton, { backgroundColor: "#4CAF50", marginTop: 10, marginBottom: 20 }]}
+        onPress={() => collectWinnings(unlockedCoins)}
+        disabled={isCollecting}
+      >
+        <Text style={[styles.actionButtonText, { textAlign: "center" }]}>
+          {isCollecting
+            ? "Collecting..."
+            : `Collect Winnings: ${unlockedCoins} 🪙`}
+        </Text>
+      </TouchableOpacity>
+    )}
+  </>
+)}
+
+{whichChall === "Personal" && unlockedCoins > 0 && (
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: "#4CAF50", marginTop: 10, marginBottom: 20 }]}
+          onPress={() => collectWinnings(unlockedCoins)}
+          disabled={isCollecting}
+        >
+          <Text style={[styles.actionButtonText, { textAlign: "center" }]}>
+            {isCollecting ? "Collecting..." : `Collect participation coins: ${unlockedCoins} 🪙`}
+          </Text>
+        </TouchableOpacity>
+)}
 
           {/* Challenge Days Section */}
           <View style={styles.challengeCard}>
@@ -636,7 +698,7 @@ const loadPerformances = async () => {
 
 {(whichChall === "Group" || whichChall === "Public") && (
     <TouchableOpacity
-      style={styles.viewDetailsButton}
+      style={[styles.viewDetailsButton, { marginBottom: 20 }]}
       onPress={() =>
         navigation.navigate("Bets", {
           challId,
@@ -708,28 +770,6 @@ const loadPerformances = async () => {
         </ScrollView>
       </View>
 
-      {/* Navigation Bar */}
-      <View style={styles.navBar}>
-        <TouchableOpacity style={styles.navButton}>
-          <Ionicons name="star" size={28} color="#FFD700" />
-          <Text style={styles.activeNavText}>Challenges</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={goToGroups}>
-          <Ionicons name="people-outline" size={28} color="#FFF" />
-          <Text style={styles.navText}>Groups</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={goToMessages}>
-          <Ionicons name="mail-outline" size={28} color="#FFF" />
-          <Text style={styles.navText}>Messages</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={goToProfile}>
-          <Ionicons name="person-outline" size={28} color="#FFF" />
-          <Text style={styles.navText}>Profile</Text>
-        </TouchableOpacity>
-      </View>
     </ImageBackground>
   )
 }
@@ -1007,20 +1047,6 @@ const styles = StyleSheet.create({
   bottomSpacing: {
     height: 100,
   },
-  navBar: {
-    backgroundColor: "rgba(33, 31, 38, 0.95)",
-    flexDirection: "row",
-    height: 80,
-    justifyContent: "space-around",
-    alignItems: "center",
-    paddingBottom: 15,
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.1)",
-  },
   navButton: {
     justifyContent: "center",
     alignItems: "center",
@@ -1091,6 +1117,15 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+actionButton: {
+  paddingVertical: 8,
+  paddingHorizontal: 16,
+  borderRadius: 8,
+},
+actionButtonText: {
+  color: '#FFF',
+  fontWeight: '600',
+},
 })
 
 export default ChallDetails

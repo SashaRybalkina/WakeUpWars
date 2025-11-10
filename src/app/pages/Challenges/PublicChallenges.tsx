@@ -15,6 +15,7 @@ import { INTERNAL_CALLSITES_REGEX } from "expo/metro-config"
 import PublicChallengeCard from "./PublicChallengeCard"
 import { CheckboxStyledContext } from "tamagui"
 import { getAccessToken } from "../../auth"
+import NavBar from "../Components/NavBar"
 
 type Props = {
   navigation: NavigationProp<any>
@@ -349,27 +350,14 @@ const PublicChallenges: React.FC<Props> = ({ navigation }) => {
         )}
       </View>
 
-      <View style={styles.navBar}>
-        <TouchableOpacity style={styles.navButton} onPress={goToChallenges}>
-          <Ionicons name="star-outline" size={28} color="#FFD700" />
-          <Text style={styles.navText}>Challenges</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={goToGroups}>
-          <Ionicons name="people" size={28} color="#FFF" />
-          <Text style={styles.activeNavText}>Groups</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={goToMessages}>
-          <Ionicons name="mail-outline" size={28} color="#FFF" />
-          <Text style={styles.navText}>Messages</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={goToProfile}>
-          <Ionicons name="person-outline" size={28} color="#FFF" />
-          <Text style={styles.navText}>Profile</Text>
-        </TouchableOpacity>
-      </View>
+      <NavBar
+        goToPublicChallenges={() => navigation.navigate("PublicChallenges")}
+        goToChallenges={() => navigation.navigate("Challenges")}
+        goToGroups={() => navigation.navigate("Groups")}
+        goToMessages={() => navigation.navigate("Messages")}
+        goToProfile={() => navigation.navigate("Profile")}
+        active="Public"
+      />
     </ImageBackground>
   )
 }

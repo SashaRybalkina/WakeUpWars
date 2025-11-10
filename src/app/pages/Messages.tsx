@@ -21,6 +21,7 @@ import axios from "axios"
 import { getAccessToken } from "../auth"
 import * as Notifications from 'expo-notifications'
 import { formatDistanceToNow } from 'date-fns'
+import NavBar from "./Components/NavBar"
 
 type Props = {
   navigation: NavigationProp<any>
@@ -339,24 +340,14 @@ const Messages: React.FC<Props> = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.navBar}> 
-        <TouchableOpacity style={styles.navButton} onPress={goToChallenges}> 
-          <Ionicons name="star-outline" size={28} color="#FFF" /> 
-          <Text style={styles.navText}>Challenges</Text>
-        </TouchableOpacity> 
-        <TouchableOpacity style={styles.navButton} onPress={goToGroups}> 
-          <Ionicons name="people-outline" size={28} color="#FFF" /> 
-          <Text style={styles.navText}>Groups</Text> 
-        </TouchableOpacity> 
-        <TouchableOpacity style={styles.navButton} onPress={goToMessages}> 
-          <Ionicons name="mail" size={28} color="#FFD700" /> 
-          <Text style={styles.activeNavText}>Messages</Text> 
-        </TouchableOpacity> 
-        <TouchableOpacity style={styles.navButton} onPress={goToProfile}> 
-          <Ionicons name="person-outline" size={28} color="#FFF" /> 
-          <Text style={styles.navText}>Profile</Text> 
-        </TouchableOpacity> 
-      </View>
+      <NavBar
+        goToPublicChallenges={() => navigation.navigate("PublicChallenges")}
+        goToChallenges={() => navigation.navigate("Challenges")}
+        goToGroups={() => navigation.navigate("Groups")}
+        goToMessages={() => navigation.navigate("Messages")}
+        goToProfile={() => navigation.navigate("Profile")}
+        active="Messages"
+      />
     </ImageBackground>
   )
 }

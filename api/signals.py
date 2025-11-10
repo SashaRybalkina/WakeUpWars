@@ -43,6 +43,10 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
     def _after_commit():
         try:
             ch = instance.challenge
+
+            if not ch.groupID and not ch.isPublic and not instance.auto_generated:
+                Challenge.objects.filter(pk=ch.id).update(unlockedCoins=5)
+
             play_date = instance.date
             if not ch.startDate:
                 return
@@ -136,8 +140,9 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
                     else:
                         # for now just give reward here
                         reward_amount = ch.participationFee * ch.members.count()
-                        winner_user.numCoins += reward_amount
-                        winner_user.save(update_fields=["numCoins"])
+                        Challenge.objects.filter(pk=ch.id).update(unlockedCoins=reward_amount)
+                        # winner_user.numCoins += reward_amount
+                        # winner_user.save(update_fields=["numCoins"])
 
                         # check for first public challenge completion/win
                         if ch.isPublic:

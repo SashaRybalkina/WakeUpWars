@@ -94,6 +94,14 @@ const UserProfileCard: React.FC<Props> = ({ name, currentMemoji, bgColor, numCoi
     setBadges(data);
   };
 
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+  }
+
 
 const collectBadge = async (badgeId: number) => {
       const payload = {
@@ -226,6 +234,20 @@ const PulsingBadge = ({ badge, onPress }) => {
       <View style={styles.avatarWrapper}>
       {/* Inner avatar container (clipped circle) */}
       <View style={[styles.avatarContainer, { backgroundColor: bgColor }]}>
+        {currentMemoji?.imageUrl ? (
+          <Image
+            source={{ uri: `${BASE_URL}${currentMemoji.imageUrl}` }}
+            style={styles.avatar}
+            resizeMode="contain"
+          />
+        ) : (
+          <Text style={styles.avatarInitials}>
+            {getInitials(user?.name || "Anonymous")}
+          </Text>
+        )}
+      </View>
+
+      {/* <View style={[styles.avatarContainer, { backgroundColor: bgColor }]}>
         <Image
           source={
             currentMemoji?.imageUrl
@@ -235,7 +257,7 @@ const PulsingBadge = ({ badge, onPress }) => {
           style={styles.avatar}
           resizeMode="contain"
         />
-        </View>
+        </View> */}
         <TouchableOpacity
           style={styles.editButton}
           onPress={() =>
@@ -804,6 +826,14 @@ coinText: {
   fontWeight: "600",
   marginTop: 4,
   textAlign: 'center',
+},
+avatarInitials: {
+  color: "#000000ff",
+  fontSize: 24,
+  fontWeight: "bold",
+  textAlign: "center",
+  textAlignVertical: "center", // Android
+  flex: 1,
 },
 
 });
