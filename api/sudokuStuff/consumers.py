@@ -342,7 +342,7 @@ class SudokuConsumer(AsyncWebsocketConsumer):
                 }))
                 return
 
-            # ✅ 更新玩家答題紀錄
+            # ✅ update player record
             player_record, _ = await sync_to_async(SudokuGamePlayer.objects.get_or_create)(
                 gameState_id=self.game_state_id,
                 player=self.user,
@@ -355,7 +355,7 @@ class SudokuConsumer(AsyncWebsocketConsumer):
                 player_record.inaccuracyCount += 1
             await sync_to_async(player_record.save)()
 
-            # 📢 廣播這次輸入結果給其他玩家
+            # Broadcast move to everyone
             await self.channel_layer.group_send(
                 self.group_name,
                 {
@@ -367,7 +367,7 @@ class SudokuConsumer(AsyncWebsocketConsumer):
                 }
             )
 
-            # 🎯 若整盤完成 → 結算分數並廣播結果
+            # If the game is complete, broadcast completion
             if is_complete:
                 try:
                     await self._persist_scores_now()
@@ -381,7 +381,7 @@ class SudokuConsumer(AsyncWebsocketConsumer):
                     }
                 )
 
-            # 🧹 解鎖這格
+            # 🧹 unlock the cell
             if game_id in CELL_LOCKS and CELL_LOCKS[game_id].get(index) == username:
                 CELL_LOCKS[game_id].pop(index, None)
                 await self.channel_layer.group_send(
