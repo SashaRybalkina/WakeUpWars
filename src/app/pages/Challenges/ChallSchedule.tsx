@@ -578,10 +578,6 @@ const getInitials = (name: string): string => {
                               style={styles.sudokuImage}
                               resizeMode="contain"
                             />
-                            <View style={styles.playIndicator}>
-                              <Ionicons name="play-circle" size={24} color="#FFD700" />
-                              <Text style={styles.playText}>Play</Text>
-                            </View>
                           </>
                         ) : isPattern ? (
                           <>
@@ -590,10 +586,6 @@ const getInitials = (name: string): string => {
                               style={styles.sudokuImage}
                               resizeMode="contain"
                             />
-                            <View style={styles.playIndicator}>
-                              <Ionicons name="play-circle" size={24} color="#FFD700" />
-                              <Text style={styles.playText}>Play</Text>
-                            </View>
                           </>
                         ) : 
                         isWordle ? (
@@ -603,10 +595,6 @@ const getInitials = (name: string): string => {
                               style={styles.sudokuImage}
                               resizeMode="contain"
                             />
-                            <View style={styles.playIndicator}>
-                              <Ionicons name="play-circle" size={24} color="#FFD700" />
-                              <Text style={styles.playText}>Play</Text>
-                            </View>
                           </>
                         ) : (
                           <>
