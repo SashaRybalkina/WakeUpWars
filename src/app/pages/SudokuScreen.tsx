@@ -893,8 +893,12 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
                       { 
                         backgroundColor: cellColors[index], 
                         // use player color when selected, otherwise keep the border color
-                        borderColor: selected ? playerColor : cellBorderColors[index],
-                        borderWidth: cellLocks[index] ? 3 : BORDER_WIDTH_THIN,
+                        borderColor: selected
+                          ? (playerColor || '#ffbf00') // 🟡 fallback to yellow if no player color
+                          : cellBorderColors[index],
+                        borderWidth: selected
+                          ? 2 // highlight selection
+                          : (cellLocks[index] ? 3 : BORDER_WIDTH_THIN),
                       },
                       rowIndex % 3 === 0 && rowIndex !== 0 ? styles.thickTopBorder : {},
                       colIndex % 3 === 0 && colIndex !== 0 ? styles.thickLeftBorder : {},
