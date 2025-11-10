@@ -173,7 +173,7 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
   const [onlineIds, setOnlineIds] = useState<number[]>([]);
 
    // 5-minute game timer
-  const [gameTimeLeft, setGameTimeLeft] = useState<number>(30); // 5 minutes in seconds
+  const [gameTimeLeft, setGameTimeLeft] = useState<number>(300); // 5 minutes in seconds
   const gameTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timerExpiredSentRef = useRef(false);
   
@@ -255,7 +255,7 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
       if (gameTimerRef.current) {
         clearInterval(gameTimerRef.current);
       }
-      setGameTimeLeft(30);
+      setGameTimeLeft(300);
       timerExpiredSentRef.current = false;
       gameTimerRef.current = setInterval(() => {
         setGameTimeLeft((prev) => {
@@ -891,12 +891,15 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.exitText}>Exit</Text>
           </TouchableOpacity>
 
-          <Text style={styles.title}>Sudoku</Text>
           {!waitingActive && (
             <Text style={[styles.timer, { color: gameTimeLeft < 60 ? '#ffffffff' : 'white' }]}>
               Game Timer: {formatTime(gameTimeLeft)}
             </Text>
           )}
+
+          <View pointerEvents="none" style={styles.headerTitleWrap}>
+            <Text style={styles.title}>Sudoku</Text>
+          </View>
           {/* <Text style={styles.timer}>Timer: {formatTime(timeLeft)}</Text> */}
 
           {/*Temp function for checking board is full and exit is working*/}
@@ -1015,6 +1018,8 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
                       },
                       rowIndex % 3 === 0 && rowIndex !== 0 ? styles.thickTopBorder : {},
                       colIndex % 3 === 0 && colIndex !== 0 ? styles.thickLeftBorder : {},
+                      // highlight incorrect move as a red box
+                      cellColors[index] === 'red' ? { borderColor: 'red', backgroundColor: '#ff3333ff' } : {},
                     ]}>
                     <Text style={styles.cellText}>{grid[index]}</Text>
                   </TouchableOpacity>
@@ -1053,11 +1058,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center' },
 
   // header styles
-  header: { flexDirection: 'row', justifyContent: 'space-between', width: '90%', marginTop: 20, alignItems: 'center' },
+  header: { position: 'relative', flexDirection: 'row', justifyContent: 'space-between', width: '92%', paddingTop: 40, paddingBottom: 8, marginTop: 10, alignItems: 'center' },
   exitButton: { backgroundColor: 'white', padding: 5, borderRadius: 5 },
   exitText: { fontWeight: 'bold' },
-  title: { fontSize: 30, fontWeight: 'bold', color: 'white', marginVertical: 5, marginHorizontal: 5, alignItems: 'center' },
-  timer: { fontSize: 18, color: 'white', marginVertical: 5 },
+  title: { fontSize: 32, fontWeight: '900', color: 'white', textAlign: 'center' },
+  timer: { fontSize: 18, color: 'white', marginVertical: 5, marginTop: 50, marginRight: 105, },
+  headerTitleWrap: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' },
 
   // color info styles
   colorInfoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8},
