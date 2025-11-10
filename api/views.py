@@ -4891,16 +4891,16 @@ class GameTimerExpiredView(APIView):
                     .select_related('player')
                     .filter(gameState_id=gs_id)
                 )
-                # Progress-based: denominator should be the initial empty cells
-                # Estimate as (filled_so_far + empties_remaining_now)
+                # Denominator: correct + incorrect + empties_remaining (penalize mistakes)
                 total_correct = sum(int(getattr(p, 'accuracyCount', 0) or 0) for p in players)
+                total_incorrect = sum(int(getattr(p, 'inaccuracyCount', 0) or 0) for p in players)
                 try:
                     empties_remaining = sum(
                         1 for row in (gs.puzzle or []) for v in (row or []) if v in (0, None)
                     )
                 except Exception:
                     empties_remaining = 0
-                denom = max(1, total_correct + empties_remaining)
+                denom = max(1, total_correct + total_incorrect + empties_remaining)
 
                 submitted_ids = set()
                 for p in players:
@@ -4917,25 +4917,30 @@ class GameTimerExpiredView(APIView):
             except Exception:
                 pass
 
-        # Zero-fill remaining participants
-        participant_ids = set(
-            ChallengeMembership.objects
-            .filter(challengeID=gs.challenge)
-            .values_list('uID_id', flat=True)
-        )
-        existing_ids = set(
-            GamePerformance.objects
-            .filter(challenge=gs.challenge, game=gs.game, date=play_date)
-            .values_list('user_id', flat=True)
-        )
-        for uid in participant_ids - existing_ids:
-            GamePerformance.objects.update_or_create(
-                challenge=gs.challenge,
-                game=gs.game,
-                user_id=uid,
-                date=play_date,
-                defaults={"score": 0, "auto_generated": True},
+        # Zero-fill remaining participants only for multiplayer games
+        try:
+            is_multiplayer = bool(getattr(gs.game, 'isMultiplayer', False))
+        except Exception:
+            is_multiplayer = False
+        if is_multiplayer:
+            participant_ids = set(
+                ChallengeMembership.objects
+                .filter(challengeID=gs.challenge)
+                .values_list('uID_id', flat=True)
             )
+            existing_ids = set(
+                GamePerformance.objects
+                .filter(challenge=gs.challenge, game=gs.game, date=play_date)
+                .values_list('user_id', flat=True)
+            )
+            for uid in participant_ids - existing_ids:
+                GamePerformance.objects.update_or_create(
+                    challenge=gs.challenge,
+                    game=gs.game,
+                    user_id=uid,
+                    date=play_date,
+                    defaults={"score": 0, "auto_generated": True},
+                )
 
         # Lock further joins
         try:
