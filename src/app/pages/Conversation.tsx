@@ -297,7 +297,7 @@ const Conversation: React.FC<Props> = ({ route, navigation }) => {
               placeholderTextColor="#666"
             />
             <TouchableOpacity style={styles.sendInside} onPress={sendMessage} disabled={sending}>
-              <Ionicons name="send" size={20} color={sending ? "#888" : "#ffae00ff"} />
+              <Ionicons name="send" size={20} color={sending ? "#888" : "#6a6ca5ff"} />
             </TouchableOpacity>
           </View>
       </ImageBackground>
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
     maxWidth: "75%",
   },
   myMessage: { backgroundColor: "#fff", alignSelf: "flex-end", },
-  theirMessage: { backgroundColor: "#fff3beff", alignSelf: "flex-start" },
+  theirMessage: { backgroundColor: "#d7d8ffff", alignSelf: "flex-start" },
   messageText: { color: "#000", fontSize: 16, fontWeight: 400 },
   myMessageText: { color: "#000", fontSize: 16, fontWeight: 300  },
   inputPill: {
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
     height: 33,
     left: 4,
     borderRadius: 18,
-    backgroundColor: "#fff3beff",
+    backgroundColor: "#d7d8ffff",
     alignItems: "center",
     justifyContent: "center",
   },
