@@ -172,6 +172,14 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
   const [members, setMembers] = useState<{ id: number; name: string }[]>([]);
   const [onlineIds, setOnlineIds] = useState<number[]>([]);
 
+  // new state for Sudoku solution
+const [solution, setSolution] = useState<number[][]>([]);
+// 🧮 Local stats tracking
+const [accuracyCount, setAccuracyCount] = useState(0);
+const [inaccuracyCount, setInaccuracyCount] = useState(0);
+const [leaderboard, setLeaderboard] = useState<PlayerScore[]>([]);
+const [hasShownResult, setHasShownResult] = useState(false);
+
    // 5-minute game timer
   const [gameTimeLeft, setGameTimeLeft] = useState<number>(300); // 5 minutes in seconds
   const gameTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -363,6 +371,58 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
      }
    };
 
+  
+  // 🧾 Finalize Sudoku result for single-player mode (client-driven)
+  const finalizeSudokuResult = async ({
+    game_state_id,
+    accuracyCount,
+    inaccuracyCount,
+    is_complete,
+    score,
+  }: {
+    game_state_id: number;
+    accuracyCount: number;
+    inaccuracyCount: number;
+    is_complete: boolean;
+    score: number;  // ✅ Now explicitly required since it's computed locally
+  }) => {
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) throw new Error("Not authenticated");
+
+      // Fire and forget — no UI delay
+      const res = await fetch(endpoints.finalizeSudokuResult, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          game_state_id,
+          accuracyCount,
+          inaccuracyCount,
+          is_complete,
+          score, // ✅ include client-calculated score
+        }),
+      });
+
+      if (!res.ok) {
+        const errTxt = await res.text();
+        console.warn(`⚠️ Finalize failed (${res.status}): ${errTxt}`);
+        return;
+      }
+
+      // You can log for debugging but don’t show any alerts here
+      const data = await res.json();
+      console.log("[FinalizeSudokuResult] Synced successfully:", data);
+
+    } catch (err) {
+      console.error("❌ Failed to finalize Sudoku result", err);
+    }
+  };
+
+
+
   // INITIALIZE GAME
   const initGame = async () => {
     try {
@@ -406,7 +466,10 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
       const data = await res.json();
       console.log("Response data:", data);
 
-      const { game_id, game_state_id, puzzle, is_multiplayer, created_at, join_deadline_at } = data;
+      // const { game_id, game_state_id, puzzle, is_multiplayer, created_at, join_deadline_at } = data;
+      // 🆕 Accept solution from backend
+      const { game_id, game_state_id, puzzle, solution, is_multiplayer, created_at, join_deadline_at } = data;
+
 
       setIsMultiplayer(!!is_multiplayer);
 
@@ -424,6 +487,9 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
 
       setGrid(flatten(puzzle));
       setInitialCells(flatten(puzzle).map((n) => n !== ''));
+
+      // 🆕 Store the Sudoku solution
+      setSolution(solution);
 
       setCellColors(Array(81).fill('white'));
       // setTimeLeft(300);
@@ -460,37 +526,76 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
             return;
           }
 
-          if (data.type === 'cell_locked') {
-            setCellLocks(prev => ({ ...prev, [data.cell]: data.player }));
+          // if (data.type === 'cell_locked') {
 
-            setCellBorderColors(prev => {
-              const updated = [...prev];
-              updated[data.cell] = data.color;
-              console.log('[DEBUG cell_locked] border color for cell', data.cell, 'set to', data.color);
-              return updated;
-            });
-            return;
-          }
+          //   setCellLocks(prev => ({ ...prev, [data.cell]: data.player }));
 
-          if (data.type === 'cell_unlocked') {
-            setCellLocks(prev => {
-              const updated = { ...prev };
-              delete updated[data.cell];
-              return updated;
-            });
+          //   setCellBorderColors(prev => {
+          //     const updated = [...prev];
+          //     updated[data.cell] = data.color;
+          //     console.log('[DEBUG cell_locked] border color for cell', data.cell, 'set to', data.color);
+          //     return updated;
+          //   });
+          //   return;
+          // }
 
-            // reset border color to black if not locked by anyone else
-            setCellBorderColors(prev => {
-              const updated = [...prev];
-              updated[data.cell] = 'black';
-              console.log('[DEBUG cell_unlocked] border color reset for cell', data.cell);
-              return updated;
-            });
-            return;
-          }
+          // if (data.type === 'cell_unlocked') {
+          //   setCellLocks(prev => {
+          //     const updated = { ...prev };
+          //     delete updated[data.cell];
+          //     return updated;
+          //   });
+
+          //   // reset border color to black if not locked by anyone else
+          //   setCellBorderColors(prev => {
+          //     const updated = [...prev];
+          //     updated[data.cell] = 'black';
+          //     console.log('[DEBUG cell_unlocked] border color reset for cell', data.cell);
+          //     return updated;
+          //   });
+          //   return;
+          // }
 
 
           switch (data.type) {
+            case "cell_locked": {
+              const { cell, player, color } = data;
+              setCellLocks(prev => ({ ...prev, [cell]: player }));
+              setCellBorderColors(prev => {
+                const updated = [...prev];
+                updated[cell] = color;
+                return updated;
+              });
+              if (player === user?.username) {
+                setSelectedIndex(cell);
+              }
+              break;
+            }
+
+            case "cell_unlocked": {
+              setCellLocks(prev => {
+                const updated = { ...prev };
+                delete updated[data.cell];
+                return updated;
+              });
+              setCellBorderColors(prev => {
+                const updated = [...prev];
+                updated[data.cell] = "black";
+                return updated;
+              });
+              break;
+            }
+
+            case "lock_failed": {
+              const { cell } = data;
+              ToastAndroid.show("⚠️ Cell already locked by another player", ToastAndroid.SHORT);
+              setCellBorderColors(prev => {
+                const updated = [...prev];
+                updated[cell] = "black";
+                return updated;
+              });
+              break;
+            }
 
             case 'broadcast_move': {
               const { cell, value, color, valid } = data;
@@ -589,12 +694,14 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
           case 'game_complete': {
               const { scores } = data;
               console.log("game complete score: ", scores);
-
+              ToastAndroid.show("🧮 Calculating final scores...", ToastAndroid.SHORT);
+              
               (async () => {
                 try {
-                  await refreshSkills();
-                  await saveScores({challenge_id: challengeId, scores});
+                  //await refreshSkills();
                   // Auto-navigate to ChallDetails after 2s to allow backend to finalize
+                  
+
                   setTimeout(() => navigation.navigate("ChallDetails", { challId: challengeId, challName, whichChall }), 2000);
                   Alert.alert(
                     "🎉 Puzzle Complete!",
@@ -667,140 +774,236 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
     };
   }, []);
 
+  // 🆕 Local Sudoku validation function
+  function validateLocalMove(
+    index: number,
+    value: number,
+    grid: string[],
+    solution: number[][]
+  ) {
+    const row = Math.floor(index / 9);
+    const col = index % 9;
+
+    // 🟡 1. Ignore already-correct cell
+    const currentValue = grid[index];
+    const correctValue = solution[row]?.[col]?.toString();
+    if (currentValue === correctValue) {
+      return { type: 'ignored', is_correct: false, is_complete: false, newGrid: grid };
+    }
+
+    // 🟢 2. Check correctness
+    const is_correct = correctValue === value.toString();
+
+    // 🟣 3. Update local grid
+    const newGrid = [...grid];
+    newGrid[index] = value.toString();
+
+    // 🔵 4. Check completion
+    const is_complete = newGrid.every((cell, i) => {
+      const r = Math.floor(i / 9);
+      const c = i % 9;
+      return cell === (solution[r]?.[c]?.toString() || '');
+    });
+
+    return { is_correct, is_complete, newGrid };
+  }
 
 
+  // ✏️ Updated confirmMove() — now performs local validation
   const confirmMove = async (index: number, value: number) => {
     try {
       if (index !== null) {
+        // Step 1: Validate the move locally (no backend call)
+        const result = validateLocalMove(index, value, grid, solution);
+
+        // Step 2: Ignore move if the cell is already correct
+        if (result.type === 'ignored') {
+          ToastAndroid.show('⚠️ This cell is already correct', ToastAndroid.SHORT);
+          return;
+        }
+
+        const { is_correct, is_complete, newGrid } = result;
+
+        // Step 3: Update grid and highlight cell color instantly
+        setGrid(newGrid);
+        setCellColors(prev => {
+          const updated = [...prev];
+          updated[index] = is_correct ? (playerColor || 'white') : 'red';
+          return updated;
+        });
+
+        // Step 4: Update local accuracy stats
+        if (is_correct) setAccuracyCount(prev => prev + 1);
+        else setInaccuracyCount(prev => prev + 1);
+
+        // Step 5: Multiplayer mode — send the move through WebSocket
         if (socketRef.current) {
-          const message = { type: 'make_move', index, value };
-          socketRef.current.send(JSON.stringify(message));
-        } else {
-          // single-player API fallback
-          // Single-player — validate via API
-      const accessToken = await getAccessToken();
-      
-      if (!accessToken) {
-                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
-      }
+          socketRef.current.send(JSON.stringify({
+            type: 'make_move',
+            index,
+            value,
+            is_correct,
+            is_complete,
+          }));
+        }
 
-          const res = await fetch(endpoints.validateSudokuMove, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              "Authorization": `Bearer ${accessToken}`,
-            },
-            body: JSON.stringify({
+        // Step 6: Single-player mode — handle completion locally
+        if (is_complete && !socketRef.current) {
+          setGameCompleted(true);
+
+          // Compute the score immediately on the client
+          const total = Math.max(accuracyCount + inaccuracyCount, 1);
+          const score = Math.round((accuracyCount / total) * 100);
+
+            // Show result instantly (no need to wait for backend)
+            Alert.alert(
+              "🎉 Puzzle Complete!",
+              `✅ Correct: ${accuracyCount}\n❌ Incorrect: ${inaccuracyCount}\n⭐ Score: ${score}`,
+              [
+                {
+                  text: "OK",
+                  onPress: () => {
+                    navigation.navigate("ChallDetails", {
+                      challId: challengeId,
+                      challName,
+                      whichChall,
+                    });
+                  },
+                },
+              ]
+            );
+
+            // Send final results to backend asynchronously (non-blocking)
+            finalizeSudokuResult({
               game_state_id: gameStateId,
-              index,
-              value,
-            }),
-          });
-
-          const data = await res.json();
-
-          if (data.success) {
-            console.log("correct");
-
-            // Update the grid with the new puzzle values
-            setGrid(prevGrid => {
-              const updatedGrid = [...prevGrid];
-              updatedGrid[index] = value.toString(); // Update the cell with the correct value
-              return updatedGrid;
-            });
-
-            // Reset the color to white if the previous color was red
-            setCellColors(prevColors => {
-              const updatedColors = [...prevColors];
-              if (prevColors[index] === 'red') {
-                updatedColors[index] = 'white'; // Reset to white if it was previously red
-              }
-              return updatedColors;
-            });
-
-            if (data.completed) {
-              setGameCompleted(true);
-
-              (async () => {
-                try {
-                  if (!isMultiplayer && gameStateId) {
-                    const accessToken = await getAccessToken();
-                    if (accessToken) {
-                      await fetch(endpoints.gameTimerExpired, {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          'Authorization': `Bearer ${accessToken}`,
-                        },
-                        body: JSON.stringify({
-                          model: 'SudokuGameState',
-                          game_state_id: gameStateId,
-                        }),
-                      });
-                    }
-                  }
-                } catch (e) {
-                  console.error('[Sudoku] finalize on complete failed', e);
-                }
-
-                try {
-                  await refreshSkills();
-                } catch (e) {
-                  console.error('skill refresh failed', e);
-                }
-
-                Alert.alert("🎉 Puzzle Complete!", "", [
-                  { text: "OK", onPress: () => navigation.navigate("ChallDetails", { challId: challengeId, challName, whichChall }) },
-                ]);
-              })();
-            }
-
-          } else {
-            // If the move is incorrect, set the color to red
-            setCellColors(prevColors => {
-              const updatedColors = [...prevColors];
-              updatedColors[index] = 'red';
-              return updatedColors;
-            });
-          }
-
-
-          // if (data.success) {
-          //   console.log("correct");
-          //   const updatedGrid = data.puzzle.flat().map((n: number) => n ? n.toString() : '');
-          //   setGrid(updatedGrid);
-          //   // get rid of red if it's there
-          //   if (cellColors[index] === 'red') {
-          //     const updatedColors = [...cellColors];
-          //     updatedColors[index] = 'white';
-          //     setCellColors(updatedColors);
-          //   }
-
-          //   if (data.completed) {
-          //     setGameCompleted(true);
-          //     // if (intervalId) clearInterval(intervalId);
-          //     Alert.alert("🎉 Puzzle Complete!");
-          //     // Alert.alert("🎉 You Win!", `Time: ${formatTime(300 - timeLeft)}`);
-          //   }
-          // } else {
-          //   const updatedColors = [...cellColors];
-          //   updatedColors[index] = 'red';
-          //   setCellColors(updatedColors);
-          //   // Alert.alert('Oops!', 'Wrong answer!');
-          // }
+              accuracyCount,
+              inaccuracyCount,
+              is_complete: true,
+              score,
+            }).catch(err => console.warn('Finalize failed:', err));
         }
       }
     } catch (err) {
       console.error('Error validating move', err);
     } finally {
-      // setPendingInput('');
+      // Always deselect cell after processing
       setSelectedIndex(null);
     }
   };
+
+
+
+  // const confirmMove = async (index: number, value: number) => {
+  //   try {
+  //     if (index !== null) {
+  //       if (socketRef.current) {
+  //         const message = { type: 'make_move', index, value };
+  //         socketRef.current.send(JSON.stringify(message));
+  //       } else {
+  //         // single-player API fallback
+  //         // Single-player — validate via API
+  //     const accessToken = await getAccessToken();
+  //     if (!accessToken) {
+  //       throw new Error("Not authenticated");
+  //     }
+
+  //         const res = await fetch(endpoints.validateSudokuMove, {
+  //           method: 'POST',
+  //           headers: {
+  //             'Content-Type': 'application/json',
+  //             "Authorization": `Bearer ${accessToken}`,
+  //           },
+  //           body: JSON.stringify({
+  //             game_state_id: gameStateId,
+  //             index,
+  //             value,
+  //           }),
+  //         });
+
+  //         const data = await res.json();
+
+  //         if (data.success) {
+  //           console.log("correct");
+
+  //           // Update the grid with the new puzzle values
+  //           setGrid(prevGrid => {
+  //             const updatedGrid = [...prevGrid];
+  //             updatedGrid[index] = value.toString(); // Update the cell with the correct value
+  //             return updatedGrid;
+  //           });
+
+  //           // Reset the color to white if the previous color was red
+  //           setCellColors(prevColors => {
+  //             const updatedColors = [...prevColors];
+  //             if (prevColors[index] === 'red') {
+  //               updatedColors[index] = 'white'; // Reset to white if it was previously red
+  //             }
+  //             return updatedColors;
+  //           });
+
+  //           if (data.completed) {
+  //             setGameCompleted(true);
+
+  //             (async () => {
+  //               if (user?.username) {
+  //                 try {
+  //                   await refreshSkills();
+  //                 } catch (e) {
+  //                   console.error("submit score failed", e);
+  //                 }
+  //               }
+  //               // Auto-return after 2s to allow backend to finalize
+  //               setTimeout(() => {
+  //                 navigation.navigate("ChallDetails", { challId: challengeId, challName, whichChall });
+  //               }, 2000);
+  //               Alert.alert("🎉 Puzzle Complete!", "", [
+  //                 { text: "OK" },
+  //               ]);
+  //             })();
+  //           }
+
+  //         } else {
+  //           // If the move is incorrect, set the color to red
+  //           setCellColors(prevColors => {
+  //             const updatedColors = [...prevColors];
+  //             updatedColors[index] = 'red';
+  //             return updatedColors;
+  //           });
+  //         }
+
+
+  //         // if (data.success) {
+  //         //   console.log("correct");
+  //         //   const updatedGrid = data.puzzle.flat().map((n: number) => n ? n.toString() : '');
+  //         //   setGrid(updatedGrid);
+  //         //   // get rid of red if it's there
+  //         //   if (cellColors[index] === 'red') {
+  //         //     const updatedColors = [...cellColors];
+  //         //     updatedColors[index] = 'white';
+  //         //     setCellColors(updatedColors);
+  //         //   }
+
+  //         //   if (data.completed) {
+  //         //     setGameCompleted(true);
+  //         //     // if (intervalId) clearInterval(intervalId);
+  //         //     Alert.alert("🎉 Puzzle Complete!");
+  //         //     // Alert.alert("🎉 You Win!", `Time: ${formatTime(300 - timeLeft)}`);
+  //         //   }
+  //         // } else {
+  //         //   const updatedColors = [...cellColors];
+  //         //   updatedColors[index] = 'red';
+  //         //   setCellColors(updatedColors);
+  //         //   // Alert.alert('Oops!', 'Wrong answer!');
+  //         // }
+  //       }
+  //     }
+  //   } catch (err) {
+  //     console.error('Error validating move', err);
+  //   } finally {
+  //     // setPendingInput('');
+  //     setSelectedIndex(null);
+  //   }
+  // };
 
   // temp function for checking if the cell is already filled
   // const checkIfBoardFilled = () => {
@@ -1038,6 +1241,12 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
                       // 🧭 Step 3: If not locked → lock this cell
                       if (!lockedBy && socketRef.current) {
                         socketRef.current.send(JSON.stringify({ type: 'lock_cell', index }));
+                        // show a temporary "pending" state visually (optional)
+                        setCellBorderColors(prev => {
+                          const updated = [...prev];
+                          updated[index] = '#AAAAAA'; // gray to show "pending lock"
+                          return updated;
+                        });
                       }
 
                       // 🧭 Step 4: Update current selection

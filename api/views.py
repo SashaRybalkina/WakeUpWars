@@ -2325,8 +2325,8 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
         
         print(final_schedule)
 
-        default_to_multiplayer = {43: 10, 44: 12, 45: 30}
-        default_to_singleplayer = {43: 9, 44: 11, 45: 32}
+        default_to_multiplayer = {43: 10, 44: 12, 45: 30, 48: 47,}
+        default_to_singleplayer = {43: 9, 44: 11, 45: 32, 48: 46,}
 
         # Persist everything atomically
         try:
@@ -2450,6 +2450,8 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
                                 code = "wordle"
                             elif "pattern" in g_name:
                                 code = "pattern"
+                            elif "typing" in g_name: 
+                                code = "typingrace"
                             else:
                                 logger.warning("Unknown game name=%r id=%s; skipping", g.name, g.id)
                                 continue
@@ -2770,6 +2772,85 @@ class ValidateSudokuMoveView(APIView):
                 'result': 'incorrect',
                 'puzzle': game_state.puzzle
             }, status=200)
+        
+class FinalizeSudokuResultView(APIView):
+    """
+    Client-side Sudoku finalization endpoint.
+    Frontend submits final accuracy data after local validation.
+
+    Request:
+      - game_state_id: ID of the SudokuGameState
+      - accuracyCount: number of correct inputs
+      - inaccuracyCount: number of incorrect inputs
+      - is_complete: boolean
+      - (optional) score: precomputed accuracy percentage (0-100)
+
+    Response:
+      - scores: leaderboard for all players
+    """
+
+    def post(self, request):
+        game_state_id = request.data.get('game_state_id')
+        accuracy = request.data.get('accuracyCount', 0)
+        inaccuracy = request.data.get('inaccuracyCount', 0)
+        is_complete = request.data.get('is_complete', False)
+        score = request.data.get('score', None)
+        user = request.user
+
+        if not game_state_id:
+            return Response({'error': 'Missing game_state_id'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            gs = SudokuGameState.objects.select_related('challenge', 'game').get(id=game_state_id)
+        except SudokuGameState.DoesNotExist:
+            return Response({'error': 'Game not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        is_multiplayer = bool(getattr(gs.game, 'isMultiplayer', False))
+        play_date = timezone.localdate()
+
+        # 🧮 Compute score if not provided
+        if score is None:
+            total = max(accuracy + inaccuracy, 1)
+            score = round((accuracy / total) * 100, 2)
+
+        # Save or update SudokuGamePlayer record
+        SudokuGamePlayer.objects.update_or_create(
+            gameState=gs,
+            player=user,
+            defaults={
+                'accuracyCount': accuracy,
+                'inaccuracyCount': inaccuracy,
+            }
+        )
+
+        # Save or update GamePerformance record for leaderboard
+        GamePerformance.objects.update_or_create(
+            challenge=gs.challenge,
+            game=gs.game,
+            user=user,
+            date=play_date,
+            defaults={'score': score, 'auto_generated': False}
+        )
+
+        print(f'[Sudoku][Finalize] user={user.username} gs={game_state_id} score={score} acc={accuracy} inacc={inaccuracy}')
+
+        # 🏆 Build leaderboard
+        scores = []
+        performances = GamePerformance.objects.filter(
+            challenge=gs.challenge,
+            game=gs.game,
+            date=play_date
+        ).select_related('user')
+
+        for perf in performances:
+            scores.append({
+                'username': perf.user.username,
+                'score': perf.score,
+            })
+
+        scores = sorted(scores, key=lambda x: x['score'], reverse=True)
+
+        return Response({'scores': scores}, status=status.HTTP_200_OK)
 
 
 class CreatePersonalChallengeView(APIView):

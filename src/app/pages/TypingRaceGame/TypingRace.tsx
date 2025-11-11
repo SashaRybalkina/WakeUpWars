@@ -101,41 +101,47 @@ const formatTime = (seconds: number) => {
 // ===============================
 const TypingRace: React.FC<Props> = ({ navigation }) => {
   const route = useRoute();
-  const { challId, challName = 'Typing Race' } = (route.params as any) || {};
+  const params = (route.params as any) || {};
+  const challId = params.challId ?? params.challengeId;
+  const challName = params.challName ?? 'Typing Race';
   const { user, logout } = useUser();
+
+  console.log("[DEBUG] TypingRace route params:", params);
+  console.log("[DEBUG] challId resolved:", challId);
 
   // ===============================
   // 🧠 Helper: Save scores to backend
   // ===============================
-  const saveScores = async (payload: {
-    challenge_id: number;
-    game_name?: string;
-    date?: string;
-    scores: { username: string; score: number; accuracy?: number; inaccuracy?: number }[];
-  }) => {
-    try {
-      const accessToken = await getAccessToken();
-      if (!accessToken) throw new Error('Not authenticated');
+  // const saveScores = async (payload: {
+  //   challenge_id: number;
+  //   game_name?: string;
+  //   date?: string;
+  //   scores: { username: string; score: number; accuracy?: number; inaccuracy?: number }[];
+  // }) => {
+  //   try {
+  //     const accessToken = await getAccessToken();
+  //     if (!accessToken) throw new Error('Not authenticated');
 
-      const res = await fetch(endpoints.submitGameScores(), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(payload),
-      });
+      
+  //     const res = await fetch(endpoints.submitGameScores(), {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         Authorization: `Bearer ${accessToken}`,
+  //       },
+  //       body: JSON.stringify(payload),
+  //     });
 
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Submit failed: ${text}`);
-      }
+  //     if (!res.ok) {
+  //       const text = await res.text();
+  //       throw new Error(`Submit failed: ${text}`);
+  //     }
 
-      console.log('[DEBUG] Score saved successfully to leaderboard');
-    } catch (e) {
-      console.error('Failed to save score:', e);
-    }
-  };
+  //     console.log('[DEBUG] Score saved successfully to leaderboard');
+  //   } catch (e) {
+  //     console.error('Failed to save score:', e);
+  //   }
+  // };
 
   // ===============================
   // 🧭 Game State
@@ -195,18 +201,37 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
     return playerMapRef.current.get(username)!;
   };
 
-  useEffect(() => {
+  // only track for progress
+  const progressMap = useMemo(() => {
+    const map: Record<string, number> = {};
     playerProgress.forEach(p => {
-      const anim = ensureAnim(p.username);
-      anim.stopAnimation();
-      Animated.spring(anim, {
-        toValue: p.progress,
-        speed: 12,
-        bounciness: 0,
+      map[p.username] = p.progress;
+    });
+    return map;
+  }, [playerProgress.map(p => p.progress).join(',')]);
+
+  // useEffect(() => {
+  //   playerProgress.forEach(p => {
+  //     const anim = ensureAnim(p.username);
+  //     anim.stopAnimation();
+  //     Animated.spring(anim, {
+  //       toValue: p.progress,
+  //       speed: 12,
+  //       bounciness: 0,
+  //       useNativeDriver: false,
+  //     }).start();
+  //   });
+  // }, [playerProgress]);
+  useEffect(() => {
+    Object.entries(progressMap).forEach(([username, progress]) => {
+      const anim = ensureAnim(username);
+      Animated.timing(anim, {
+        toValue: progress,
+        duration: 100, 
         useNativeDriver: false,
       }).start();
     });
-  }, [playerProgress]);
+  }, [progressMap]);
 
   // ===============================
   // 📡 WebSocket Connection
@@ -232,12 +257,45 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
 
       };
 
-      ws.onclose = () => console.log('[Typing WS] disconnected');
+      // === 🧱 Connection closed handling ===
+      ws.onclose = (event) => {
+        console.log('[Typing WS] disconnected, code:', event.code);
+
+        if (event.code === 4001) {
+          Alert.alert(
+            "Join Deadline Passed",
+            "You cannot join this game because the join window has already closed.",
+            [{ text: "OK", onPress: () => navigation.goBack() }]
+          );
+        } else if (event.code === 4002) {
+          Alert.alert(
+            "Game Already Completed",
+            "This challenge has already been completed today.",
+            [{ text: "OK", onPress: () => navigation.goBack() }]
+          );
+        } else if (event.code !== 1000) { // 1000 = normal close
+          Alert.alert(
+            "Connection Closed",
+            "The connection was closed unexpectedly.",
+            [{ text: "OK", onPress: () => navigation.goBack() }]
+          );
+        }
+      };
       ws.onerror = (e: any) => console.error('[Typing WS] error:', e);
 
       ws.onmessage = (event) => {
         const msg: ServerToClientMessage | any = JSON.parse(event.data);
         const log = (...args: any[]) => console.log("%c[Typing WS]", "color:#00BFFF;font-weight:bold;", ...args);
+
+        // 🛑 Handle server-side error messages
+        if (msg.type === "error") {
+          // Alert.alert(
+          //   "⚠️ Unable to Join",
+          //   msg.message || "An unexpected error occurred. Please try again later.",
+          //   [{ text: "OK", onPress: () => navigation.goBack() }]
+          // );
+          return;
+        }
 
         switch (msg.type) {
           // case "lobby_state":
@@ -396,13 +454,18 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
           // );
 
           const p = msg.player;
-          //if (p.username === user?.username) return;
+          if (p.username === user?.username) return;
+          //console.log(`[CLIENT][RECV] ${p.username} progress=${p.progress.toFixed(2)}%`);
           setPlayerProgress(prev =>
-            prev.map(pp =>
-              pp.username === p.username
-                ? { ...pp, progress: p.progress, wpm: pp.isMe ? pp.wpm : 0 }
-                : pp
-            )
+            prev.map(pp => {
+              if (pp.username !== p.username) return pp;
+
+              if (p.progress < pp.progress || Math.abs(p.progress - pp.progress) < 0.3) {
+                return pp;
+              }
+
+              return { ...pp, progress: p.progress };
+            })
           );
         }
 
@@ -483,9 +546,10 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
         type: 'progress_update',
         total_typed: typed,
         total_errors: errors,
-        //client_sent_at: sendTime, // ✅ 附上時間戳給後端（可在 consumers.py 打印）
+        //client_sent_at: sendTime, // 
       })
     );
+    //console.log(`[CLIENT][SEND] ${user?.username} progress=${progress.toFixed(2)}%`);
   };
 
   /** Notify server when finished */
@@ -508,6 +572,9 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
                         routes: [{ name: "Login" }],
                       });
         }
+
+        console.log("[DEBUG] TypingRace route params:", params);
+        console.log("[DEBUG] challId resolved:", challId);
 
         // create the game
         const res = await fetch(endpoints.typingRaceCreate, {
@@ -707,19 +774,23 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Submit failed');
 
-        await saveScores({
-          challenge_id: challId,
-          game_name: challName,
-          date: new Date().toISOString().slice(0, 10),
-          scores: [
-            {
-              username: user?.username || 'You',
-              score: data.final_score ?? accuracy,
-              accuracy,
-              inaccuracy: 100 - accuracy,
-            },
-          ],
-        });
+        // ✅ leaderboard update is now handled fully in the backend finalize endpoint
+        // The backend automatically updates GamePerformance / Leaderboard based on game_state_id
+        console.log('[DEBUG] Game finalized successfully, leaderboard updated via backend.');
+
+        // await saveScores({
+        //   challenge_id: challId,
+        //   game_name: challName,
+        //   date: new Date().toISOString().slice(0, 10),
+        //   scores: [
+        //     {
+        //       username: user?.username || 'You',
+        //       score: data.final_score ?? accuracy,
+        //       accuracy,
+        //       inaccuracy: 100 - accuracy,
+        //     },
+        //   ],
+        // });
       } catch (err) {
         console.error(err);
         Alert.alert('Error', 'Failed to submit result.');
@@ -737,12 +808,8 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
 
     const now = Date.now();
     const deltaTime = now - lastUpdateTime.current;
-
-    // // ✅ every 120ms at most to limit processing
-    // if (deltaTime < 120) return;
     lastUpdateTime.current = now;
 
-    // making sure is typing or deleting
     const limited = rawText.slice(0, totalChars);
     const prev = lastInputRef.current;
 
@@ -763,14 +830,23 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
     setTypedCount(tc => tc + typedDelta);
     setErrorCount(ec => ec + errorDelta);
 
+    // only for calculating correct chars
     const correctNow = limited.split('').filter((ch, i) => ch === passage[i]).length;
     const newProgress = Math.min(100, (correctNow / totalChars) * 100);
 
     const elapsedSeconds = GAME_SECONDS - gameTime;
-    const newWpm = elapsedSeconds > 0 ? Math.round((correctNow / 5) / (elapsedSeconds / 60)) : 0;
+    const newWpm =
+      elapsedSeconds > 0 ? Math.round((correctNow / 5) / (elapsedSeconds / 60)) : 0;
 
-    if (!isMultiplayer) {
-      // single-player: update self only at frontend
+    // multiplayer mode - update self only at frontend
+    if (isMultiplayer) {
+      setPlayerProgress(prev =>
+        prev.map(p =>
+          p.isMe ? { ...p, progress: newProgress, wpm: newWpm } : p
+        )
+      );
+    } else {
+      // single player
       setPlayerProgress(prev =>
         prev.map(p =>
           p.isMe ? { ...p, progress: newProgress, wpm: newWpm } : p
@@ -778,27 +854,100 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
       );
     }
 
-
     setInput(limited);
     lastInputRef.current = limited;
 
-    // send live progress to server
+    // only send the number of correct characters to the backend, not total typed
     if (isMultiplayer) {
-      const correctNow = limited.split('').filter((ch, i) => ch === passage[i]).length;
       const totalErrors = errorCount + errorDelta;
       sendProgressUpdate(correctNow, totalErrors);
     }
 
-    // finish when done typing
+   
     if (limited.length === totalChars) {
-      if (!isMultiplayer) {
-        finishGame();
-      } else {
+      if (!isMultiplayer) finishGame();
+      else {
         setHasFinished(true);
         sendGameFinished();
       }
     }
   };
+
+
+  // const onChangeInput = (rawText: string) => {
+  //   if (gameOver || waitingActive) return;
+
+  //   const now = Date.now();
+  //   const deltaTime = now - lastUpdateTime.current;
+
+  //   // // ✅ every 120ms at most to limit processing
+  //   // if (deltaTime < 120) return;
+  //   lastUpdateTime.current = now;
+
+  //   // making sure is typing or deleting
+  //   const limited = rawText.slice(0, totalChars);
+  //   const prev = lastInputRef.current;
+
+  //   if (limited.length < prev.length) {
+  //     setInput(limited);
+  //     lastInputRef.current = limited;
+  //     return;
+  //   }
+
+  //   let typedDelta = 0;
+  //   let errorDelta = 0;
+
+  //   for (let i = prev.length; i < limited.length; i++) {
+  //     typedDelta++;
+  //     if (limited[i] !== passage[i]) errorDelta++;
+  //   }
+
+  //   setTypedCount(tc => tc + typedDelta);
+  //   setErrorCount(ec => ec + errorDelta);
+
+  //   const correctNow = limited.split('').filter((ch, i) => ch === passage[i]).length;
+  //   const newProgress = Math.min(100, (correctNow / totalChars) * 100);
+
+  //   const elapsedSeconds = GAME_SECONDS - gameTime;
+  //   const newWpm = elapsedSeconds > 0 ? Math.round((correctNow / 5) / (elapsedSeconds / 60)) : 0;
+
+  //   if (!isMultiplayer) {
+  //     // single-player: update self only at frontend
+  //     setPlayerProgress(prev =>
+  //       prev.map(p =>
+  //         p.isMe ? { ...p, progress: newProgress, wpm: newWpm } : p
+  //       )
+  //     );
+  //   } else {
+  //     setPlayerProgress(prev =>
+  //       prev.map(p =>
+  //         p.isMe ? { ...p, wpm: newWpm } : p
+  //       )
+  //     );
+  //   }
+    
+    
+
+  //   setInput(limited);
+  //   lastInputRef.current = limited;
+
+  //   // send live progress to server
+  //   if (isMultiplayer) {
+  //     const correctNow = limited.split('').filter((ch, i) => ch === passage[i]).length;
+  //     const currentTotalErrors = errorCount + errorDelta;
+  //     sendProgressUpdate(limited.length, currentTotalErrors);
+  //   }
+
+  //   // finish when done typing
+  //   if (limited.length === totalChars) {
+  //     if (!isMultiplayer) {
+  //       finishGame();
+  //     } else {
+  //       setHasFinished(true);
+  //       sendGameFinished();
+  //     }
+  //   }
+  // };
 
 
   // ===============================
@@ -971,8 +1120,8 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
                       styles.nameBox,
                       p.isMe && {
                         backgroundColor: `${p.color}30`,
-                        borderColor: p.color,
-                        borderWidth: 1.5,
+                        // borderColor: p.color,
+                        // borderWidth: 1.5,
                       },
                     ]}
                   >

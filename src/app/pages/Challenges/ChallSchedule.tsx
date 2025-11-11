@@ -287,6 +287,10 @@ const addGameToDay = async (game: { id: number; name: string }) => {
     navigation.navigate('PatternGame', { challengeId: challId});
   }
 
+  const goToTypingRace = () => {
+    navigation.navigate('TypingRace', { challengeId: challId, challName: challName });
+  };
+
 
   const handleGamePress = (game: { name: string; order: number; screen?: string }, index: number) => {
     // Prefer backend-provided screen for dynamic navigation
@@ -303,6 +307,8 @@ const addGameToDay = async (game: { id: number; name: string }) => {
       goToWordle();
     } else if (lowered.includes("pattern")) {
       goToPattern();
+    } else if (lowered.includes("typingrace")) {
+      goToTypingRace();
     } else {
       // no-op for unknown games on this screen
     }
@@ -578,7 +584,8 @@ const getInitials = (name: string): string => {
                     const lower = game.name.toLowerCase();
                     const isSudoku = lower.includes("sudoku");   
                     const isWordle = lower.includes("wordle");
-                    const isPattern = lower.includes("pattern"); 
+                    const isPattern = lower.includes("pattern");
+                    const isTypingRace = lower.includes("typing"); 
 
                     return (
                       <TouchableOpacity
@@ -612,6 +619,19 @@ const getInitials = (name: string): string => {
                               style={styles.sudokuImage}
                               resizeMode="contain"
                             />
+                          </>
+                        ) : 
+                        isTypingRace ? (
+                          <>
+                            <ImageBackground
+                              source={require("../../images/typingrace.png")}
+                              style={styles.sudokuImage}
+                              resizeMode="contain"
+                            />
+                            <View style={styles.playIndicator}>
+                              <Ionicons name="play-circle" size={24} color="#FFD700" />
+                              <Text style={styles.playText}>Play</Text>
+                            </View>
                           </>
                         ) : (
                           <>
