@@ -3887,20 +3887,9 @@ class RewardSettingView(APIView):
 
 
 class SkillLevelsView(APIView):
-    # permission_classes = [IsAuthenticated]
-
-    # def get(self, request, user_id):
-    #     qs = SkillLevel.objects.filter(user_id=user_id).select_related("category")
-    #     data = SkillLevelSerializer(qs, many=True).data
-    #     user = User.objects.get(id=user_id)
-
-    #     # return Response(data)
-    #     return Response({
-    #     "skillLevels": data,
-    #     "numCoins": user.numCoins,
-    # }, status=status.HTTP_200_OK)
     def get(self, request, user_id):
-        qs = SkillLevel.objects.filter(user=request.user).select_related("category")
+        user = get_object_or_404(User, id=user_id)
+        qs = SkillLevel.objects.filter(user_id=user_id).select_related("category")
 
         window_days = SKILL_CONFIG.WINDOW_DAYS
         half_life_days = SKILL_CONFIG.HALF_LIFE_DAYS
@@ -3916,7 +3905,7 @@ class SkillLevelsView(APIView):
         out = []
         for sl in qs:
             cat = sl.category
-            gp_qs = GamePerformance.objects.filter(user=request.user, game__category=cat)
+            gp_qs = GamePerformance.objects.filter(user=user, game__category=cat)
             if window_days is not None:
                 cutoff = timezone.now().date() - timedelta(days=window_days)
                 gp_qs = gp_qs.filter(date__gte=cutoff)
@@ -3935,7 +3924,10 @@ class SkillLevelsView(APIView):
                 "skill": round(skill, 2),
             })
 
-        return Response(out)
+        return Response({
+            "skillLevels": out,
+            "numCoins": user.numCoins,
+        }, status=status.HTTP_200_OK)
 
 
 class SkillLevelDetailView(APIView):
