@@ -20,6 +20,7 @@ venv/
 ENV/
 env311/
 .venv/
+.venv
 
 # Django migration + cache
 **/migrations/__pycache__/
