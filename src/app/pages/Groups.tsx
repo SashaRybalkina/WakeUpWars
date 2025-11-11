@@ -163,11 +163,16 @@ const Groups: React.FC<Props> = ({ navigation }) => {
           </RNScrollView>
         )}
 
-        <TouchableOpacity style={styles.floatingButton} onPress={goToCreateGroup}>
-          <Ionicons name="add" size={30} color="#FFF" />
-        </TouchableOpacity>
+        {from !== "Messages" && (
+        <>
+          <TouchableOpacity style={styles.floatingButton} onPress={goToCreateGroup}>
+            <Ionicons name="add" size={30} color="#FFF" />
+          </TouchableOpacity>
+        </>
+        )}
       </View>
 
+    {from !== "Messages" && (
       <NavBar
         goToPublicChallenges={() => navigation.navigate("PublicChallenges")}
         goToChallenges={() => navigation.navigate("Challenges")}
@@ -176,6 +181,7 @@ const Groups: React.FC<Props> = ({ navigation }) => {
         goToProfile={() => navigation.navigate("Profile")}
         active="Groups"
       />
+    )}
     </ImageBackground>
   )
 }

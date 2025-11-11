@@ -73,42 +73,6 @@ const CreateChallengeForFriend: React.FC<Props> = ({ navigation }) => {
     }
   }
 
-  // const onDateChange = (_: any, date?: Date) => {
-  //   if (date) setSelectedDate(date)
-  // }
-
-
-  // const onTimeChange = (_: any, time?: Date) => {
-  //   if (time) setTempTime(time)
-  // }
-
-  // // Android + IOS version
-  // const onTimeChange = (event: any, time?: Date) => {
-  //   if (event?.type === "dismissed") {
-  //     setShowTimePicker(false)
-  //     return
-  //   }
-  
-  //   if (time) {
-  //     if (Platform.OS === "android") {
-  //       let formattedTime = formatTime(time)
-  //       formattedTime = cleanTime(formattedTime)
-  
-  //       const updatedMapping = { ...dayTimeMapping }
-  //       selectedDays.forEach((day) => {
-  //         updatedMapping[day] = formattedTime
-  //       })
-  
-  //       setDayTimeMapping(updatedMapping)
-  //       setSelectedDays([])
-  //       setShowTimePicker(false)
-  //     } else {
-  //       // for ios
-  //       setTempTime(time)
-  //     }
-  //   }
-  // }
-
   const onTimeChange = (event: any, time?: Date) => {
 
   if (Platform.OS === "android") {
@@ -133,7 +97,6 @@ const CreateChallengeForFriend: React.FC<Props> = ({ navigation }) => {
     }
   }
 };
-
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], {

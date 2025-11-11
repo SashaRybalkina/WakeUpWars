@@ -16,7 +16,7 @@ import {
   Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
 import { NativeModules } from 'react-native';
 
@@ -29,6 +29,7 @@ import { scheduleAlarmsForUser } from '../alarmService';
 import NavBar from './Components/NavBar';
 
 type Props = {
+  changeTab?: boolean;
   navigation: NavigationProp<any>;
 };
 
@@ -52,11 +53,10 @@ type Badge = {
   };
 };
 
-const Profile: React.FC<Props> = ({ navigation }) => {
+const Profile: React.FC<Props> = ({ navigation, changeTab=false }) => {
   //--------------------------
   //const goToPatternGame = () => navigation.navigate("PatternGame")
   //-------------
-
   const goToChallenges = () => navigation.navigate('Challenges');
   const goToGroups = () => navigation.navigate('Groups');
   const goToMessages = () => navigation.navigate('Messages');
@@ -278,8 +278,8 @@ const collectBadge = async (badgeId: number) => {
           // skill_levels={null}
           numCoins={numCoins}
           badgesGiven={badges}
+          changeTab={changeTab}
         />
-
         <TouchableOpacity
           style={styles.logoutButton}
           activeOpacity={0.8}
@@ -294,120 +294,9 @@ const collectBadge = async (badgeId: number) => {
           />
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
-
-        
-        {/* <TouchableOpacity
-          style={styles.logoutButton}
-          activeOpacity={0.8}
-          onPress={() =>
-            navigation.navigate('Wordle', {
-              challengeId: 211,   // multiplayer Challenge
-              challName: 'Multiplayer Wordle Test',
-              whichChall: 'wordle',
-            })
-          }
-        >
-          <Ionicons
-            name="people"   
-            size={22}
-            color="#FFF"
-            style={styles.logoutIcon}
-          />
-          <Text style={styles.logoutText}>Multiplayer Wordle</Text>
-        </TouchableOpacity> */}
-
-        {/* <TouchableOpacity
-          style={styles.logoutButton}
-          activeOpacity={0.8}
-          onPress={() =>
-            scheduleAlarms([
-              {
-                time: new Date(Date.now() + 10000),
-                screen: 'Wordle',
-                data: {
-                  challengeId: 30,
-                  challName: 'Test Challenge',
-                  whichChall: 'wordle',
-                },
-              },
-            ])
-          }
-        >
-          <Ionicons
-            name="alarm"
-            size={22}
-            color="#FFF"
-            style={styles.logoutIcon}
-          />
-          <Text style={styles.logoutText}>Alarm</Text>
-        </TouchableOpacity> */}
-
-        
-        {/* <TouchableOpacity
-          style={styles.logoutButton}
-          activeOpacity={0.8}
-          onPress={() =>
-            navigation.navigate('TypingRace', {
-              challId: 477,  // Challenge ID for single player typing race
-              challName: 'Typing Race Test',
-            })
-          }
-        >
-          <Ionicons
-            name="car-sport"  
-            color="#FFF"
-            style={styles.logoutIcon}
-          />
-          <Text style={styles.logoutText}>Typing Race Test</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.logoutButton}
-          activeOpacity={0.8}
-          onPress={() =>
-            navigation.navigate('TypingRace', {
-              challId: 485,  // Challenge ID for single player typing race
-              challName: 'Group Typing Race Test',
-            })
-          }
-        >
-          <Ionicons
-            name="car-sport"  
-            color="#FFF"
-            style={styles.logoutIcon}
-          />
-          <Text style={styles.logoutText}>Group Typing Race Test</Text>
-        </TouchableOpacity> */}
-
-
-
         {/* Add padding at the bottom to ensure content isn't hidden behind the nav bar */}
         <View style={styles.bottomPadding} />
       </ScrollView>
-
-      {/* Navigation Bar stays fixed at the bottom
-      <View style={styles.navBar}>
-        <TouchableOpacity style={styles.navButton} onPress={goToChallenges}>
-          <Ionicons name="star-outline" size={28} color="#FFF" />
-          <Text style={styles.navText}>Challenges</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={goToGroups}>
-          <Ionicons name="people-outline" size={28} color="#FFF" />
-          <Text style={styles.navText}>Groups</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={goToMessages}>
-          <Ionicons name="mail-outline" size={28} color="#FFF" />
-          <Text style={styles.navText}>Messages</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={goToProfile}>
-          <Ionicons name="person" size={28} color="#FFD700" />
-          <Text style={styles.activeNavText}>Profile</Text>
-        </TouchableOpacity>
-      </View> */}
-
       <NavBar
         goToPublicChallenges={() => navigation.navigate("PublicChallenges")}
         goToChallenges={() => navigation.navigate("Challenges")}

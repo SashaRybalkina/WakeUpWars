@@ -511,46 +511,100 @@ const getInitials = (name: string): string => {
 
 
 
+{/* Days + Alarms Section */}
+<View style={styles.alarmSection}>
+  <Text style={styles.sectionTitle}>Challenge Days</Text>
+  <ScrollView horizontal contentContainerStyle={{ flexDirection: "row", paddingVertical: 8 }}>
+  {DAYS.map((dayLabel, idx) => {
+    const dayData = schedule.find((d) => DayOfWeekLabels[d.dayOfWeek] === dayLabel);
+    const isActive = dayData?.dayOfWeek === selectedDay;
 
+    const getInitials = (name: string) => {
+      return name
+        .trim()
+        .split(/\s+/)
+        .map((part) => part[0]?.toUpperCase())
+        .join("");
+    };
 
-          {/* Days + Alarms Section */}
-          <View style={styles.alarmSection}>
-            <Text style={styles.sectionTitle}>Challenge Days</Text>
-            <ScrollView horizontal contentContainerStyle={{ flexDirection: "row", paddingVertical: 8 }}>
-{DAYS.map((dayLabel, idx) => {
-  // find the schedule object for this label
-  const dayData = schedule.find((d) => DayOfWeekLabels[d.dayOfWeek] === dayLabel)
-  const isActive = dayData?.dayOfWeek === selectedDay
+    // Group alarms by time
+    const groupedAlarms: Record<string, string[]> = {};
+    dayData?.alarms.forEach((a) => {
+      if (!groupedAlarms[a.alarmTime]) groupedAlarms[a.alarmTime] = [];
+      groupedAlarms[a.alarmTime].push(a.userName);
+    });
 
-  return (
-    <View key={idx} style={{ alignItems: "center", marginHorizontal: 6 }}>
-      <TouchableOpacity
-        style={[styles.dayCircle, isActive && styles.activeDayCircle]}
-        onPress={() => dayData && setSelectedDay(dayData.dayOfWeek)} // set selectedDay
-      >
-        <Text style={[styles.dayText, isActive && styles.activeDayText]}>{dayLabel}</Text>
-      </TouchableOpacity>
+    return (
+      <View key={idx} style={{ alignItems: "center", marginHorizontal: 6 }}>
+        <TouchableOpacity
+          style={[styles.dayCircle, isActive && styles.activeDayCircle]}
+          onPress={() => dayData && setSelectedDay(dayData.dayOfWeek)}
+        >
+          <Text style={[styles.dayText, isActive && styles.activeDayText]}>{dayLabel}</Text>
+        </TouchableOpacity>
 
-      <View style={{ flexDirection: "row", marginTop: 4 }}>
-        {dayData?.alarms.map((alarm, i) => (
-          <View key={i} style={{
-            width: 42, height: 42, borderRadius: 20,
-            backgroundColor: "#1E90FF", justifyContent: "center",
-            alignItems: "center", marginHorizontal: 2
-          }}>
-            <Ionicons name="alarm" size={14} color="#FFD700" />
-            <Text style={{ fontSize: 10, color: "#FFF", textAlign: "center" }}>{alarm.alarmTime.replace(" ", "\n")}</Text>
-          </View>
-        ))}
+        {/* vertically stacked alarms */}
+        <View style={{ flexDirection: "column", marginTop: 8, alignItems: "center" }}>
+          {Object.entries(groupedAlarms).map(([time, users], i) => {
+            const label = users.length === members.length
+              ? "All"
+              : users.map((u) => getInitials(u)).join(", ");
+
+            return (
+              <View key={i} style={{ alignItems: "center", marginVertical: 6 }}>
+                {/* Label above circle */}
+                <View
+                  style={{
+                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                    borderRadius: 8,
+                    paddingHorizontal: 6,
+                    paddingVertical: 2,
+                    marginBottom: 3,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: "#FFF",
+                      textAlign: "center",
+                      fontWeight: "600",
+                    }}
+                  >
+                    {label}
+                  </Text>
+                </View>
+
+                {/* Alarm circle */}
+                <View
+                  style={{
+                    width: 43,
+                    height: 43,
+                    borderRadius: 25,
+                    backgroundColor: "#1E90FF",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginVertical: 2,
+                    padding: 4,
+                  }}
+                >
+                  <Ionicons name="alarm" size={14} color="#FFD700" />
+                  <Text style={{ fontSize: 10, color: "#FFF", textAlign: "center" }}>
+                    {time.replace(" ", "\n")}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
       </View>
-    </View>
-  )
-})}
+    );
+  })}
+</ScrollView>
+</View>
 
-            </ScrollView>
-          </View>
-
-          {/* Games Section */}
+{/* Games Section */}
 <View style={styles.gamesSection}>
   <View style={styles.gamesSectionHeader}>
     <Text style={styles.sectionTitle}>
@@ -867,8 +921,8 @@ const styles = StyleSheet.create({
     width: 45,
   },
   dayCircle: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
@@ -947,6 +1001,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginLeft: 4,
     flexShrink: 1,
+    textAlign: "center",
   },
   gamesSection: {
     marginBottom: 20,
