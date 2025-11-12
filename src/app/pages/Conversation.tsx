@@ -260,12 +260,12 @@ const Conversation: React.FC<Props> = ({ route, navigation }) => {
                     item.sender?.id !== user.id && (
                       <Text
                         style={{
-                          color: "#df9d23ff",
+                          color: "#56608dff",
                           fontWeight: "bold",
                           marginBottom: 2,
-                          textShadowColor: "rgba(0,0,0,0.1)",
-                          textShadowOffset: { width: 0, height: 0.5 },
-                          textShadowRadius: 2,
+                          textShadowColor: "rgba(0,0,0,0.2)",
+                          textShadowOffset: { width: 0.5, height: 0.5 },
+                          textShadowRadius: 1,
                         }}
                       >
                         {item.sender?.name || item.sender?.username || "Unknown"}
