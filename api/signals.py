@@ -140,26 +140,27 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
                     # if a personal challenge, just check the one badge
                     if ch.groupID == None and ch.isPublic == False:
                         lone_wolf_badge = Badge.objects.get(name="Lone Wolf")
-                        UserBadge.objects.get_or_create(user=winner_user, badge=lone_wolf_badge)
+                        user_badge, created = UserBadge.objects.get_or_create(user=winner_user, badge=lone_wolf_badge)
                         
-                        UserNotification.objects.create(
-                            user_id=winner_user.id,
-                            title="Lone Wolf Badge Unlocked!",
-                            body="You unlocked the Lone Wolf badge. Check your Badges page!",
-                            type="badge_unlocked",
-                            screen="Profile",
-                        )
-                                                
-                        device = FCMDevice.objects.filter(user_id=winner_user.id).first()
-                        recipient_id = winner_user.id
-                        if device:
-                            title="Lone Wolf Badge Unlocked!"
-                            body="You unlocked the Lone Wolf badge. Check your Badges page!"
-                            data={
-                                "screen": "Notifications",
-                                "type": "badge_unlocked",
-                            }
-                            send_fcm_notification(title, body, data, recipient_id)
+                        if created:
+                            UserNotification.objects.create(
+                                user_id=winner_user.id,
+                                title="Lone Wolf Badge Unlocked!",
+                                body="You unlocked the Lone Wolf badge. Check your Badges page!",
+                                type="badge_unlocked",
+                                screen="Profile",
+                            )
+                                                    
+                            device = FCMDevice.objects.filter(user_id=winner_user.id).first()
+                            recipient_id = winner_user.id
+                            if device:
+                                title="Lone Wolf Badge Unlocked!"
+                                body="You unlocked the Lone Wolf badge. Check your Badges page!"
+                                data={
+                                    "screen": "Notifications",
+                                    "type": "badge_unlocked",
+                                }
+                                send_fcm_notification(title, body, data, recipient_id)
 
                     else:
                         # for now just give reward here
@@ -171,51 +172,53 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
                         # check for first public challenge completion/win
                         if ch.isPublic:
                             public_champion_badge = Badge.objects.get(name="Public Champion")
-                            UserBadge.objects.get_or_create(user=winner_user, badge=public_champion_badge)
+                            user_badge, created = UserBadge.objects.get_or_create(user=winner_user, badge=public_champion_badge)
                             
-                            UserNotification.objects.create(
-                                user_id=winner_user.id,
-                                title="Public Champion Badge Unlocked!",
-                                body="You unlocked the Public Champion badge. Check your Badges page!",
-                                type="badge_unlocked",
-                                screen="Profile",
-                            )
-                                                
-                            device = FCMDevice.objects.filter(user_id=winner_user.id).first()
-                            recipient_id = winner_user.id
-                            if device:
-                                title="Public Champion Badge Unlocked!"
-                                body="You unlocked the Public Champion badge. Check your Badges page!"
-                                data={
-                                    "screen": "Notifications",
-                                    "type": "badge_unlocked",
-                                }
-                                send_fcm_notification(title, body, data, recipient_id)
-
-                            community_member_badge = Badge.objects.get(name="Community Member")
-                            members = ch.members.all()
-                            for member in members:
-                                print(member)
-                                UserBadge.objects.get_or_create(user=member, badge=community_member_badge)
-                                
+                            if created:
                                 UserNotification.objects.create(
-                                    user_id=member.id,
-                                    title="Community Member Badge Unlocked!",
-                                    body="You unlocked the Community Member badge. Check your Badges page!",
+                                    user_id=winner_user.id,
+                                    title="Public Champion Badge Unlocked!",
+                                    body="You unlocked the Public Champion badge. Check your Badges page!",
                                     type="badge_unlocked",
                                     screen="Profile",
                                 )
                                                     
-                                device = FCMDevice.objects.filter(user_id=member.id).first()
-                                recipient_id = member.id
+                                device = FCMDevice.objects.filter(user_id=winner_user.id).first()
+                                recipient_id = winner_user.id
                                 if device:
-                                    title="Community Member Badge Unlocked!"
-                                    body="You unlocked the Community Member badge. Check your Badges page!"
+                                    title="Public Champion Badge Unlocked!"
+                                    body="You unlocked the Public Champion badge. Check your Badges page!"
                                     data={
                                         "screen": "Notifications",
                                         "type": "badge_unlocked",
                                     }
                                     send_fcm_notification(title, body, data, recipient_id)
+
+                            community_member_badge = Badge.objects.get(name="Community Member")
+                            members = ch.members.all()
+                            for member in members:
+                                print(member)
+                                user_badge, created = UserBadge.objects.get_or_create(user=member, badge=community_member_badge)
+                                
+                                if created:
+                                    UserNotification.objects.create(
+                                        user_id=member.id,
+                                        title="Community Member Badge Unlocked!",
+                                        body="You unlocked the Community Member badge. Check your Badges page!",
+                                        type="badge_unlocked",
+                                        screen="Profile",
+                                    )
+                                                        
+                                    device = FCMDevice.objects.filter(user_id=member.id).first()
+                                    recipient_id = member.id
+                                    if device:
+                                        title="Community Member Badge Unlocked!"
+                                        body="You unlocked the Community Member badge. Check your Badges page!"
+                                        data={
+                                            "screen": "Notifications",
+                                            "type": "badge_unlocked",
+                                        }
+                                        send_fcm_notification(title, body, data, recipient_id)
 
                             bets = ChallengeBet.objects.filter(challenge=ch, isPending=False)
                             bet_participants = []
@@ -285,77 +288,80 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
                             winners = bets.filter(winner__isnull=False).values_list('winner', flat=True)
                             for user_id in winners:
                                 print(user_id)
-                                UserBadge.objects.get_or_create(user_id=user_id, badge=first_blood_badge)
+                                user_badge, created = UserBadge.objects.get_or_create(user_id=user_id, badge=first_blood_badge)
                                 
-                                UserNotification.objects.create(
-                                    user_id=user_id,
-                                    title="First Blood Badge Unlocked!",
-                                    body="You unlocked the First Blood badge. Check your Badges page!",
-                                    type="badge_unlocked",
-                                    screen="Profile",
-                                )
-                                                
-                                device = FCMDevice.objects.filter(user_id=user_id).first()
-                                recipient_id = user_id
-                                if device:
-                                    title="First Blood Badge Unlocked!"
-                                    body="You unlocked the First Blood badge. Check your Badges page!"
-                                    data={
-                                        "screen": "Notifications",
-                                        "type": "badge_unlocked",
-                                    }
-                                    send_fcm_notification(title, body, data, recipient_id)
+                                if created:
+                                    UserNotification.objects.create(
+                                        user_id=user_id,
+                                        title="First Blood Badge Unlocked!",
+                                        body="You unlocked the First Blood badge. Check your Badges page!",
+                                        type="badge_unlocked",
+                                        screen="Profile",
+                                    )
+                                                    
+                                    device = FCMDevice.objects.filter(user_id=user_id).first()
+                                    recipient_id = user_id
+                                    if device:
+                                        title="First Blood Badge Unlocked!"
+                                        body="You unlocked the First Blood badge. Check your Badges page!"
+                                        data={
+                                            "screen": "Notifications",
+                                            "type": "badge_unlocked",
+                                        }
+                                        send_fcm_notification(title, body, data, recipient_id)
 
 
                         # check for first group challenge win, and all betting badges since betting is only
                         # in group challenges
                         else:
                             squad_leader_badge = Badge.objects.get(name="Squad Leader")
-                            UserBadge.objects.get_or_create(user=winner_user, badge=squad_leader_badge)
+                            user_badge, created = UserBadge.objects.get_or_create(user=winner_user, badge=squad_leader_badge)
                             
-                            UserNotification.objects.create(
-                                user_id=winner_user.id,
-                                title="Squad Leader Badge Unlocked!",
-                                body="You unlocked the Squad Leader badge. Check your Badges page!",
-                                type="badge_unlocked",
-                                screen="Profile",
-                            )
-                                            
-                            device = FCMDevice.objects.filter(user_id=winner_user.id).first()
-                            recipient_id = winner_user.id
-                            if device:
-                                title="Squad Leader Badge Unlocked!"
-                                body="You unlocked the Squad Leader badge. Check your Badges page!"
-                                data={
-                                    "screen": "Notifications",
-                                    "type": "badge_unlocked",
-                                }
-                                send_fcm_notification(title, body, data, recipient_id)
-
-                            team_player_badge = Badge.objects.get(name="Team Player")
-                            members = ch.members.all()
-                            for member in members:
-                                print(member)
-                                UserBadge.objects.get_or_create(user=member, badge=team_player_badge)
-                                
+                            if created:
                                 UserNotification.objects.create(
-                                    user_id=member.id,
-                                    title="Team Player Badge Unlocked!",
-                                    body="You unlocked the Team Player badge. Check your Badges page!",
+                                    user_id=winner_user.id,
+                                    title="Squad Leader Badge Unlocked!",
+                                    body="You unlocked the Squad Leader badge. Check your Badges page!",
                                     type="badge_unlocked",
                                     screen="Profile",
                                 )
-                                            
-                                device = FCMDevice.objects.filter(user_id=member.id).first()
-                                recipient_id = member.id
+                                                
+                                device = FCMDevice.objects.filter(user_id=winner_user.id).first()
+                                recipient_id = winner_user.id
                                 if device:
-                                    title="Team Player Badge Unlocked!"
-                                    body="You unlocked the Team Player badge. Check your Badges page!"
+                                    title="Squad Leader Badge Unlocked!"
+                                    body="You unlocked the Squad Leader badge. Check your Badges page!"
                                     data={
                                         "screen": "Notifications",
                                         "type": "badge_unlocked",
                                     }
                                     send_fcm_notification(title, body, data, recipient_id)
+
+                            team_player_badge = Badge.objects.get(name="Team Player")
+                            members = ch.members.all()
+                            for member in members:
+                                print(member)
+                                user_badge, created = UserBadge.objects.get_or_create(user=member, badge=team_player_badge)
+                                
+                                if created:
+                                    UserNotification.objects.create(
+                                        user_id=member.id,
+                                        title="Team Player Badge Unlocked!",
+                                        body="You unlocked the Team Player badge. Check your Badges page!",
+                                        type="badge_unlocked",
+                                        screen="Profile",
+                                    )
+                                                
+                                    device = FCMDevice.objects.filter(user_id=member.id).first()
+                                    recipient_id = member.id
+                                    if device:
+                                        title="Team Player Badge Unlocked!"
+                                        body="You unlocked the Team Player badge. Check your Badges page!"
+                                        data={
+                                            "screen": "Notifications",
+                                            "type": "badge_unlocked",
+                                        }
+                                        send_fcm_notification(title, body, data, recipient_id)
 
                             # mark bet winners
                             bets = ChallengeBet.objects.filter(challenge=ch, isPending=False)
@@ -394,26 +400,27 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
                             winners = bets.filter(winner__isnull=False).values_list('winner', flat=True)
                             for user_id in winners:
                                 print(user_id)
-                                UserBadge.objects.get_or_create(user_id=user_id, badge=first_blood_badge)
+                                user_badge, created = UserBadge.objects.get_or_create(user_id=user_id, badge=first_blood_badge)
                                 
-                                UserNotification.objects.create(
-                                    user_id=user_id,
-                                    title="First Blood Badge Unlocked!",
-                                    body="You unlocked the First Blood badge. Check your Badges page!",
-                                    type="badge_unlocked",
-                                    screen="Profile",
-                                )
-                                            
-                                device = FCMDevice.objects.filter(user_id=user_id).first()
-                                recipient_id = user_id
-                                if device:
-                                    title="First Blood Badge Unlocked!"
-                                    body="You unlocked the First Blood badge. Check your Badges page!"
-                                    data={
-                                        "screen": "Notifications",
-                                        "type": "badge_unlocked",
-                                    }
-                                    send_fcm_notification(title, body, data, recipient_id)
+                                if created:
+                                    UserNotification.objects.create(
+                                        user_id=user_id,
+                                        title="First Blood Badge Unlocked!",
+                                        body="You unlocked the First Blood badge. Check your Badges page!",
+                                        type="badge_unlocked",
+                                        screen="Profile",
+                                    )
+                                                
+                                    device = FCMDevice.objects.filter(user_id=user_id).first()
+                                    recipient_id = user_id
+                                    if device:
+                                        title="First Blood Badge Unlocked!"
+                                        body="You unlocked the First Blood badge. Check your Badges page!"
+                                        data={
+                                            "screen": "Notifications",
+                                            "type": "badge_unlocked",
+                                        }
+                                        send_fcm_notification(title, body, data, recipient_id)
 
                         # --- Notify members who did not finish the final game ---
                         # Only for non-personal, non-singleplayer challenges

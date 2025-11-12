@@ -1847,7 +1847,27 @@ class RespondToBetInviteView(APIView):
         # First Wager badge
         first_wager_badge = Badge.objects.get(name="First Wager")
         # UserBadge.objects.get_or_create(user=user, badge=first_wager_badge)
-        UserBadge.objects.get_or_create(user=user, badge=first_wager_badge, defaults={'collected': False})
+        user_badge, created = UserBadge.objects.get_or_create(user=user, badge=first_wager_badge, defaults={'collected': False})
+        
+        if created:
+            UserNotification.objects.create(
+                user=user,
+                title="First Wager Badge Unlocked!",
+                body="You unlocked the First Wager badge. Check your Badges page!",
+                type="badge_unlocked",
+                screen="Profile",
+            )
+                    
+            device = FCMDevice.objects.filter(user_id=user.id).first()
+            recipient_id = user.id
+            if device:
+                title="First Wager Badge Unlocked!"
+                body="You unlocked the First Wager badge. Check your Badges page!"
+                data={
+                    "screen": "Notifications",
+                    "type": "badge_unlocked",
+                }
+                send_fcm_notification(title, body, data, recipient_id)
 
         # Only consider accepted (non-pending) bets for this user
         # total bets (count each bet once where user is initiator OR recipient)
@@ -1869,32 +1889,52 @@ class RespondToBetInviteView(APIView):
 
         if unique_partners_count >= 2:
             social_butterfly_badge = Badge.objects.get(name="Social Butterfly")
-            UserBadge.objects.get_or_create(user=user, badge=social_butterfly_badge, defaults={'collected': False})
-
+            user_badge, created = UserBadge.objects.get_or_create(user=user, badge=social_butterfly_badge, defaults={'collected': False})
+                
+            if created:
+                UserNotification.objects.create(
+                    user=user,
+                    title="Social Butterfly Badge Unlocked!",
+                    body="You unlocked the Social Butterfly badge. Check your Badges page!",
+                    type="badge_unlocked",
+                    screen="Profile",
+                )
+                    
+                device = FCMDevice.objects.filter(user_id=user.id).first()
+                recipient_id = user.id
+                if device:
+                    title="Social Butterfly Badge Unlocked!"
+                    body="You unlocked the Social Butterfly badge. Check your Badges page!"
+                    data={
+                        "screen": "Notifications",
+                        "type": "badge_unlocked",
+                    }
+                    send_fcm_notification(title, body, data, recipient_id)
+                
 
         if total_bets_count >= 2:
             riREDACTEDtaker_badge = Badge.objects.get(name="Risk Taker")
-            UserBadge.objects.get_or_create(user=user, badge=riREDACTEDtaker_badge, defaults={'collected': False})
-    
-
-        UserNotification.objects.create(
-            user=user,
-            title="New Badge!",
-            body="You unlocked a new badge. Check your Badges page!",
-            type="badge_unlocked",
-            screen="Profile",
-        )
+            user_badge, created = UserBadge.objects.get_or_create(user=user, badge=riREDACTEDtaker_badge, defaults={'collected': False})
             
-        device = FCMDevice.objects.filter(user_id=user.id).first()
-        recipient_id = user.id
-        if device:
-            title="New Badge!"
-            body="You unlocked a new badge. Check your Badges page!"
-            data={
-                "screen": "Notifications",
-                "type": "badge_unlocked",
-            }
-            send_fcm_notification(title, body, data, recipient_id)
+            if created:
+                UserNotification.objects.create(
+                    user=user,
+                    title="Risk Taker Badge Unlocked!",
+                    body="You unlocked the Risk Taker badge. Check your Badges page!",
+                    type="badge_unlocked",
+                    screen="Profile",
+                )
+                    
+                device = FCMDevice.objects.filter(user_id=user.id).first()
+                recipient_id = user.id
+                if device:
+                    title="Risk Taker Badge Unlocked!"
+                    body="You unlocked the Risk Taker badge. Check your Badges page!"
+                    data={
+                        "screen": "Notifications",
+                        "type": "badge_unlocked",
+                    }
+                    send_fcm_notification(title, body, data, recipient_id)
 
 
 
