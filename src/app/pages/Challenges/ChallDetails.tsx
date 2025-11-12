@@ -433,10 +433,6 @@ const loadPerformances = async () => {
   const goToGroups = () => navigation.navigate("Groups")
   const goToProfile = () => navigation.navigate("Profile")
 
-  const toggleFavorite = () => {
-    setIsFavorite(!isFavorite)
-  }
-
   const getRankEmoji = (rank: number): string => {
     if (rank === 1) return "👑"
     if (rank === 2) return "🥈"
@@ -506,9 +502,6 @@ const loadPerformances = async () => {
             <Ionicons name="arrow-back" size={24} color="#FFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{challName}</Text>
-          <TouchableOpacity style={styles.favoriteButton} onPress={toggleFavorite}>
-            <Ionicons name={isFavorite ? "star" : "star-outline"} size={24} color="#FFD700" />
-          </TouchableOpacity>
         </View>
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -547,7 +540,7 @@ const loadPerformances = async () => {
 
 {(whichChall === "Group" || whichChall === "Public") && winner && (
   <>
-    <Text style={[styles.progressText, { textAlign: "center", marginBottom: 10 }]}>
+    <Text style={[styles.winnerText, { textAlign: "center", marginBottom: 10 }]}>
       The winner is {winner.username}! 🏆
     </Text>
 
@@ -720,7 +713,7 @@ const loadPerformances = async () => {
 
 {(isPersonal === false) && (
     <TouchableOpacity
-      style={[styles.viewDetailsButton, { marginBottom: 20 }]}
+      style={[styles.viewDetailsButtonBet]}
       onPress={() =>
         navigation.navigate("Bets", {
           challId,
@@ -734,7 +727,7 @@ const loadPerformances = async () => {
         colors={["#FFD700", "#FFA500"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
-        style={styles.viewDetailsGradient}
+        style={styles.viewDetailsGradientBet}
       >
         <Text style={styles.viewDetailsText}>Challenge bets</Text>
       </LinearGradient>
@@ -933,6 +926,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
+  winnerText: {
+    color: "#FFD700",
+    fontSize: 20,
+    fontWeight: "700",
+    textShadowColor: "rgba(0, 0, 0, 0.2)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+    marginTop: 10,
+    marginBottom: 20,
+  },
   progressBarContainer: {
     height: 10,
     backgroundColor: "rgba(255, 255, 255, 0.3)",
@@ -1028,7 +1031,19 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginTop: 20,
   },
+  viewDetailsButtonBet: {
+    height: 45,
+    borderRadius: 22.5,
+    overflow: "hidden",
+    marginBottom: 20,
+  },
   viewDetailsGradient: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  viewDetailsGradientBet: {
     width: "100%",
     height: "100%",
     justifyContent: "center",
