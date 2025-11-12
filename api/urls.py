@@ -1,6 +1,6 @@
-from .views import (AcceptPersonalChallenge, ConversationView, DeclinePersonalChallenge, 
+from .views import (AcceptPersonalChallenge, CollectBetRefundView, CollectChallengeCoinsView, ConversationView, DeclinePersonalChallenge, 
                     ExternalHandleViewSet, FinalizeChallengeView, FinalizePublicChallengeView, 
-                    GetMatchingChallengesView, GetPendingPublicChallengesView, GetPersonalChallengeInvites, 
+                    GetMatchingChallengesView, GetPendingPublicChallengesView, GetPersonalChallengeInvites, GetPersonalChallengesView, 
                     GetPublicChallengesView, GetUserAvailabilityView, GroupConversationView, GroupInviteListView, 
                     JoinPublicChallengeView, LoginView, MarkMessagesReadView, ObligationViewSet, PaymentViewSet, RegisterView, 
                     GroupListView, HelloWorldView, SendMessageGroupView, SendMessageView, SetChallAvailabilityView, 
