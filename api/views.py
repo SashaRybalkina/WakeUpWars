@@ -3377,8 +3377,21 @@ class CreateWordleGameView(APIView):
         except Challenge.DoesNotExist:
             return Response({"error": "Challenge not found"}, status=status.HTTP_404_NOT_FOUND)
         
+        # --- Gating: deny join if today's scores already submitted or state closed ---
+        from datetime import date as _date
+        today = timezone.localdate()
+        existing_gs = (WordleGameState.objects
+                       .filter(challenge_id=challenge_id, created_at__date=today)
+                       .order_by('-id')
+                       .first())
+        if existing_gs and (existing_gs.joins_closed or
+                             GamePerformance.objects.filter(challenge_id=challenge_id,
+                                                            game=existing_gs.game,
+                                                            date=today).exists()):
+            return Response({'code': 'JOINS_CLOSED', 'detail': 'This game can no longer be joined.'},
+                            status=status.HTTP_403_FORBIDDEN)
+        # -------------------------------------------
         # Use utils to create or get a Wordle game state
-        # The helper now uses proper get_or_create with unique constraints to prevent race conditions
         game_data = get_or_create_game_wordle(challenge_id, user)
 
         return Response(game_data, status=status.HTTP_200_OK)
@@ -3595,7 +3608,16 @@ class FinalizeWordleResultView(APIView):
 
         # Use scheduled users if the game is on today's schedule; always include any joiners
         session_player_ids = (scheduled_user_ids if has_game_today else set()) | joined_user_ids
-        print(f'[Wordle][Finalize] scheduled_user_ids={scheduled_user_ids}, joined_user_ids={joined_user_ids}, session_player_ids={session_player_ids}')
+
+        # Ensure zero-fill includes ALL participants of the challenge
+        # Even if they weren't scheduled for this exact alarm, we still want
+        # to mark their score as 0 if they didn't join.
+        all_participant_ids = set(
+            ChallengeMembership.objects.filter(challengeID=gs.challenge_id).values_list('uID_id', flat=True)
+        )
+        session_player_ids |= all_participant_ids
+
+        print(f'[Wordle][Finalize] scheduled_user_ids={scheduled_user_ids}, joined_user_ids={joined_user_ids}, all_participants={all_participant_ids}, session_player_ids={session_player_ids}')
 
         submitted_ids = set(
             GamePerformance.objects.filter(

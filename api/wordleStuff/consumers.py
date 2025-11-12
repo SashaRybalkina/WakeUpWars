@@ -41,6 +41,22 @@ class WordleConsumer(AsyncWebsocketConsumer):
             return
 
         gs = await sync_to_async(WordleGameState.objects.select_related("challenge", "game").get)(id=self.game_state_id)
+        ended = await sync_to_async(
+            GamePerformance.objects.filter(
+                challenge=gs.challenge, game=gs.game, date=timezone.localdate()
+            ).exists
+        )()
+        if ended:
+            gs.joins_closed = True
+            await sync_to_async(gs.save)(update_fields=["joins_closed"])
+            await self.close(code=4002)
+            return
+
+        # Block any connection after the game has been finalized
+        if getattr(gs, "joins_closed", False):
+            print(f"[DEBUG][CONNECT] joins_closed=True → denying join for user={self.user.username} game_state={self.game_state_id}")
+            await self.close(code=4001)
+            return
 
         # Join deadline logic
         if ENABLE_JOIN_DEADLINE:

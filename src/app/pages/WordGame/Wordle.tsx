@@ -365,8 +365,27 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
         const ws = new WebSocket(wsUrl);
         
         ws.onopen = () => console.log('[WebSocket] connected');
-        ws.onclose = () => console.log('[WebSocket] 🔌 disconnected');
-        ws.onerror = (e) => console.error('[WebSocket] ❌ error:', e);
+        ws.onclose = (ev) => {
+          console.log('[WebSocket] 🔌 disconnected', ev);
+          if (hasShownResultRef.current) return;
+          // 4001 – joins closed, 4002 – game ended
+          if (ev.code === 4001 || ev.code === 4002) {
+            Alert.alert(
+              'Join closed',
+              ev.code === 4001 ? 'The join window has closed for this game.' : 'This game has already finished.',
+              [{ text: 'OK', onPress: () => navigation.goBack() }],
+            );
+          } else if (ev.code === 1006 /* handshake fail, e.g. HTTP 403 */) {
+            Alert.alert(
+              'Access denied',
+              'Unable to join – the game is no longer available.',
+              [{ text: 'OK', onPress: () => navigation.goBack() }],
+            );
+          }
+        };
+        ws.onerror = (e: any) => {
+          console.error('[WebSocket] ❌ error:', e);
+        };
 
         ws.onmessage = (event) => {
           const msg = JSON.parse(event.data) as any;
@@ -437,16 +456,28 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
           if (msg.type === 'game_complete') {
             if (hasShownResultRef.current) return; // prevent multiple alerts
             
-            const scoresArr: { username: string; score: number; accuracy?: number; inaccuracy?: number }[] = Array.isArray(msg.scores) ? msg.scores : [];
-            const myScore = scoresArr.find((s: { username: string; score: number }) => s.username === (user?.username ?? ''));
-            const topScore = scoresArr.length ? Math.max(...scoresArr.map((s: { username: string; score: number }) => s.score)) : 0;
-            const isWinner = myScore?.score === topScore;
-            console.log("[DEBUG] Winner check", {
-              user: user?.username,
-              myScore,
-              topScore,
-              isWinner
-            });
+            // `scores` can be either an array (from finalize endpoint) OR an object keyed by username (from consumer)
+            let scoresArr: { username: string; score: number; attempts?: number }[] = [];
+            if (Array.isArray(msg.scores)) {
+              scoresArr = msg.scores;
+            } else if (msg.scores && typeof msg.scores === 'object') {
+              scoresArr = Object.entries(msg.scores).map(([username, v]: any) => ({
+                username,
+                score: typeof v.score === 'number' ? v.score : 0,
+                attempts: v.attempts,
+              }));
+            }
+            let myScoreVal: number | undefined;
+            let isWinner = false;
+            if (scoresArr.length) {
+              const me = scoresArr.find((s) => s.username === (user?.username ?? ''));
+              if (me) {
+                myScoreVal = me.score;
+                const topScore = Math.max(...scoresArr.map((s) => s.score));
+                isWinner = me.score === topScore;
+              }
+            }
+            console.log("[DEBUG] Winner check", { user: user?.username, myScore: myScoreVal, isWinner });
             console.log('[WebSocket] Game complete:', scoresArr);
             setTimeout(() => navigation.navigate("ChallDetails", { challId: challengeId, challName, whichChall }), 2000);
             Alert.alert(
@@ -610,21 +641,19 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     if (isComplete) {
-      if (isMultiplayer) {
-        // multiplayer letting websocket know that this player has finished
-        if (socket && socket.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({
-            type: 'player_finished',
-            player: user?.username,
-            attempts_used: selectedRow + 1,
-          }));
-        }
-        console.log('[Wordle] Multiplayer mode - waiting for others...');
-        return; 
+      setGameOver(true);
+
+      // // Notify WebSocket in multiplayer mode that this player has finished
+      if (isMultiplayer && socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({
+          type: 'player_finished',
+          player: user?.username,
+          attempts_used: selectedRow + 1,
+        }));
+        console.log('[Wordle] Multiplayer mode - notified others of completion');
       }
       
-      setGameOver(true);
-      
+      // Prevent duplicate finalize calls
       if (finalizeSentRef.current) {
         console.log('[Wordle] finalize already sent, skipping');
         return;
@@ -666,25 +695,6 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
         if (response.ok) {
           const data = await response.json();
           console.log('[Wordle] Final results submitted:', data);
-          
-          if (isMultiplayer && gameStateId) {
-            // Wait for WebSocket 'game_complete' to navigate (preferred),
-            // but add a fallback navigate if no event within ~2s:
-            const leaderboard = data.scores
-              ?.map((p: { username: string; score: number }) => `${p.username}: ${p.score}`)
-              .join('\n') || 'No scores yet';
-
-            Alert.alert(
-              isCorrect ? '🎉 You Win!' : '❌ Game Over',
-              `Leaderboard:\n${leaderboard}`,
-              [
-                { text: 'OK', onPress: () => navigation.navigate("ChallDetails", { challId: challengeId, challName, whichChall }) },
-              ],
-            );
-            setTimeout(() => {
-              navigation.navigate('ChallDetails', { challId: challengeId, challName, whichChall });
-            }, 2000);
-          }
           // Finalize single-player game so performances update
           if (!isMultiplayer && gameStateId) {
             try {
