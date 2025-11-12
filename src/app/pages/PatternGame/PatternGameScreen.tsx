@@ -748,7 +748,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   exitText: { fontWeight: 'bold' },
-  title: { fontSize: 30, fontWeight: 'bold', color: 'white', marginBottom: 10 },
+  title: { fontSize: 24, fontWeight: 'bold', color: 'white', marginBottom: 10, marginTop: -30, textShadowColor: 'rgba(0, 0, 0, 0.2)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 2 },
   subtitle: { fontSize: 18, color: 'white', marginBottom: 10 },
   patternRow: { flexDirection: 'row', marginBottom: 20 },
   patternBox: { width: 50, height: 50, margin: 5, borderRadius: 6, opacity: 0.85 },

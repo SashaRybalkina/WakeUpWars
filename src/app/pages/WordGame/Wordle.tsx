@@ -305,7 +305,7 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
           'Content-Type': 'application/json',
           "Authorization": `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ challenge_id: challengeId, game_id: routeGameId }),
+        body: JSON.stringify({ challenge_id: challengeId }),
       });
 
       if (res.status === 403) {

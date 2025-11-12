@@ -77,6 +77,8 @@ const ChallSchedule = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [joining, setJoining] = useState(false)
   const [settingAlarms, setSettingAlarms] = useState(false)
+  const [openAlarmKey, setOpenAlarmKey] = useState<string | null>(null)
+  const [selectedAlarm, setSelectedAlarm] = useState<{ dayOfWeek: number; time: string; usersCount: number } | null>(null)
 
   const { user, logout } = useUser()
 
@@ -216,7 +218,6 @@ const addGameToDay = async (game: { id: number; name: string }) => {
 
         const payload = {
           challengeId: challId,
-          gameId: game.id,
           dayOfWeek: selectedDay,
           gameOrder: gameOrder
         };
@@ -280,15 +281,15 @@ const addGameToDay = async (game: { id: number; name: string }) => {
   };
 
   const goToWordle = () => {
-    navigation.navigate('Wordle', { challengeId: challId, challName: challName, whichChall: 'Public' });
+    navigation.navigate('Wordle', { challengeId: challId, challName: challName, whichChall: whichChall ?? 'Public' });
   };
 
   const goToPattern = () => {
-    navigation.navigate('PatternGame', { challengeId: challId});
+    navigation.navigate('PatternGame', { challengeId: challId, challName: challName, whichChall: whichChall ?? 'Public' });
   }
 
   const goToTypingRace = () => {
-    navigation.navigate('TypingRace', { challengeId: challId, challName: challName });
+    navigation.navigate('TypingRace', { challengeId: challId, challName: challName, whichChall: whichChall ?? 'Public' });
   };
 
 
@@ -307,7 +308,7 @@ const addGameToDay = async (game: { id: number; name: string }) => {
       goToWordle();
     } else if (lowered.includes("pattern")) {
       goToPattern();
-    } else if (lowered.includes("typingrace")) {
+    } else if (lowered.includes("typing")) {
       goToTypingRace();
     } else {
       // no-op for unknown games on this screen
@@ -427,7 +428,7 @@ const addGameToDay = async (game: { id: number; name: string }) => {
   //     return day.games.length > 0
   //   }
   //   return true
-  // })
+  // }
 
   const generatePastelColor = (name: string): string => {
   // Simple hash function to generate a number from a string
@@ -477,11 +478,6 @@ const getInitials = (name: string): string => {
             </View>
           )}
 
-
-
-
-
-
           {(fromSearch === true || isPending === true) && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Enrolled Members</Text>
@@ -509,130 +505,121 @@ const getInitials = (name: string): string => {
             </View>
           )}
 
+          {/* Days + Alarms Section */}
+          <View style={styles.alarmSection}>
+            <Text style={styles.sectionTitle}>Challenge Days</Text>
+            <ScrollView horizontal contentContainerStyle={{ flexDirection: "row", paddingVertical: 8 }}>
+              {DAYS.map((dayLabel, idx) => {
+                const dayData = schedule.find((d) => DayOfWeekLabels[d.dayOfWeek] === dayLabel);
+                const isActive = dayData?.dayOfWeek === selectedDay;
 
+                const getInitials = (name: string) => {
+                  return name
+                    .trim()
+                    .split(/\s+/)
+                    .map((part) => part[0]?.toUpperCase())
+                    .join("");
+                };
 
-{/* Days + Alarms Section */}
-<View style={styles.alarmSection}>
-  <Text style={styles.sectionTitle}>Challenge Days</Text>
-  <ScrollView horizontal contentContainerStyle={{ flexDirection: "row", paddingVertical: 8 }}>
-  {DAYS.map((dayLabel, idx) => {
-    const dayData = schedule.find((d) => DayOfWeekLabels[d.dayOfWeek] === dayLabel);
-    const isActive = dayData?.dayOfWeek === selectedDay;
+                // Group alarms by time
+                const groupedAlarms: Record<string, string[]> = {};
+                dayData?.alarms.forEach((a) => {
+                  if (!groupedAlarms[a.alarmTime]) groupedAlarms[a.alarmTime] = [];
+                  groupedAlarms[a.alarmTime].push(a.userName);
+                });
 
-    const getInitials = (name: string) => {
-      return name
-        .trim()
-        .split(/\s+/)
-        .map((part) => part[0]?.toUpperCase())
-        .join("");
-    };
+                return (
+                  <View key={idx} style={{ alignItems: "center", marginHorizontal: 6 }}>
+                    <TouchableOpacity
+                      style={[styles.dayCircle, isActive && styles.activeDayCircle]}
+                      onPress={() => dayData && setSelectedDay(dayData.dayOfWeek)}
+                    >
+                      <Text style={[styles.dayText, isActive && styles.activeDayText]}>{dayLabel}</Text>
+                    </TouchableOpacity>
 
-    // Group alarms by time
-    const groupedAlarms: Record<string, string[]> = {};
-    dayData?.alarms.forEach((a) => {
-      if (!groupedAlarms[a.alarmTime]) groupedAlarms[a.alarmTime] = [];
-      groupedAlarms[a.alarmTime].push(a.userName);
-    });
+                    {/* vertically stacked alarms */}
+                    <View style={{ flexDirection: "column", marginTop: 8, alignItems: "center" }}>
+                      {Object.entries(groupedAlarms).map(([time, users], i) => {
+                        const label = users.length === members.length
+                          ? "All"
+                          : users.map((u) => getInitials(u)).join(", ");
 
-    return (
-      <View key={idx} style={{ alignItems: "center", marginHorizontal: 6 }}>
-        <TouchableOpacity
-          style={[styles.dayCircle, isActive && styles.activeDayCircle]}
-          onPress={() => dayData && setSelectedDay(dayData.dayOfWeek)}
-        >
-          <Text style={[styles.dayText, isActive && styles.activeDayText]}>{dayLabel}</Text>
-        </TouchableOpacity>
+                        return (
+                          <View key={i} style={{ alignItems: "center", marginVertical: 6 }}>
+                            {/* Label above circle */}
+                            <View
+                              style={{
+                                backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                borderRadius: 8,
+                                paddingHorizontal: 6,
+                                paddingVertical: 2,
+                                marginBottom: 3,
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  fontSize: 12,
+                                  color: "#FFF",
+                                  textAlign: "center",
+                                  fontWeight: "600",
+                                }}
+                              >
+                                {label}
+                              </Text>
+                            </View>
 
-        {/* vertically stacked alarms */}
-        <View style={{ flexDirection: "column", marginTop: 8, alignItems: "center" }}>
-          {Object.entries(groupedAlarms).map(([time, users], i) => {
-            const label = users.length === members.length
-              ? "All"
-              : users.map((u) => getInitials(u)).join(", ");
+                            {/* Alarm circle */}
+                            <TouchableOpacity
+                              style={{
+                                width: 43,
+                                height: 43,
+                                borderRadius: 25,
+                                backgroundColor: openAlarmKey === `${dayData?.dayOfWeek}-${time}` ? "#1E90FF" : "rgba(255, 255, 255, 0.15)",
+                                justifyContent: "center",
+                                alignItems: "center",
+                                marginVertical: 2,
+                                padding: 4,
+                              }}
+                              onPress={() => {
+                                const key = `${dayData?.dayOfWeek}-${time}`;
+                                const dow = dayData?.dayOfWeek ?? null;
+                                setSelectedDay(dow);
+                                setOpenAlarmKey(prev => {
+                                  const next = prev === key ? null : key;
+                                  if (next && dow != null) {
+                                    setSelectedAlarm({ dayOfWeek: dow, time, usersCount: users.length });
+                                  } else {
+                                    setSelectedAlarm(null);
+                                  }
+                                  return next;
+                                });
+                              }}
+                            >
+                              <Ionicons name="alarm" size={14} color="#FFD700" />
+                              <Text style={{ fontSize: 10, color: "#FFF", textAlign: "center" }}>
+                                {time.replace(" ", "\n")}
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </View>
 
-            return (
-              <View key={i} style={{ alignItems: "center", marginVertical: 6 }}>
-                {/* Label above circle */}
-                <View
-                  style={{
-                    backgroundColor: "rgba(0, 0, 0, 0.2)",
-                    borderRadius: 8,
-                    paddingHorizontal: 6,
-                    paddingVertical: 2,
-                    marginBottom: 3,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      color: "#FFF",
-                      textAlign: "center",
-                      fontWeight: "600",
-                    }}
-                  >
-                    {label}
-                  </Text>
-                </View>
-
-                {/* Alarm circle */}
-                <View
-                  style={{
-                    width: 43,
-                    height: 43,
-                    borderRadius: 25,
-                    backgroundColor: "#1E90FF",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    marginVertical: 2,
-                    padding: 4,
-                  }}
-                >
-                  <Ionicons name="alarm" size={14} color="#FFD700" />
-                  <Text style={{ fontSize: 10, color: "#FFF", textAlign: "center" }}>
-                    {time.replace(" ", "\n")}
-                  </Text>
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      </View>
-    );
-  })}
-</ScrollView>
-</View>
-
-{/* Games Section */}
-<View style={styles.gamesSection}>
-  <View style={styles.gamesSectionHeader}>
-    <Text style={styles.sectionTitle}>
-      {selectedDay ? `Games for ${DayOfWeekLabels[selectedDay]}` : "Select a day"}
-    </Text>
-    {/* {selectedDay && (
-      <TouchableOpacity
-        style={styles.addGameButtonSmall}
-        onPress={() => navigation.navigate("Categories", {
-          catType: "Schedule",
-          groupId: null,
-          onGameSelected: addGameToDay,
-          challId,
-          challName
-        })}
-      >
-        <Ionicons name="add-circle" size={24} color="#FFD700" />
-        <Text style={styles.addGameTextSmall}>Add</Text>
-      </TouchableOpacity>
-    )} */}
-  </View>
-            {visibleGames.length > 0 ? (
-              <ScrollView
-                horizontal={true}
-                showsHorizontalScrollIndicator={true}
-                contentContainerStyle={styles.gamesScrollContainer}
-              >
-                <View style={styles.gamesGrid}>
+          {/* Games Section */}
+          <View style={styles.gamesSection}>
+            <View style={styles.gamesSectionHeader}>
+              <Text style={styles.sectionTitle}>
+                {selectedDay ? `Games for ${DayOfWeekLabels[selectedDay]}` : "Select a day"}
+              </Text>
+              {selectedAlarm && selectedAlarm.dayOfWeek === selectedDay && selectedAlarm.usersCount === 1 && visibleGames.length > 0 && (
+                <View style={styles.alarmGamesRow}>
                   {visibleGames.map((game, index) => {
                     // const name = (game[0] || "").trim();
                     const lower = game.name.toLowerCase();
@@ -682,10 +669,6 @@ const getInitials = (name: string): string => {
                               style={styles.sudokuImage}
                               resizeMode="contain"
                             />
-                            <View style={styles.playIndicator}>
-                              <Ionicons name="play-circle" size={24} color="#FFD700" />
-                              <Text style={styles.playText}>Play</Text>
-                            </View>
                           </>
                         ) : (
                           <>
@@ -697,23 +680,9 @@ const getInitials = (name: string): string => {
                     );
                   })}
                 </View>
-              </ScrollView>
-            ) : (
-
-    <View style={styles.emptyGamesContainer}>
-      {selectedDay ? (
-        <>
-          <Ionicons name="game-controller-outline" size={40} color="rgba(255,255,255,0.5)" />
-          <Text style={styles.emptyGamesText}>No games for {DayOfWeekLabels[selectedDay]}</Text>
-        </>
-      ) : (
-        <Text style={styles.emptyGamesText}>Select a day to see games</Text>
-      )}
-    </View>
-    
-  )}
-
-</View>
+              )}
+            </View>
+          </View>
 
 {fromSearch === true && (
   <TouchableOpacity
@@ -1003,13 +972,32 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     textAlign: "center",
   },
+  alarmGamesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 15,
+  },
+  alarmGameButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(50, 50, 60, 0.7)",
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    marginHorizontal: 3,
+  },
+  alarmGameText: {
+    color: "#FFF",
+    fontSize: 12,
+    fontWeight: "600",
+    marginLeft: 4,
+  },
   gamesSection: {
     marginBottom: 20,
   },
   gamesSectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: "column",
+    alignItems: "flex-start",
     marginBottom: 15,
   },
   addGameButtonSmall: {
