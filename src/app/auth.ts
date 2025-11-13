@@ -1,9 +1,6 @@
 import * as SecureStore from "expo-secure-store";
 import { BASE_URL, endpoints } from "./api"
 
-
-// const jwt_decode = require("jwt-decode");
-// import jwt from "jsonwebtoken"
 import { jwtDecode } from "jwt-decode";
 
 function isTokenExpired(token: string | null): boolean {
@@ -21,40 +18,6 @@ function isTokenExpired(token: string | null): boolean {
 }
 
 
-
-// import jwt_decode from "jwt-decode";
-
-// function isTokenExpired(token: string | null): boolean {
-//   console.log("hello")
-//   console.log("jwt_decode:", jwt_decode);
-//   console.log("token: " + token)
-//   if (!token) return true;
-
-//   try {
-//     const decoded: any = jwt_decode(token);
-//     console.log("decoded:", decoded);
-//     console.log("decoded.exp:", decoded?.exp);
-//     return decoded?.exp * 1000 < Date.now();
-//   } catch (e) {
-//     console.error("Failed to decode token", e);
-//     return true;
-//   }
-
-
-  // try {
-  //   // @ts-ignore
-  //   const decoded: { exp: number } = jwt_decode(token);
-  //   console.log(decoded.exp)
-  //   // exp is in seconds, Date.now() is in ms
-  //   return decoded.exp * 1000 < Date.now();
-  // } catch (e) {
-  //   // If decoding fails, consider token invalid
-  //   return true;
-  // }
-// }
-
-
-
 let refreshPromise: Promise<string | null> | null = null;
 
 export async function getAccessToken(): Promise<string | null> {
@@ -68,7 +31,6 @@ export async function getAccessToken(): Promise<string | null> {
 
   else if (refresh) {
     if (refreshPromise) {
-      console.log("Waiting for ongoing token refresh...");
       return await refreshPromise;
     }
 

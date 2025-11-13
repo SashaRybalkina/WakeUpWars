@@ -516,22 +516,6 @@ class SudokuConsumer(AsyncWebsocketConsumer):
         return scores
 
 
-    # ─── Lock / unlock event handlers ─────────────────────────────
-    async def cell_locked(self, event):
-        await self.send(text_data=json.dumps({
-            'type': 'cell_locked',
-            'cell': event['cell'],
-            'player': event['player'],
-            'color': event['color']
-        }))
-
-    async def cell_unlocked(self, event):
-        await self.send(text_data=json.dumps({
-            'type': 'cell_unlocked',
-            'cell': event['cell']
-        }))
-
-
 
     # Color assignment (thread-safe)
     @sync_to_async

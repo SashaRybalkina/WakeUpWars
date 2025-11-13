@@ -120,22 +120,6 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     await SecureStore.setItemAsync("access", access);
     await SecureStore.setItemAsync("refresh", refresh);
 
-    // // Step 3: fetch user profile
-    // const userRes = await fetch(endpoints.getUserInfo, {
-    //   headers: { Authorization: `Bearer ${access}` },
-    // });
-
-    // if (!userRes.ok) throw new Error("Failed to fetch user info");
-
-    // const userData = await userRes.json();
-
-    // // Step 4: set user context
-    // setUser({
-    //   id: userData.id,
-    //   name: userData.name,
-    //   email: userData.email,
-    //   username: userData.username,
-    // });
 
       const response = await fetch(endpoints.login, {
         method: "GET",
@@ -154,15 +138,6 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           username: data.username,
         });
 
-        // // Step 5: navigate
-        // console.log("why am i going to wordle")
-        // navigation.navigate("Profile");
-        // navigation.setParams({ screen: undefined, data: undefined });
-
-        // navigation.reset({
-        //   index: 0,
-        //   routes: [{ name: "Profile" }],
-        // });
         navigation.reset({
           index: 0,
           routes: [{ name: "Profile", params: {} }],
