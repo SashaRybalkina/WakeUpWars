@@ -191,7 +191,7 @@ const filteredCats = STATIC_CATEGORIES
 
   return (
 <ImageBackground
-  source={require('../../images/tertiary.png')}
+  source={require('../../images/cgpt4.png')}
   style={styles.background}
   resizeMode="cover"
 >

@@ -9,11 +9,13 @@ from django.db.models import F
 from api.sudokuStuff.utils import get_or_create_game as sudoku_init
 from api.wordleStuff.utils import get_or_create_game_wordle as wordle_init
 from api.patternMem.utils import get_or_create_pattern_game as pattern_init
+from api.typingRaceStuff.utils import get_or_create_typing_race_game as typing_init
 from .models import (
     ChallengeMembership,
     SudokuGameState,
     WordleGameState,
     PatternMemorizationGameState,
+    TypingRaceGameState,
     SudokuGamePlayer,
     Challenge,
     GamePerformance,
@@ -23,12 +25,27 @@ from .models import (
 )
 
 # ---------- helper ----------
+def _normalize_game_code(game_code: str) -> str:
+    code = (game_code or "").strip().lower().replace(" ", "").replace("-", "").replace("_", "")
+    alias = {
+        "sudoku": "sudoku",
+        "wordle": "wordle",
+        "pattern": "pattern",
+        "patternmemorization": "pattern",
+        "typing": "typing",
+        "typingrace": "typing",
+    }
+    return alias.get(code, code)
+
+
 def _game_state_model(game_code):
+    code = _normalize_game_code(game_code)
     return {
         "sudoku": SudokuGameState,
         "wordle": WordleGameState,
         "pattern": PatternMemorizationGameState,
-    }[game_code]
+        "typing": TypingRaceGameState,
+    }[code]
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -40,7 +57,8 @@ def open_join_window(challenge_id, game_id, game_code, user_id=None):
     Opens the join window for a game at alarm time.
     Helpers now use proper get_or_create with unique constraints to prevent race conditions.
     """
-    Model = _game_state_model(game_code)
+    code = _normalize_game_code(game_code)
+    Model = _game_state_model(code)
     ch = Challenge.objects.get(pk=challenge_id)
     
     # Get user (assume user_id is passed in from collaborative setup)
@@ -65,15 +83,18 @@ def open_join_window(challenge_id, game_id, game_code, user_id=None):
     alarm_datetime = timezone.now()
     
     # Call helper functions which now use proper get_or_create
-    if game_code == "sudoku":
+    if code == "sudoku":
         gs_dict = sudoku_init(ch.id, user, allow_join=False, alarm_datetime=alarm_datetime)
         gs = SudokuGameState.objects.get(pk=gs_dict["game_state_id"])
-    elif game_code == "wordle":
+    elif code == "wordle":
         gs_dict = wordle_init(ch.id, user, allow_join=False, alarm_datetime=alarm_datetime)
         gs = WordleGameState.objects.get(pk=gs_dict["game_state_id"])
-    elif game_code == "pattern":
+    elif code == "pattern":
         gs_dict = pattern_init(ch.id, user, allow_join=False, alarm_datetime=alarm_datetime)
         gs = PatternMemorizationGameState.objects.get(pk=gs_dict["game_state_id"])
+    elif code == "typing":
+        gs_dict = typing_init(ch.id, user, allow_join=False)
+        gs = TypingRaceGameState.objects.get(pk=gs_dict["game_state_id"])
     else:
         return  # unknown game type
     
@@ -124,6 +145,7 @@ def close_join_window(model_name, gs_id):
             'SudokuGameState': 'sudoku',
             'WordleGameState': 'wordle',
             'PatternMemorizationGameState': 'pattern',
+            'TypingRaceGameState': 'typing',
         }[model_name]
         group = f"{prefix}_{gs.id}"
         channel_layer = get_channel_layer()
@@ -228,6 +250,7 @@ def broadcast_leaderboard(model_name: str, gs_id: int, for_date_iso: str | None 
             'SudokuGameState': 'sudoku',
             'WordleGameState': 'wordle',
             'PatternMemorizationGameState': 'pattern',
+            'TypingRaceGameState': 'typing',
         }[model_name]
         group = f"{prefix}_{gs.id}"
         channel_layer = get_channel_layer()

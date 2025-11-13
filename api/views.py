@@ -783,6 +783,8 @@ class JoinPublicChallengeView(APIView):
                         code = "wordle"
                     elif "pattern" in g_name:
                         code = "pattern"
+                    elif "typing" in g_name:
+                        code = "typing"
                     else:
                         logger.warning("Unknown game name=%r id=%s; skipping", g.name, g.id)
                         continue
@@ -1083,6 +1085,8 @@ class SetUserHasSetAlarmsView(APIView):
                     code = "wordle"
                 elif "pattern" in g_name:
                     code = "pattern"
+                elif "typing" in g_name:
+                    code = "typing"
                 else:
                     logger.warning("Unknown game name=%r id=%s; skipping", g.name, g.id)
                     continue
@@ -2088,6 +2092,8 @@ class CreateManualGroupChallengeView(APIView):
                     code = "wordle"
                 elif "pattern" in g_name:
                     code = "pattern"
+                elif "typing" in g_name:
+                    code = "typing"
                 else:
                     logger.warning("unknown game %s, skipping", g_name)
                     continue
@@ -2564,7 +2570,7 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
                             elif "pattern" in g_name:
                                 code = "pattern"
                             elif "typing" in g_name: 
-                                code = "typingrace"
+                                code = "typing"
                             else:
                                 logger.warning("Unknown game name=%r id=%s; skipping", g.name, g.id)
                                 continue
@@ -3189,6 +3195,8 @@ class CreatePersonalChallengeView(APIView):
                         code = "wordle"
                     elif "pattern" in g_name:
                         code = "pattern"
+                    elif "typing" in g_name:
+                        code = "typing"
                     else:
                         logger.warning("[Personal] Unknown game name=%r id=%s; skipping", g.name, g.id)
                         continue
