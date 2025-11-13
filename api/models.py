@@ -226,30 +226,29 @@ class Challenge(models.Model):
     # ─────────────────────────────────────────────────────────────────────────
     def get_winner_user(self):
         """
-        Return User who has the most total points in this challenge.
-        Fallback to None if no participants.
+        Return the User who has the highest total score in this challenge.
+        If there's a tie, pick randomly from the top scorers.
+        Return None if no participants.
         """
-
         qs = (
             GamePerformance.objects
             .filter(challenge=self)
-            .values('user')
+            .values('user_id')
             .annotate(total=Sum('score'))
             .order_by('-total')
         )
+
         if not qs.exists():
             return None
 
-        # find all top scorers
         top_total = qs.first()['total']
-        top_users = [row['user'] for row in qs if row['total'] == top_total]
+        top_users = [row['user_id'] for row in qs if row['total'] == top_total]
 
         if len(top_users) == 1:
             return User.objects.get(id=top_users[0])
         else:
-            # tie — pick randomly or return all
+            # tie: randomly select one
             return User.objects.get(id=random.choice(top_users))
-
     # ─────────────────────────────────────────────────────────────────────────
     # Convenience wrapper the API view can call instead of duplicating logic.
     # Creates RewardSetting/Obligations ONLY once.
@@ -838,9 +837,13 @@ class TypingRaceGameState(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     join_deadline_at = models.DateTimeField(null=True, blank=True)
     joins_closed = models.BooleanField(default=False, null=True, blank=True)
+    alarmDateTime = models.DateTimeField(null=True, blank=True)  # alarm time for this game instance
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)  # null for multiplayer, set for singleplayer
 
     class Meta:
         db_table = 'TypingRaceGameStates'
+        unique_together = [['challenge', 'game', 'alarmDateTime', 'user']]
+        # Note: Race condition prevention is handled by get_or_create() in transactions
 
     def __str__(self):
         return f"TypingRace Game {self.id} (Challenge {self.challenge.id})"
