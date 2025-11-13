@@ -9,6 +9,7 @@
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
+    Alert,
     FlatList,
   ImageBackground,
   Modal,
@@ -127,11 +128,25 @@ const filteredCats = STATIC_CATEGORIES
   //     try {
   //       const accessToken = await getAccessToken();
   //       if (!accessToken) {
-  //                               await logout();
-  //                     navigation.reset({
-  //                       index: 0,
-  //                       routes: [{ name: "Login" }],
-  //                     });
+                  // Alert.alert(
+                  //   "Session expired",
+                  //   "Your login session has expired. Please log in again.",
+                  //   [
+                  //     {
+                  //       text: "OK",
+                  //       onPress: async () => {
+                  //         await logout();
+                  //         navigation.reset({
+                  //           index: 0,
+                  //           routes: [{ name: "Login" }],
+                  //         });
+                  //       },
+                  //     },
+                  //   ],
+                  //   { cancelable: false }
+                  // );
+
+                  // return;
   //       }
 
   //       const response = await fetch(

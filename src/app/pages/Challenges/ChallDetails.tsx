@@ -140,11 +140,25 @@ const ChallDetails: React.FC<Props> = ({ navigation }) => {
       try {
               const accessToken = await getAccessToken();
               if (!accessToken) {
-                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
               }
         const res = await axios.get(`${endpoints.challengeDetail(challId)}?t=${Date.now()}`, {
                 headers: {
@@ -191,11 +205,25 @@ const ChallDetails: React.FC<Props> = ({ navigation }) => {
 
         const accessToken = await getAccessToken();
         if (!accessToken) {
-                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
         }
 
           const res = await fetch(`${endpoints.leaderboard(challId)}?t=${Date.now()}`, {
@@ -247,11 +275,25 @@ const loadPerformances = async () => {
 
     const accessToken = await getAccessToken();
     if (!accessToken) {
-                            await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
     }
 
     const res = await fetch(`${endpoints.getPerformances(challId)}?t=${Date.now()}`, {
@@ -296,11 +338,25 @@ const loadPerformances = async () => {
           try {
             let accessToken = await getAccessToken();
             if (!accessToken) {
-                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
             }
             if (!accessToken) return;
             const res = await axios.get(`${endpoints.challengeDetail(challId)}?t=${Date.now()}`, {
@@ -342,10 +398,25 @@ const loadPerformances = async () => {
               const accessToken = await getAccessToken();
               if (!accessToken) {
                                       await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
               }
               if (accessToken) {
                 const res = await axios.get(`${endpoints.challengeDetail(challId)}?t=${Date.now()}`, {

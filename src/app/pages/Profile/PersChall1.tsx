@@ -48,11 +48,25 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
       // fetch all personal challenges
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                            await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
       }
     
           const response = await fetch(endpoints.getPersonalChallenges(Number(user?.id)), {
@@ -105,11 +119,25 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
     try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                            await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
       }
 
       // await scheduleAlarmsForUser(challId, challName, Number(user?.id));
@@ -143,11 +171,25 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
     try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                            await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
       }
 
       const res = await fetch(endpoints.declinePersonalChallenge(Number(user!.id), challId), {

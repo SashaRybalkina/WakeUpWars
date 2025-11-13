@@ -67,11 +67,25 @@ const GroupInvites: React.FC<Props> = ({ navigation }) => {
   const fetchWithAutoRefresh = async (url: string) => {
     let accessToken = await getAccessToken()
     if (!accessToken) {
-                            await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
     }
 
     let res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } })
@@ -139,11 +153,25 @@ const GroupInvites: React.FC<Props> = ({ navigation }) => {
       setProcessingId(inviteId)
       const accessToken = await getAccessToken()
       if (!accessToken) {
-                              await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
       }
 
       const response = await fetch(endpoints.respondToGroupInvite(inviteId), {

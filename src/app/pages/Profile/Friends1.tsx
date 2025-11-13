@@ -1,7 +1,7 @@
 import type React from "react"
 import { useEffect, useState } from "react"
 import * as SecureStore from "expo-secure-store"
-import { ImageBackground, StyleSheet, Text, TouchableOpacity, View, TextInput, ActivityIndicator, Image } from "react-native"
+import { ImageBackground, StyleSheet, Text, TouchableOpacity, View, TextInput, ActivityIndicator, Image, Alert } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { type NavigationProp, useRoute } from "@react-navigation/native"
 import { ScrollView } from "tamagui"
@@ -40,11 +40,25 @@ const Friends1: React.FC<Props> = ({ navigation }) => {
   const fetchWithAutoRefresh = async (url: string) => {
     let accessToken = await getAccessToken();
     if (!accessToken) {
-                                  await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
     }
     let res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
     if (res.status !== 401) return res;
@@ -76,11 +90,25 @@ const Friends1: React.FC<Props> = ({ navigation }) => {
         setLoading(true)
         const accessToken = await getAccessToken();
         if (!accessToken) {
-                            await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
         }
         const response = await fetchWithAutoRefresh(endpoints.friends(Number(user.id)))
         // Be robust to empty or non-JSON responses

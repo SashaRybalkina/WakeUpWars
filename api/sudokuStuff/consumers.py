@@ -488,6 +488,51 @@ class SudokuConsumer(AsyncWebsocketConsumer):
             await self.close(code=4004)
         except Exception:
             pass
+
+
+
+
+    @sync_to_async
+    def _get_scores(self):
+        """
+        Compute and return current player scores for this game.
+        Used when broadcasting 'game_complete' event.
+        """
+        players = SudokuGamePlayer.objects.select_related('player').filter(gameState_id=self.game_state_id)
+        scores = []
+
+        for p in players:
+            correct = int(getattr(p, 'accuracyCount', 0) or 0)
+            incorrect = int(getattr(p, 'inaccuracyCount', 0) or 0)
+            attempts = max(1, correct + incorrect)
+            score = round((correct / attempts) * 100, 2)
+
+            scores.append({
+                'username': p.player.username,
+                'accuracy': correct,
+                'inaccuracy': incorrect,
+                'score': score,
+            })
+        return scores
+
+
+    # ─── Lock / unlock event handlers ─────────────────────────────
+    async def cell_locked(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'cell_locked',
+            'cell': event['cell'],
+            'player': event['player'],
+            'color': event['color']
+        }))
+
+    async def cell_unlocked(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'cell_unlocked',
+            'cell': event['cell']
+        }))
+
+
+
     # Color assignment (thread-safe)
     @sync_to_async
     def assign_color(self):

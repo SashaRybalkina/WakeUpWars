@@ -114,11 +114,25 @@ useEffect(() => {
     try {
             const accessToken = await getAccessToken();
             if (!accessToken) {
-                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
             }
       const [scheduleRes, alarmsRes] = await Promise.all([
         axios.get(endpoints.getChallengeSchedule(challId), {
@@ -237,11 +251,25 @@ const addGameToDay = async (game: { id: number; name: string }) => {
 
               const accessToken = await getAccessToken();
               if (!accessToken) {
-                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
               }
         const res = await fetch(endpoints.addGameToSchedule(), {
             method: 'POST',
@@ -337,11 +365,25 @@ const addGameToDay = async (game: { id: number; name: string }) => {
 
         const accessToken = await getAccessToken();
         if (!accessToken) {
-          await logout();
-          navigation.reset({
-            index: 0,
-            routes: [{ name: "Login" }],
-          });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
         }
         const res = await fetch(endpoints.joinPublicChallenge(Number(user?.id)), {
           method: 'POST',
@@ -726,11 +768,25 @@ return (
 
               const accessToken = await getAccessToken();
               if (!accessToken) {
-                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
               }
         // 2. Mark in backend that user has set their alarms
         const res = await fetch(

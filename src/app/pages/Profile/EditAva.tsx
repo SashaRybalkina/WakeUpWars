@@ -27,11 +27,25 @@ const EditAva: React.FC<Props> = ({ navigation }) => {
     if (!user) return;
     const access = await getAccessToken();
     if (!access) {
-                                  await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
     }
     const res = await fetch(endpoints.baseMemojies(), {
       headers: { Authorization: `Bearer ${access}` },

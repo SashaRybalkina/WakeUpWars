@@ -95,11 +95,25 @@ const CreatePublicChall2: React.FC<Props> = ({ navigation }) => {
       try {
         const access = await getAccessToken();
                       if (!access) {
-                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
               }
         const res = await fetch(endpoints.getNumCoins(Number(user?.id)), {
           headers: {

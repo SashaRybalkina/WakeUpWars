@@ -1,7 +1,7 @@
 import type React from "react"
 import { useCallback, useEffect, useState } from "react"
 import { BASE_URL, endpoints } from "../../api"
-import { ImageBackground, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { ImageBackground, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, Alert } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { type NavigationProp, useRoute } from "@react-navigation/native"
 import { LinearGradient } from "expo-linear-gradient"
@@ -94,11 +94,25 @@ useFocusEffect(
       try {
         const accessToken = await getAccessToken();
         if (!accessToken) {
-                                await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
         }
 
         // Start all fetches concurrently

@@ -2,63 +2,243 @@ import * as SecureStore from "expo-secure-store";
 import { BASE_URL, endpoints } from "./api"
 
 
-import jwt_decode from "jwt-decode";
+// const jwt_decode = require("jwt-decode");
+// import jwt from "jsonwebtoken"
+import { jwtDecode } from "jwt-decode";
 
 function isTokenExpired(token: string | null): boolean {
   if (!token) return true;
 
   try {
-    // @ts-ignore
-    const decoded: { exp: number } = jwt_decode(token);
-    // exp is in seconds, Date.now() is in ms
-    return decoded.exp * 1000 < Date.now();
+    const decoded: any = jwtDecode(token);
+    console.log("decoded:", decoded);
+    console.log("exp: " + decoded?.exp);
+    return decoded?.exp * 1000 < Date.now();
   } catch (e) {
-    // If decoding fails, consider token invalid
+    console.error("Failed to decode token", e);
     return true;
   }
 }
 
 
 
+// import jwt_decode from "jwt-decode";
+
+// function isTokenExpired(token: string | null): boolean {
+//   console.log("hello")
+//   console.log("jwt_decode:", jwt_decode);
+//   console.log("token: " + token)
+//   if (!token) return true;
+
+//   try {
+//     const decoded: any = jwt_decode(token);
+//     console.log("decoded:", decoded);
+//     console.log("decoded.exp:", decoded?.exp);
+//     return decoded?.exp * 1000 < Date.now();
+//   } catch (e) {
+//     console.error("Failed to decode token", e);
+//     return true;
+//   }
+
+
+  // try {
+  //   // @ts-ignore
+  //   const decoded: { exp: number } = jwt_decode(token);
+  //   console.log(decoded.exp)
+  //   // exp is in seconds, Date.now() is in ms
+  //   return decoded.exp * 1000 < Date.now();
+  // } catch (e) {
+  //   // If decoding fails, consider token invalid
+  //   return true;
+  // }
+// }
+
+
+
+let refreshPromise: Promise<string | null> | null = null;
 
 export async function getAccessToken(): Promise<string | null> {
   let access = await SecureStore.getItemAsync("access");
   const refresh = await SecureStore.getItemAsync("refresh");
 
-  if (isTokenExpired(access) && refresh) {
-    try {
-      const res = await fetch(endpoints.tokenRefresh, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh }),
-      });
-
-      if (!res.ok) {
-        // await logout();
-        return null;
-      }
-
-      const contentType = res.headers.get("content-type");
-      let data;
-      if (contentType?.includes("application/json")) {
-        data = await res.json();
-      } else {
-        console.error("Expected JSON but got:", await res.text());
-        // await logout();
-        return null;
-      }
-
-      access = data.access;
-      if (access) await SecureStore.setItemAsync("access", access);
-    } catch (err) {
-      console.error("Refresh token failed", err);
-      // await logout();
-      return null;
-    }
+  if (!isTokenExpired(access)) {
+    console.log("returning access")
+    return access;
   }
 
-  return access;
+  else if (refresh) {
+    if (refreshPromise) {
+      console.log("Waiting for ongoing token refresh...");
+      return await refreshPromise;
+    }
+
+    // Otherwise, start a new refresh
+    refreshPromise = (async () => {
+      try {
+        const res = await fetch(endpoints.tokenRefresh, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refresh }),
+        });
+
+        if (!res.ok) return null;
+
+        const contentType = res.headers.get("content-type");
+        let data;
+        if (contentType?.includes("application/json")) {
+          data = await res.json();
+          console.log("Refresh response:", data);
+        } else {
+          console.error("Expected JSON but got:", await res.text());
+          return null;
+        }
+
+        const newAccess = data.access;
+
+        if (newAccess) {
+          await SecureStore.setItemAsync("access", newAccess);
+          console.log("Token refreshed:", newAccess.slice(0, 20));
+          console.log("Current stored access token prefix:", (await SecureStore.getItemAsync("access"))?.slice(0, 20));
+        }
+
+        return newAccess ?? null;
+      } catch (err) {
+        console.error("Refresh token failed", err);
+        return null;
+      } finally {
+        refreshPromise = null; // Unlock
+      }
+    })();
+
+    return await refreshPromise;
+  }
+      
+  else {
+    console.log("access expired and refresh null")
+    return null;
+  }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+// let refreshPromise: Promise<string | null> | null = null;
+
+// export async function getAccessToken(): Promise<string | null> {
+//   let access = await SecureStore.getItemAsync("access");
+//   const refresh = await SecureStore.getItemAsync("refresh");
+
+//   if (isTokenExpired(access) && refresh) {
+//     // If another call is already refreshing, wait for it
+//     if (refreshPromise) {
+//       console.log("Waiting for ongoing token refresh...");
+//       return await refreshPromise;
+//     }
+
+//     // Otherwise, start a new refresh
+//     refreshPromise = (async () => {
+//       try {
+//         const res = await fetch(endpoints.tokenRefresh, {
+//           method: "POST",
+//           headers: { "Content-Type": "application/json" },
+//           body: JSON.stringify({ refresh }),
+//         });
+
+//         if (!res.ok) return null;
+
+//         const contentType = res.headers.get("content-type");
+//         let data;
+//         if (contentType?.includes("application/json")) {
+//           data = await res.json();
+//           console.log("Refresh response:", data);
+//         } else {
+//           console.error("Expected JSON but got:", await res.text());
+//           return null;
+//         }
+
+//         const newAccess = data.access;
+
+//         if (newAccess) {
+//           await SecureStore.setItemAsync("access", newAccess);
+//           console.log("Token refreshed:", newAccess.slice(0, 20));
+//         }
+
+//         return newAccess ?? null;
+//       } catch (err) {
+//         console.error("Refresh token failed", err);
+//         return null;
+//       } finally {
+//         refreshPromise = null; // Unlock
+//       }
+//     })();
+
+//     return await refreshPromise;
+//   }
+
+//   if (isTokenExpired(access)) {
+//     if (!refresh) return null;  // force logout path
+//   }
+
+//   return access;
+// }
+
+
+
+
+
+
+
+// export async function getAccessToken(): Promise<string | null> {
+//   let access = await SecureStore.getItemAsync("access");
+//   const refresh = await SecureStore.getItemAsync("refresh");
+
+//   if (isTokenExpired(access) && refresh) {
+//     try {
+//       const res = await fetch(endpoints.tokenRefresh, {
+//         method: "POST",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify({ refresh }),
+//       });
+
+//       if (!res.ok) {
+//         return null;
+//       }
+
+//       const contentType = res.headers.get("content-type");
+//       let data;
+//       if (contentType?.includes("application/json")) {
+//         data = await res.json();
+//         console.log("Refresh response:", data);
+//       } else {
+//         console.error("Expected JSON but got:", await res.text());
+//         return null;
+//       }
+
+//       access = data.access;
+//       if (access) await SecureStore.setItemAsync("access", access);
+
+//     } catch (err) {
+//       console.error("Refresh token failed", err);
+//       return null;
+//     }
+//   }
+
+//   return access;
+// }
+
+
+
+
+
+
 
 
 

@@ -81,6 +81,34 @@ const handleLogout = async () => {
 };
 
 
+const handleHmm = async (b: boolean) => {
+  if (b) {
+    Alert.alert(
+      "Session expired",
+      "Your login session has expired. Please log in again.",
+      [
+        {
+          text: "OK",
+          onPress: async () => {
+            await logout();
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "Login" }],
+            });
+          },
+        },
+      ],
+      { cancelable: false }
+    );
+
+    return;
+  }
+  console.log("shouldn't print this")
+};
+
+
+
+
   useEffect(() => {
     if (!user?.id) return;
 
@@ -88,16 +116,27 @@ const handleLogout = async () => {
       try {
                 const access = await getAccessToken();
                 if (!access) {
-                  await logout();
-                  // 3. Reset navigation to login screen
-                  navigation.reset({
-                    index: 0,
-                    routes: [{ name: "Login" }],
-                  });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
 
-                  // await handleLogout();
-                  // throw new Error("Not authenticated");
+                  return;
                 }
+
         const res = await fetch(endpoints.notifications(Number(user.id)), {
           headers: { Authorization: `Bearer ${access}` },
         });
@@ -119,7 +158,6 @@ const handleLogout = async () => {
 
   useFocusEffect(
     React.useCallback(() => {
-      console.log("in profile")
       if (!user) return;
       let cancelled = false;
 
@@ -127,13 +165,25 @@ const handleLogout = async () => {
         try {
                 const access = await getAccessToken();
                 if (!access) {
-                  await logout();
-                  navigation.reset({
-                    index: 0,
-                    routes: [{ name: "Login" }],
-                  });
-                  // await handleLogout();
-                  // throw new Error("Not authenticated");
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
                 }
         const res = await fetch(endpoints.userData(Number(user.id)), {
           headers: {
@@ -146,7 +196,6 @@ const handleLogout = async () => {
             setNumCoins(data.numCoins);
             setCurrentMemoji(data.currentMemoji);
             setBackgroundColor(data.backgroundColor);
-            console.log(currentMemoji)
           }
         } catch (e) {
           console.error('refresh skills failed', e);
@@ -163,19 +212,30 @@ const handleLogout = async () => {
     if (!user) return;
                 const access = await getAccessToken();
                 if (!access) {
-                  await logout();
-                  navigation.reset({
-                    index: 0,
-                    routes: [{ name: "Login" }],
-                  });
-                  // await handleLogout();
-                  // throw new Error("Not authenticated");
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
                 }
     const res = await fetch(endpoints.badges(Number(user.id)), {
       headers: { Authorization: `Bearer ${access}` },
     });
     const data = await res.json();
-    console.log(JSON.stringify(data, null, 2))
     setBadges(data);
   };
 
@@ -196,46 +256,12 @@ const handleLogout = async () => {
 
     const setUserAlarms = async() => {
       try {
-        console.log("herein")
         await scheduleAlarmsForUser(212, 'PAlarm', 5, '');
       } catch (e) {
         console.warn('Failed to schedule alarms for new group challenge', e);
         Alert.alert('Error', 'Failed to schedule alarms');
       }
     }
-
-
-const collectBadge = async (badgeId: number) => {
-      const payload = {
-        user_id: user?.id,
-        badge_id: badgeId,
-      }
-  
-      try {
-        const accessToken = await getAccessToken();
-        if (!accessToken) {
-          throw new Error("Not authenticated");
-        }
-  
-        const response = await fetch(endpoints.collectBadge(), {
-          method: "POST",
-          headers: {
-            'Content-Type': 'application/json',
-            "Authorization": `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify(payload),
-        })
-  
-        if (!response.ok) throw new Error(`Server error: ${response.status}`)
-  
-        Alert.alert("Success", "Badge Collected!")
-
-        await fetchBadges();
-      } catch (err) {
-        console.error("Failed to collect badge:", err)
-        Alert.alert("Error", "Failed to collect badge.")
-      }
-}
 
 
 
@@ -294,6 +320,23 @@ const collectBadge = async (badgeId: number) => {
           />
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
+
+
+        <TouchableOpacity
+          style={styles.logoutButton}
+          activeOpacity={0.8}
+          onPress={() => handleHmm(true)}
+        >
+          <Ionicons
+            name="log-out-outline"
+            size={22}
+            color="#FFF"
+            style={styles.logoutIcon}
+          />
+          <Text style={styles.logoutText}>Hmm</Text>
+        </TouchableOpacity>
+
+
         {/* Add padding at the bottom to ensure content isn't hidden behind the nav bar */}
         <View style={styles.bottomPadding} />
       </ScrollView>

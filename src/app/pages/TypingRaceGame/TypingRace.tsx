@@ -243,11 +243,25 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
     try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                                    await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
       }
       const wsUrl = `${BASE_URL.replace(/^http/, 'ws')}/ws/typingrace/${id}/?token=${accessToken}`;
       const ws = new WebSocket(wsUrl);
@@ -566,11 +580,25 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
       try {
         const accessToken = await getAccessToken();
         if (!accessToken) {
-                                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
         }
 
         console.log("[DEBUG] TypingRace route params:", params);
@@ -694,11 +722,25 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
       
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                                    await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
       }
 
       
@@ -752,11 +794,25 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
       try {
         const accessToken = await getAccessToken();
         if (!accessToken) {
-                                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
         }
 
         const res = await fetch(endpoints.typingRaceFinalize, {

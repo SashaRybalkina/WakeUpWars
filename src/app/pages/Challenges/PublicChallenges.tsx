@@ -1,7 +1,7 @@
 import type React from "react"
 import { useCallback, useEffect, useState } from "react"
 import { endpoints } from "../../api"
-import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { Alert, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { type NavigationProp, useRoute } from "@react-navigation/native"
 import { LinearGradient } from "expo-linear-gradient"
@@ -72,11 +72,25 @@ const PublicChallenges: React.FC<Props> = ({ navigation }) => {
 
                 const accessToken = await getAccessToken();
                 if (!accessToken) {
-                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
                 }
           const response = await fetch(endpoints.getPendingPublicChallenges(Number(user.id)), {
                 headers: {

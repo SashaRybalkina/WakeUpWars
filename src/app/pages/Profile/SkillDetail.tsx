@@ -37,11 +37,25 @@ const SkillDetail: React.FC<Props> = ({ route, navigation }) => {
         setError(null);
         const access = await getAccessToken();
         if (!access) {
-                                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
         }
         const [dRes, hRes] = await Promise.all([
           fetch(endpoints.skillLevelDetail(categoryId), { headers: { Authorization: `Bearer ${access}` } }),

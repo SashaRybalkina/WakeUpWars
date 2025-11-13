@@ -174,11 +174,25 @@ const fetchAvailabilities = async () => {
   try {
           const accessToken = await getAccessToken();
           if (!accessToken) {
-                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
           }
     const res = await fetch(endpoints.getAvailabilities(pendingChallengeId, Number(user.id)), {
                 headers: {
@@ -359,11 +373,25 @@ const handleSubmit = async () => {
 
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
       }
 
     const res = await fetch(
@@ -433,11 +461,25 @@ const handleSubmit = async () => {
         try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
       }
 
       const res = await fetch(endpoints.declineChallengeInvite(Number(user?.id), pendingChallengeId), {
@@ -498,11 +540,25 @@ const handleSubmit = async () => {
       try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
       }
 
         const res = await fetch(endpoints.finalizeCollaborativeGroupChallengeSchedule(pendingChallengeId), {

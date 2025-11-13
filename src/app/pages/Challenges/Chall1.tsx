@@ -1,6 +1,6 @@
 import type React from "react"
 import { useState, useEffect, useCallback } from "react"
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, StatusBar, ImageBackground } from "react-native"
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, StatusBar, ImageBackground, Alert } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { type NavigationProp, useFocusEffect, useRoute } from "@react-navigation/native"
 import axios from "axios"
@@ -31,11 +31,25 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
         try {
           const accessToken = await getAccessToken();
           if (!accessToken) {
-                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
           }
           const response = await axios.get(
             endpoints.currentChallenges(Number(user.id), whichChall), {

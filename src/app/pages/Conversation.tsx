@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   ImageBackground,
   Image,
+  Alert,
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { BASE_URL, endpoints } from "../api"
@@ -117,11 +118,25 @@ const Conversation: React.FC<Props> = ({ route, navigation }) => {
 
         const accessToken = await getAccessToken()
         if (!accessToken) {
-                            await logout();
-                  navigation.reset({
-                    index: 0,
-                    routes: [{ name: "Login" }],
-                  });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
         }
 
         const response = await fetch(url, {

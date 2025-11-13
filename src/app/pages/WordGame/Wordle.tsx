@@ -292,11 +292,25 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
 
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                            await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
       }
 
       const res = await fetch(endpoints.createWordleGame, {
@@ -664,11 +678,25 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
       try {
         const accessToken = await getAccessToken();
         if (!accessToken) {
-          await logout();
-          navigation.reset({
-            index: 0,
-            routes: [{ name: "Login" }],
-          });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
         }
 
         const finalGuesses = [...results, feedback].map((r, idx) => ({

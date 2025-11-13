@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   ImageBackground,
   Platform,
+  Alert,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
@@ -67,11 +68,25 @@ const GroupLeaderboardDetails: React.FC<Props> = ({ navigation }) => {
       try {
         const accessToken = await getAccessToken();
         if (!accessToken) {
-                                await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
         }
         const res = await axios.get(endpoints.groupLeaderboard(groupId), {
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -99,11 +114,25 @@ const GroupLeaderboardDetails: React.FC<Props> = ({ navigation }) => {
       try {
         const accessToken = await getAccessToken();
         if (!accessToken) {
-                                await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
         }
         const url = groupLeaderboardHistory(groupId, startDate ?? undefined, endDate ?? undefined);
         const res = await axios.get(url, { headers: { Authorization: `Bearer ${accessToken}` } });

@@ -247,11 +247,25 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
     async (id: number) => {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                            await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
       }
       const url = wsUrlFor(id, accessToken);
       const ws = new WebSocket(url);
@@ -395,11 +409,25 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
 
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
       }
 
         const res = await fetch(endpoints.patternCreate, {
@@ -472,11 +500,25 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
 
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
       }
       const res = await fetch(endpoints.patternCreate, {
         method: 'POST',
@@ -539,11 +581,25 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
       setSubmitting(true);
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
       }
       const res = await fetch(endpoints.patternValidate, {
         method: 'POST',

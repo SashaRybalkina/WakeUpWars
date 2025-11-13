@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, ImageBackground } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, ImageBackground, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Svg, Circle } from 'react-native-svg';
 import type { NavigationProp } from '@react-navigation/native';
@@ -22,11 +22,25 @@ const MySkills: React.FC<Props> = ({ navigation }) => {
         setError(null);
         const access = await getAccessToken();
         if (!access) {
-                                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
         }
         const res = await fetch(endpoints.skillLevels(), {
           headers: { Authorization: `Bearer ${access}` },

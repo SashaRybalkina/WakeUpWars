@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   ImageBackground,
   ScrollView,
   StyleSheet,
@@ -50,11 +51,25 @@ const Games: React.FC<Props> = ({ navigation }) => {
       try {
               const accessToken = await getAccessToken();
               if (!accessToken) {
-                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
               }
         // fetch the games in whatever category was selected
         const response = await fetch(endpoints.games(catId, singOrMult), {

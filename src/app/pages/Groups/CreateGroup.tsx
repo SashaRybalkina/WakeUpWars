@@ -61,11 +61,25 @@ const CreateGroup: React.FC<Props> = ({ navigation }) => {
         setLoading(true)
               const accessToken = await getAccessToken();
               if (!accessToken) {
-                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
               }
         
         const response = await fetch(endpoints.friends(Number(user.id)), {
@@ -128,11 +142,25 @@ const CreateGroup: React.FC<Props> = ({ navigation }) => {
 
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
       }
       const response = await fetch(endpoints.createGroup, {
         method: "POST",

@@ -124,13 +124,28 @@ useFocusEffect(
   useCallback(() => {
     const fetchAvailability = async () => {
       try {
+        console.log("getting")
               const accessToken = await getAccessToken();
               if (!accessToken) {
-                        await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
               }
         const res = await fetch(endpoints.getUserAvailability(Number(user?.id)), {
                 headers: {
@@ -171,6 +186,7 @@ useFocusEffect(
 };
 
   const handleSubmit = async () => {
+    console.log("setting")
     // Find cells that are different from initial
     const toggledCells = selectedCells.filter(
       cell => !initialCells.some(init => init.day === cell.day && init.time === cell.time)
@@ -193,11 +209,25 @@ useFocusEffect(
         try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
       }
 
         

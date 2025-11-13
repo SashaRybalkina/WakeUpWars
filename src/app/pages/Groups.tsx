@@ -1,7 +1,7 @@
 import type React from "react"
 import { useState, useEffect, useCallback } from "react"
 import { endpoints } from "../api"
-import { ImageBackground, StyleSheet, Text, TouchableOpacity, View, ScrollView as RNScrollView } from "react-native"
+import { ImageBackground, StyleSheet, Text, TouchableOpacity, View, ScrollView as RNScrollView, Alert } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import type { NavigationProp } from "@react-navigation/native"
 import { useUser } from "../context/UserContext"
@@ -33,11 +33,25 @@ const Groups: React.FC<Props> = ({ navigation }) => {
     try {
                     const access = await getAccessToken();
                     if (!access) {
-                      await logout();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
                     }
           const invitesResponse = await fetch(endpoints.groupInvites(Number(user?.id)), {
         headers: { Authorization: `Bearer ${access}` },
