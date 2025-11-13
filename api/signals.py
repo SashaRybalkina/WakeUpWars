@@ -423,7 +423,7 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
 
                         # --- Notify members who did not finish the final game ---
                         # Only for non-personal, non-singleplayer challenges
-                        if ch.groupID is not None and not ch.isSinglePlayer:
+                        if ch.members.count() > 1:
                             try:
                                 # Get all participants
                                 all_members = list(ch.members.all())

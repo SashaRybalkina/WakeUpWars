@@ -746,7 +746,7 @@ class JoinPublicChallengeView(APIView):
                 )
                 logger.info("Game IDs: %s", list(game_ids))
                 for gid in game_ids:
-                    slot_tasks.add((t_obj, gid))
+                    slot_tasks.add((day, t_obj, gid))
 
             logger.info("Total slot_tasks=%d", len(slot_tasks))
             if not slot_tasks:
@@ -755,23 +755,33 @@ class JoinPublicChallengeView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            def build_alarm_dt(ch_start, t_obj):
-                # ch_start may be date or datetime
-                from datetime import date as _date, datetime as _dt
+            def build_alarm_dt(ch_start, ch_end, day, t_obj):
+                # day is ISO weekday (1=Mon..7=Sun). Choose next occurrence on/after start, ensure within end.
+                from datetime import date as _date, datetime as _dt, timedelta
+                mountain_tz = pytz.timezone("America/Denver")
                 if isinstance(ch_start, _dt):
                     base_date = ch_start.date()
                 else:
                     base_date = ch_start  # assume date
-                dt = _dt.combine(base_date, t_obj)
+                end_date = ch_end.date() if isinstance(ch_end, _dt) else ch_end
+                current_wd = base_date.isoweekday()
+                delta = (day - current_wd) % 7
+                alarm_date = base_date + timedelta(days=delta)
+                if end_date and alarm_date > end_date:
+                    return None
+                dt = _dt.combine(alarm_date, t_obj)
                 # Make aware if naive
                 if timezone.is_naive(dt):
-                    dt = timezone.make_aware(dt, timezone.get_current_timezone())
+                    dt = mountain_tz.localize(dt)
                 return dt
 
             queued = 0
-            for t_obj, game_id in slot_tasks:
+            for day, t_obj, game_id in slot_tasks:
                 try:
-                    alarm_dt = build_alarm_dt(challenge.startDate, t_obj)
+                    alarm_dt = build_alarm_dt(challenge.startDate, challenge.endDate, day, t_obj)
+                    if alarm_dt is None:
+                        logger.info("Skipping slot outside challenge window: day=%s time=%s", day, t_obj)
+                        continue
                     logger.info("Computed alarm_dt=%s (tz=%s) for game_id=%s",
                                 alarm_dt, alarm_dt.tzinfo, game_id)
 
@@ -811,7 +821,7 @@ class JoinPublicChallengeView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+
 
 class SendBetView(APIView):
     def post(self, request):
@@ -1033,7 +1043,7 @@ class SetUserHasSetAlarmsView(APIView):
         logger.info("Challenge(%s) pending=%s startDate=%r type=%s",
                     challenge.id, challenge.isPending, challenge.startDate, type(challenge.startDate).__name__)
 
-        # Build (time, game_id) pairs from schedule
+        # Build (day, time, game_id) tuples from schedule
         slot_tasks = set()
         for cas in ChallengeAlarmSchedule.objects.filter(challenge=challenge)\
                                                 .select_related("alarm_schedule"):
@@ -1048,7 +1058,7 @@ class SetUserHasSetAlarmsView(APIView):
             )
             logger.info("Game IDs: %s", list(game_ids))
             for gid in game_ids:
-                slot_tasks.add((t_obj, gid))
+                slot_tasks.add((day, t_obj, gid))
 
         logger.info("Total slot_tasks=%d", len(slot_tasks))
         if not slot_tasks:
@@ -1057,26 +1067,39 @@ class SetUserHasSetAlarmsView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        def build_alarm_dt(ch_start, t_obj):
-            # ch_start may be date or datetime
-            from datetime import date as _date, datetime as _dt
+        def build_alarm_dt(ch_start, ch_end, day, t_obj):
+            # day is ISO weekday (1=Mon..7=Sun). Choose next occurrence on/after start, ensure within end.
+            from datetime import date as _date, datetime as _dt, timedelta
+            mountain_tz = pytz.timezone("America/Denver")
+
+            # normalize start/end to dates
             if isinstance(ch_start, _dt):
                 base_date = ch_start.date()
             else:
                 base_date = ch_start  # assume date
-            dt = _dt.combine(base_date, t_obj)
-            # Make aware if naive
+
+            end_date = ch_end.date() if isinstance(ch_end, _dt) else ch_end
+
+            # compute forward delta to requested weekday
+            current_wd = base_date.isoweekday()
+            delta = (day - current_wd) % 7
+            alarm_date = base_date + timedelta(days=delta)
+
+            if end_date and alarm_date > end_date:
+                return None
+
+            dt = _dt.combine(alarm_date, t_obj)
             if timezone.is_naive(dt):
-                dt = timezone.make_aware(dt, timezone.get_current_timezone())
+                dt = mountain_tz.localize(dt)
             return dt
 
         queued = 0
-        for t_obj, game_id in slot_tasks:
+        for day, t_obj, game_id in slot_tasks:
             try:
-                alarm_dt = build_alarm_dt(challenge.startDate, t_obj)
-                logger.info("Computed alarm_dt=%s (tz=%s) for game_id=%s",
-                            alarm_dt, alarm_dt.tzinfo, game_id)
-
+                alarm_dt = build_alarm_dt(challenge.startDate, challenge.endDate, day, t_obj)
+                if alarm_dt is None:
+                    logger.info("Skip outside challenge window: day=%s time=%s", day, t_obj)
+                    continue
                 g = Game.objects.get(id=game_id)
                 g_name = (g.name or "").lower()
                 if "sudoku" in g_name:
@@ -2466,7 +2489,6 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
                         gsga.game = newGame
                         gsga.save(update_fields=["game"])
 
-
                 created_schedules = []
                 for day, user_time_pairs in final_schedule.items():
                     for user, minutes in user_time_pairs:
@@ -2543,23 +2565,33 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
                             .values_list("game_id", flat=True)
                         )
                         for gid in game_ids:
-                            slot_tasks.add((t_obj, gid))
+                            slot_tasks.add((day, t_obj, gid))
 
-                    def build_alarm_dt(ch_start, t_obj):
+                    def build_alarm_dt(ch_start, ch_end, day, t_obj):
                         from datetime import date as _date, datetime as _dt
+                        mountain_tz = pytz.timezone("America/Denver")
                         if isinstance(ch_start, _dt):
                             base_date = ch_start.date()
                         else:
                             base_date = ch_start
-                        dt = _dt.combine(base_date, t_obj)
+                        end_date = ch_end.date() if isinstance(ch_end, _dt) else ch_end
+                        current_wd = base_date.isoweekday()
+                        delta = (day - current_wd) % 7
+                        alarm_date = base_date + timedelta(days=delta)
+                        if end_date and alarm_date > end_date:
+                            return None
+                        dt = _dt.combine(alarm_date, t_obj)
                         if timezone.is_naive(dt):
-                            dt = timezone.make_aware(dt, timezone.get_current_timezone())
+                            dt = mountain_tz.localize(dt)
                         return dt
 
                     queued = 0
-                    for t_obj, game_id in slot_tasks:
+                    for day, t_obj, game_id in slot_tasks:
                         try:
-                            alarm_dt = build_alarm_dt(challenge.startDate, t_obj)
+                            alarm_dt = build_alarm_dt(challenge.startDate, challenge.endDate, day, t_obj)
+                            if alarm_dt is None:
+                                logger.info("[FinalizeCollab] Skip outside window: day=%s time=%s", day, t_obj)
+                                continue
 
                             g = Game.objects.get(id=game_id)
                             g_name = (g.name or "").lower()
@@ -3161,10 +3193,11 @@ class CreatePersonalChallengeView(APIView):
                     .values_list("game_id", flat=True)
                 )
                 for gid in game_ids:
-                    slot_tasks.add((t_obj, gid))
+                    slot_tasks.add((day, t_obj, gid))
 
-            def build_alarm_dt(ch_start, t_obj):
-                from datetime import datetime as _dt, date as _date
+            def build_alarm_dt(ch_start, ch_end, day, t_obj):
+                from datetime import datetime as _dt, date as _date, timedelta
+                mountain_tz = pytz.timezone("America/Denver")
                 # ch_start may be str/date/datetime
                 if isinstance(ch_start, str):
                     try:
@@ -3177,16 +3210,24 @@ class CreatePersonalChallengeView(APIView):
                     base_date = ch_start
                 else:
                     base_date = timezone.localdate()
-
-                dt = _dt.combine(base_date, t_obj)
+                end_date = ch_end.date() if isinstance(ch_end, _dt) else ch_end
+                current_wd = base_date.isoweekday()
+                delta = (day - current_wd) % 7
+                alarm_date = base_date + timedelta(days=delta)
+                if end_date and alarm_date > end_date:
+                    return None
+                dt = _dt.combine(alarm_date, t_obj)
                 if timezone.is_naive(dt):
-                    dt = timezone.make_aware(dt, timezone.get_current_timezone())
+                    dt = mountain_tz.localize(dt)
                 return dt
 
             queued = 0
-            for t_obj, game_id in slot_tasks:
+            for day, t_obj, game_id in slot_tasks:
                 try:
-                    alarm_dt = build_alarm_dt(challenge.startDate, t_obj)
+                    alarm_dt = build_alarm_dt(challenge.startDate, challenge.endDate, day, t_obj)
+                    if alarm_dt is None:
+                        logger.info("[Personal] Skip outside window: day=%s time=%s", day, t_obj)
+                        continue
                     g = Game.objects.get(id=game_id)
                     g_name = (g.name or "").lower()
                     if "sudoku" in g_name:

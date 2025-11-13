@@ -141,13 +141,13 @@ const Messages: React.FC<Props> = ({ navigation }) => {
       if (finalStatus !== 'granted') return
       const tokenData = await Notifications.getExpoPushTokenAsync()
       const pushToken = tokenData.data
-      if (user?.id && pushToken) {
-        await fetch(`${BASE_URL}/api/save-push-token/`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: user.id, push_token: pushToken }),
-        })
-      }
+      // if (user?.id && pushToken) {
+      //   await fetch(`${BASE_URL}/api/save-push-token/`, {
+      //     method: 'POST',
+      //     headers: { 'Content-Type': 'application/json' },
+      //     body: JSON.stringify({ user_id: user.id, push_token: pushToken }),
+      //   })
+      // }
     }
     registerForPushNotifications()
   }, [user])
