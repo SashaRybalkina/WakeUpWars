@@ -3609,83 +3609,71 @@ class FinalizeWordleResultView(APIView):
         print(f'[Wordle][Finalize] user={user.username} gs={game_state_id} complete={is_complete} correct={is_correct} score={score}')
 
         # Determine participants for THIS scheduled game instance
-        # - primary: users scheduled at gs.alarmDateTime for this challenge and game
-        # - union: any users who actually joined
         local_dt = timezone.localtime(gs.alarmDateTime) if gs.alarmDateTime else timezone.localtime()
         target_day = local_dt.isoweekday()
         target_time = local_dt.time().replace(second=0, microsecond=0)
 
-        # Ensure this game is scheduled for that weekday
-        has_game_today = GameScheduleGameAssociation.objects.filter(
-            game_schedule__challenge=gs.challenge,
-            game_schedule__dayOfWeek=target_day,
-            game=gs.game,
-        ).exists()
-
-        # Primary: exact match for this minute
-        scheduled_qs = ChallengeAlarmSchedule.objects.filter(
-            challenge=gs.challenge,
-            alarm_schedule__dayOfWeek=target_day,
-        ).select_related('alarm_schedule')
-        scheduled_user_ids = set(
-            scheduled_qs.filter(
-                alarm_schedule__alarmTime=target_time,
-            ).values_list('alarm_schedule__uID_id', flat=True).distinct()
-        )
-        # Fallback: nearest scheduled alarm time within 15 minutes on this day
-        if not scheduled_user_ids:
-            times = list(scheduled_qs.values_list('alarm_schedule__alarmTime', flat=True).distinct())
-            if times:
-                today_date = timezone.localdate()
-                target_dt = datetime.combine(today_date, target_time)
-                def _abs_secs(t):
-                    return abs((datetime.combine(today_date, t) - target_dt).total_seconds())
-                times_sorted = sorted(times, key=_abs_secs)
-                nearest_time = times_sorted[0]
-                nearest_diff = _abs_secs(nearest_time)
-                if nearest_diff <= 15 * 60:  # within 15 minutes
-                    scheduled_user_ids = set(
-                        scheduled_qs.filter(alarm_schedule__alarmTime=nearest_time)
-                        .values_list('alarm_schedule__uID_id', flat=True)
-                        .distinct()
-                    )
-                    print(f"[Wordle][Finalize] fallback matched nearest_time={nearest_time} (diff={nearest_diff}s)")
-
-        # Users who actually joined this session
-        joined_user_ids = set(
-            WordleGamePlayer.objects.filter(gameState=gs).values_list('player_id', flat=True)
-        )
-
-        # Use scheduled users if the game is on today's schedule; always include any joiners
-        session_player_ids = (scheduled_user_ids if has_game_today else set()) | joined_user_ids
-
-        # Ensure zero-fill includes ALL participants of the challenge
-        # Even if they weren't scheduled for this exact alarm, we still want
-        # to mark their score as 0 if they didn't join.
-        all_participant_ids = set(
-            ChallengeMembership.objects.filter(challengeID=gs.challenge_id).values_list('uID_id', flat=True)
-        )
-        session_player_ids |= all_participant_ids
-
-        print(f'[Wordle][Finalize] scheduled_user_ids={scheduled_user_ids}, joined_user_ids={joined_user_ids}, all_participants={all_participant_ids}, session_player_ids={session_player_ids}')
-
-        submitted_ids = set(
-            GamePerformance.objects.filter(
-                challenge=gs.challenge,
+        if is_multiplayer:
+            # Multiplayer: scheduled users for this minute (+ joiners), then zero-fill missing
+            has_game_today = GameScheduleGameAssociation.objects.filter(
+                game_schedule__challenge=gs.challenge,
+                game_schedule__dayOfWeek=target_day,
                 game=gs.game,
-                date=play_date,
-                user_id__in=session_player_ids,
-            ).values_list('user_id', flat=True)
-        )
-        print(f'[Wordle][Finalize] submitted_ids={submitted_ids}')
-        for uid in (session_player_ids - submitted_ids):
-            GamePerformance.objects.update_or_create(
+            ).exists()
+
+            scheduled_qs = ChallengeAlarmSchedule.objects.filter(
                 challenge=gs.challenge,
-                game=gs.game,
-                user_id=uid,
-                date=play_date,
-                defaults={'score': 0, 'auto_generated': True}
+                alarm_schedule__dayOfWeek=target_day,
+            ).select_related('alarm_schedule')
+            scheduled_user_ids = set(
+                scheduled_qs.filter(
+                    alarm_schedule__alarmTime=target_time,
+                ).values_list('alarm_schedule__uID_id', flat=True).distinct()
             )
+            if not scheduled_user_ids:
+                times = list(scheduled_qs.values_list('alarm_schedule__alarmTime', flat=True).distinct())
+                if times:
+                    today_date = timezone.localdate()
+                    target_dt = datetime.combine(today_date, target_time)
+                    def _abs_secs(t):
+                        return abs((datetime.combine(today_date, t) - target_dt).total_seconds())
+                    times_sorted = sorted(times, key=_abs_secs)
+                    nearest_time = times_sorted[0]
+                    nearest_diff = _abs_secs(nearest_time)
+                    if nearest_diff <= 15 * 60:
+                        scheduled_user_ids = set(
+                            scheduled_qs.filter(alarm_schedule__alarmTime=nearest_time)
+                            .values_list('alarm_schedule__uID_id', flat=True)
+                            .distinct()
+                        )
+                        print(f"[Wordle][Finalize] fallback matched nearest_time={nearest_time} (diff={nearest_diff}s)")
+
+            joined_user_ids = set(
+                WordleGamePlayer.objects.filter(gameState=gs).values_list('player_id', flat=True)
+            )
+
+            session_player_ids = (scheduled_user_ids if has_game_today else set()) | joined_user_ids
+
+            submitted_ids = set(
+                GamePerformance.objects.filter(
+                    challenge=gs.challenge,
+                    game=gs.game,
+                    date=play_date,
+                    user_id__in=session_player_ids,
+                ).values_list('user_id', flat=True)
+            )
+            for uid in (session_player_ids - submitted_ids):
+                GamePerformance.objects.update_or_create(
+                    challenge=gs.challenge,
+                    game=gs.game,
+                    user_id=uid,
+                    date=play_date,
+                    defaults={'score': 0, 'auto_generated': True}
+                )
+        else:
+            # Singleplayer: only this user participates in this session
+            session_player_ids = {user.id}
+            # No zero-fill here; close_join_window handles creating a 0 for the owner if they didn't play.
 
         # Lock further joins for this game state
         try:
@@ -3694,7 +3682,7 @@ class FinalizeWordleResultView(APIView):
         except Exception:
             pass
 
-        # Build leaderboard
+        # Build leaderboard for session participants only
         scores = []
         performances = GamePerformance.objects.filter(
             challenge=gs.challenge,
@@ -5237,8 +5225,25 @@ class SavePushTokenView(APIView):
 class UserNotificationsView(APIView):
     def get(self, request, user_id):
         notifications = UserNotification.objects.filter(user_id=user_id).order_by('-timestamp')
-        data = [
-            {
+        data = []
+
+        for n in notifications:
+            members_list = [
+                {
+                    "id": u.id,
+                    "name": u.name,
+                    "username": u.username,
+                    "numCoins": u.numCoins,
+                    "avatar": {
+                        "id": u.currentMemoji.id if u.currentMemoji else None,
+                        "imageUrl": u.currentMemoji.imageUrl if u.currentMemoji else None,
+                        "backgroundColor": u.memojiBgColor,
+                    } if u.currentMemoji else None
+                }
+                for u in n.members()
+            ] if n.challengeId else []
+
+            data.append({
                 "id": n.id,
                 "type": n.type,
                 "title": n.title,
@@ -5249,14 +5254,14 @@ class UserNotificationsView(APIView):
                 "challName": n.challName,
                 "whichChall": n.whichChall,
                 "groupId": n.groupId,
-                "accepted": str(n.accepted),
-                "startDate": str(n.startDate),
-                "endDate": str(n.endDate),
-            }
-            for n in notifications
-        ]
-        return Response(data, status=status.HTTP_200_OK)
+                "accepted": str(n.accepted) if n.accepted is not None else None,
+                "startDate": str(n.startDate) if n.startDate else None,
+                "endDate": str(n.endDate) if n.endDate else None,
+                "isCompleted": n.isCompleted,
+                "members": members_list
+            })
 
+        return Response(data, status=status.HTTP_200_OK)
 
 class DeleteNotificationView(APIView):
     def delete(self, request, notification_id):
@@ -5266,6 +5271,7 @@ class DeleteNotificationView(APIView):
             return Response({"success": True})
         except UserNotification.DoesNotExist:
             return Response({"error": "Not found"}, status=404)
+
 
 
 class SaveFCMTokenView(APIView):

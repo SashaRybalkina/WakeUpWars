@@ -118,23 +118,41 @@ def close_join_window(model_name, gs_id):
         return  # already handled by safety-net
 
     today = timezone.localdate()
-    participant_ids = set(
-        ChallengeMembership.objects.filter(challengeID=gs.challenge)
-                                   .values_list("uID_id", flat=True)
-    )
-    existing_ids = set(
-        GamePerformance.objects.filter(challenge=gs.challenge,
-                                       game=gs.game,
-                                       date=today)
-                               .values_list("user_id", flat=True)
-    )
+    try:
+        is_multiplayer = bool(getattr(gs.game, 'isMultiplayer', False))
+    except Exception:
+        is_multiplayer = False
 
-    for uid in participant_ids - existing_ids:
-        GamePerformance.objects.get_or_create(
-            challenge=gs.challenge, game=gs.game,
-            user_id=uid, date=today,
-            defaults={"score": 0, "auto_generated": True},
+    if is_multiplayer:
+        participant_ids = set(
+            ChallengeMembership.objects.filter(challengeID=gs.challenge)
+                                       .values_list("uID_id", flat=True)
         )
+        existing_ids = set(
+            GamePerformance.objects.filter(challenge=gs.challenge,
+                                           game=gs.game,
+                                           date=today)
+                                   .values_list("user_id", flat=True)
+        )
+        for uid in participant_ids - existing_ids:
+            GamePerformance.objects.get_or_create(
+                challenge=gs.challenge, game=gs.game,
+                user_id=uid, date=today,
+                defaults={"score": 0, "auto_generated": True},
+            )
+    else:
+        owner_id = getattr(gs, 'user_id', None)
+        if owner_id and not GamePerformance.objects.filter(
+            challenge=gs.challenge, game=gs.game, date=today, user_id=owner_id
+        ).exists():
+            GamePerformance.objects.update_or_create(
+                challenge=gs.challenge,
+                game=gs.game,
+                user_id=owner_id,
+                date=today,
+                defaults={"score": 0, "auto_generated": True},
+            )
+
     gs.joins_closed = True
     gs.save(update_fields=["joins_closed"])
 
@@ -161,106 +179,103 @@ def close_join_window(model_name, gs_id):
         logger.exception("Failed to broadcast join_window_closed for %s %s", model_name, gs_id)
 
     # Schedule leaderboard regardless of broadcast success
-    try:
-        logger.info("i'm passing too so it should work.")
-        async_result = broadcast_leaderboard.apply_async(
-            args=[Model.__name__, gs.id],
-            kwargs={"for_date_iso": today.isoformat()},
-            eta=timezone.now() + timezone.timedelta(minutes=2),
-            taREDACTEDid=f"leaderboard-{Model.__name__}-{gs.id}-{uuid()}",
-        )
-        logger.info(
-            "Scheduled broadcast_leaderboard for %s %s (taREDACTEDid=%s) in %s seconds",
-            model_name, gs_id, getattr(async_result, 'id', None), 120,
-        )
-    except Exception:
-        logger.exception("Failed to schedule broadcast_leaderboard for %s %s", model_name, gs_id)
+    # try:
+    #     logger.info("i'm passing too so it should work.")
+    #     async_result = broadcast_leaderboard.apply_async(
+    #         args=[Model.__name__, gs.id],
+    #         kwargs={"for_date_iso": today.isoformat()},
+    #         eta=timezone.now() + timezone.timedelta(minutes=2),
+    #         taREDACTEDid=f"leaderboard-{Model.__name__}-{gs.id}-{uuid()}",
+    #     )
+    #     logger.info(
+    #         "Scheduled broadcast_leaderboard for %s %s (taREDACTEDid=%s) in %s seconds",
+    #         model_name, gs_id, getattr(async_result, 'id', None), 120,
+    #     )
+# @shared_task
+# def broadcast_leaderboard(model_name: str, gs_id: int, for_date_iso: str | None = None):
+#     """
+#     Compute and broadcast today's leaderboard for a specific game state.
+#     This is invoked some time after joins are closed to finalize scores, and
+#     ensures clients receive a definitive leaderboard even if games were abandoned.
+#     """
+#     try:
+#         Model = globals()[model_name]
+#     except KeyError:
+#         return
 
-@shared_task
-def broadcast_leaderboard(model_name: str, gs_id: int, for_date_iso: str | None = None):
-    """
-    Compute and broadcast today's leaderboard for a specific game state.
-    This is invoked some time after joins are closed to finalize scores, and
-    ensures clients receive a definitive leaderboard even if games were abandoned.
-    """
-    try:
-        Model = globals()[model_name]
-    except KeyError:
-        return
+#     gs = Model.objects.select_related("challenge", "game").get(pk=gs_id)
+#     try:
+#         play_date = date.fromisoformat(for_date_iso) if for_date_iso else timezone.localdate()
+#     except Exception:
+#         play_date = timezone.localdate()
 
-    gs = Model.objects.select_related("challenge", "game").get(pk=gs_id)
-    try:
-        play_date = date.fromisoformat(for_date_iso) if for_date_iso else timezone.localdate()
-    except Exception:
-        play_date = timezone.localdate()
+#     # Reconcile/finalize Sudoku scores if not already present
+#     if model_name == 'SudokuGameState':
+#         try:
+#             # Respect existing GamePerformance (e.g., set by the completer at finish)
+#             players = (
+#                 SudokuGamePlayer.objects
+#                 .select_related('player')
+#                 .filter(gameState_id=gs_id)
+#             )
+#             existing_ids = set(
+#                 GamePerformance.objects
+#                 .filter(challenge=gs.challenge, game=gs.game, date=play_date)
+#                 .values_list('user_id', flat=True)
+#             )
+#             participant_ids = set(
+#                 ChallengeMembership.objects
+#                 .filter(challengeID=gs.challenge)
+#                 .values_list('uID_id', flat=True)
+#             )
 
-    # Reconcile/finalize Sudoku scores if not already present
-    if model_name == 'SudokuGameState':
-        try:
-            # Respect existing GamePerformance (e.g., set by the completer at finish)
-            players = (
-                SudokuGamePlayer.objects
-                .select_related('player')
-                .filter(gameState_id=gs_id)
-            )
-            existing_ids = set(
-                GamePerformance.objects
-                .filter(challenge=gs.challenge, game=gs.game, date=play_date)
-                .values_list('user_id', flat=True)
-            )
-            participant_ids = set(
-                ChallengeMembership.objects
-                .filter(challengeID=gs.challenge)
-                .values_list('uID_id', flat=True)
-            )
+#             # For any player without a row yet, assign 0
+#             for p in players:
+#                 if p.player_id not in existing_ids:
+#                     GamePerformance.objects.update_or_create(
+#                         challenge=gs.challenge,
+#                         game=gs.game,
+#                         user=p.player,
+#                         date=play_date,
+#                         defaults={"score": 0, "auto_generated": True},
+#                     )
+#                     existing_ids.add(p.player_id)
 
-            # For any player without a row yet, assign 0
-            for p in players:
-                if p.player_id not in existing_ids:
-                    GamePerformance.objects.update_or_create(
-                        challenge=gs.challenge,
-                        game=gs.game,
-                        user=p.player,
-                        date=play_date,
-                        defaults={"score": 0, "auto_generated": True},
-                    )
-                    existing_ids.add(p.player_id)
+#             # Zero-fill remaining participants for the day
+#             for uid in participant_ids - existing_ids:
+#                 GamePerformance.objects.update_or_create(
+#                     challenge=gs.challenge,
+#                     game=gs.game,
+#                     user_id=uid,
+#                     date=play_date,
+#                     defaults={"score": 0, "auto_generated": True},
+#                 )
+#         except Exception:
+#             logger.exception("Failed to reconcile Sudoku scores before broadcasting for %s %s", model_name, gs_id)
 
-            # Zero-fill remaining participants for the day
-            for uid in participant_ids - existing_ids:
-                GamePerformance.objects.update_or_create(
-                    challenge=gs.challenge,
-                    game=gs.game,
-                    user_id=uid,
-                    date=play_date,
-                    defaults={"score": 0, "auto_generated": True},
-                )
-        except Exception:
-            logger.exception("Failed to reconcile Sudoku scores before broadcasting for %s %s", model_name, gs_id)
+#     leaderboard = list(
+#         GamePerformance.objects
+#         .filter(challenge=gs.challenge, game=gs.game, date=play_date)
+#         .select_related("user")
+#         .values("user_id", "score")
+#     )
 
-    leaderboard = list(
-        GamePerformance.objects
-        .filter(challenge=gs.challenge, game=gs.game, date=play_date)
-        .select_related("user")
-        .values("user_id", "score")
-    )
-
-    try:
-        prefix = {
-            'SudokuGameState': 'sudoku',
-            'WordleGameState': 'wordle',
-            'PatternMemorizationGameState': 'pattern',
-            'TypingRaceGameState': 'typing',
-        }[model_name]
-        group = f"{prefix}_{gs.id}"
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            group,
-            {
-                'type': 'leaderboard.update',
-                'leaderboard': leaderboard,
-                'server_now': timezone.now().isoformat(),
-            }
-        )
-    except Exception:
-        logger.exception("Failed to broadcast leaderboard for %s %s", model_name, gs_id)
+#     try:
+#         prefix = {
+#             'SudokuGameState': 'sudoku',
+#             'WordleGameState': 'wordle',
+#             'PatternMemorizationGameState': 'pattern',
+#             'TypingRaceGameState': 'typing',
+#         }[model_name]
+#         group = f"{prefix}_{gs.id}"
+#         channel_layer = get_channel_layer()
+#         async_to_sync(channel_layer.group_send)(
+#             group,
+#             {
+#                 'type': 'leaderboard.update',
+#                 'leaderboard': leaderboard,
+#                 'server_now': timezone.now().isoformat(),
+#             }
+#         )
+#     except Exception:
+#         logger.exception("Failed to broadcast leaderboard for %s %s", model_name, gs_id)

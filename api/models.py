@@ -145,7 +145,8 @@ class UserNotification(models.Model):
     def members(self):
         if not self.challengeId:
             return User.objects.none()
-        return User.objects.filter(challengememberships__challengeID=self.challengeId)
+        # Reverse relation is 'challengemembership' (singular). Compare via FK id since challengeId is an int.
+        return User.objects.filter(challengemembership__challengeID_id=self.challengeId)
 
     def __str__(self):
         return f"Notification for {self.user.username if self.user else 'Unknown'}: {self.title}"
