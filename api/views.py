@@ -3353,16 +3353,17 @@ class ValidatePatternMoveView(APIView):
             return Response({'success': False, 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         try:
-            gs = PatternMemorizationGameState.objects.get(id=game_state_id)
+            gs = PatternMemorizationGameState.objects.filter(challenge_id=challenge_id).order_by('-id').first()
+            # gs = PatternMemorizationGameState.objects.get(id=game_state_id)
             # challenge_id = gs.challenge_id
             if gs:
                 today = timezone.localdate()
                 # If any GamePerformance exists for today for this challenge+game, consider it ended
-                # if GamePerformance.objects.filter(challenge_id=challenge_id, game_id=gs.game_id, date=today).exists():
-                #     return Response(
-                #         {'code': 'GAME_ENDED', 'detail': 'This game has already finished for today.'},
-                #         status=status.HTTP_403_FORBIDDEN,
-                #     )
+                if GamePerformance.objects.filter(challenge_id=challenge_id, game_id=gs.game_id, date=today).exists():
+                    return Response(
+                        {'code': 'GAME_ENDED', 'detail': 'This game has already finished for today.'},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
                 now = timezone.now()
                 if gs.joins_closed or (gs.join_deadline_at and now > gs.join_deadline_at):
                     return Response(
@@ -3393,27 +3394,27 @@ class ValidatePatternMoveView(APIView):
         if "scores" in result and result["scores"] is not None:
             payload["scores"] = result["scores"]
 
-        # ⭐⭐ GAME PERFORMANCE WRITE HERE ⭐⭐
-        if result.get("is_complete"):   # only on final round
-            today = timezone.localdate()
+        # # ⭐⭐ GAME PERFORMANCE WRITE HERE ⭐⭐
+        # if result.get("is_complete"):   # only on final round
+        #     today = timezone.localdate()
 
-            # get accumulated score
-            player_rec = PatternMemorizationGamePlayer.objects.get(
-                game_state=gs,
-                player=user,
-            )
-            final_score = player_rec.score  # <-- correct (100)
+        #     # get accumulated score
+        #     player_rec = PatternMemorizationGamePlayer.objects.get(
+        #         game_state=gs,
+        #         player=user,
+        #     )
+        #     final_score = player_rec.score  # <-- correct (100)
 
-            GamePerformance.objects.update_or_create(
-                challenge=gs.challenge,
-                game=gs.game,
-                user=user,
-                date=today,
-                defaults={
-                    "score": final_score,
-                    "auto_generated": False
-                }
-            )
+        #     GamePerformance.objects.update_or_create(
+        #         challenge=gs.challenge,
+        #         game=gs.game,
+        #         user=user,
+        #         date=today,
+        #         defaults={
+        #             "score": final_score,
+        #             "auto_generated": False
+        #         }
+        #     )
 
         if result.get('is_correct'):
             return Response({"success": True, "result": "correct", **payload}, status=status.HTTP_200_OK)
