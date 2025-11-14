@@ -32,7 +32,7 @@ class Memoji(models.Model):
 class User(AbstractUser):
     name = models.CharField(max_length=255, default='Anonymous')
     bio = models.TextField(blank=True, null=True) # can be null
-    numCoins = models.IntegerField(default=0)
+    numCoins = models.IntegerField(default=20)
     currentMemoji = models.ForeignKey(
         Memoji,
         on_delete=models.SET_NULL,

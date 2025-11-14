@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Alert, FlatList } from 'react-native';
+import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Alert, FlatList, ImageBackground } from 'react-native';
 import { useFocusEffect, useRoute, useNavigation } from '@react-navigation/native';
 import { NavigationProp } from '@react-navigation/native';
 import { getAccessToken } from '../../auth';
 import { useUser } from '../../context/UserContext';
 import { BASE_URL, endpoints } from '../../api';
+import { Ionicons } from '@expo/vector-icons';
 
 
 type Props = {
@@ -73,7 +74,17 @@ const EditAva: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
+    <ImageBackground
+      source={require('../../images/cgpt.png')}
+      style={styles.background}
+      resizeMode="cover"
+    >
     <View style={styles.container}>
+  <View style={styles.backButtonWrapper}>
+    <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+      <Ionicons name="arrow-back" size={24} color="#FFF" />
+    </TouchableOpacity>
+  </View>
       <Text style={styles.title}>Choose Your Base Avatar</Text>
 
       <FlatList
@@ -102,16 +113,33 @@ const EditAva: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.nextButtonText}>Next</Text>
       </TouchableOpacity>
     </View>
+  </ImageBackground>
   );
 };
 
 
 const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+backButtonWrapper: {
+  position: "absolute",
+  top: 40,
+  left: 16,
+  zIndex: 10,
+},
   container: {
     flex: 1,
-    backgroundColor: '#121212',
     alignItems: 'center',
-    paddingTop: 40,
+    paddingTop: 80,
     paddingHorizontal: 16,
   },
   title: {
@@ -124,7 +152,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarCard: {
-    backgroundColor: '#1E1E1E',
+    backgroundColor: '#1e1e1eb1',
     margin: 8,
     borderRadius: 16,
     borderWidth: 2,
@@ -152,6 +180,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     borderRadius: 30,
     marginTop: 30,
+    marginBottom: 40,
   },
   nextButtonText: {
     color: '#fff',

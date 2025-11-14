@@ -1919,7 +1919,7 @@ class RespondToBetInviteView(APIView):
         print(unique_partners_count)
         print(total_bets_count)
 
-        if unique_partners_count >= 2:
+        if unique_partners_count >= 5:
             social_butterfly_badge = Badge.objects.get(name="Social Butterfly")
             user_badge, created = UserBadge.objects.get_or_create(user=user, badge=social_butterfly_badge, defaults={'collected': False})
                 
@@ -1944,7 +1944,7 @@ class RespondToBetInviteView(APIView):
                     send_fcm_notification(title, body, data, recipient_id)
                 
 
-        if total_bets_count >= 2:
+        if total_bets_count >= 5:
             riREDACTEDtaker_badge = Badge.objects.get(name="Risk Taker")
             user_badge, created = UserBadge.objects.get_or_create(user=user, badge=riREDACTEDtaker_badge, defaults={'collected': False})
             

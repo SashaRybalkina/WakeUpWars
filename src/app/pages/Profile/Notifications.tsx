@@ -153,6 +153,9 @@ const NotificationsPage: React.FC<Props> = ({ navigation }) => {
   return (
     <ImageBackground source={require("../../images/cgpt.png")} style={styles.bg}>
       <View style={styles.container}>
+                  <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                    <Ionicons name="arrow-back" size={24} color="#FFF" />
+                  </TouchableOpacity>
         <Text style={styles.title}>Notifications</Text>
         <ScrollView showsVerticalScrollIndicator={false}>
           {notifications.length > 0 ? (
@@ -186,6 +189,14 @@ const NotificationsPage: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   bg: { flex: 1 },
   container: { flex: 1, paddingTop: 60, paddingHorizontal: 20 },
+    backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   title: { color: "#fff", fontSize: 38, fontWeight: "800", marginBottom: 20 },
   card: {
     flexDirection: "row",

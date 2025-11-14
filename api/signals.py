@@ -50,9 +50,6 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
             print("Well it should reach here...")
             ch = instance.challenge
 
-            if not ch.groupID and not ch.isPublic and not instance.auto_generated:
-                Challenge.objects.filter(pk=ch.id).update(unlockedCoins=5)
-
             play_date = instance.date
             if not ch.startDate:
                 return
@@ -127,6 +124,9 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
             )
             
             print("So is it updated?it hits here?: ", updated)
+            
+            if not ch.groupID and not ch.isPublic and not instance.auto_generated:
+                Challenge.objects.filter(pk=ch.id).update(unlockedCoins=5)
 
             if updated:
                 # Optionally complete the challenge if this was the last day
