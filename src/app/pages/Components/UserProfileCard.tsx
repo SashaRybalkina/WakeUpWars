@@ -45,6 +45,8 @@ const UserProfileCard: React.FC<Props> = ({ name, currentMemoji, bgColor, numCoi
   const navigation = useNavigation<any>();
   const [tab, setTab] = React.useState<'skills' | 'badges'>(changeTab ? 'badges' : 'skills');
   const [infoVisible, setInfoVisible] = React.useState(false);
+  const [coinInfoVisible, setCoinInfoVisible] = React.useState(false);
+  
 
   const [badges, setBadges] = useState<Badge[]>(badgesGiven || [] || []);
   // console.log(badgesGiven)
@@ -303,7 +305,16 @@ const PulsingBadge = ({ badge, onPress }) => {
         </TouchableOpacity>
         </View>
             <Text style={styles.profileName}>{name}</Text>
-            <Text style={styles.coinText}>{numCoins} 🪙</Text>
+  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+    <Text style={styles.coinText}>{numCoins} 🪙</Text>
+    <TouchableOpacity
+      onPress={() => setCoinInfoVisible(true)}
+      style={{ marginLeft: 6 }}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+    >
+      <Ionicons name="help-circle" size={22} color="rgba(255,255,255,0.85)" />
+    </TouchableOpacity>
+  </View>
             <View style={styles.actionsRow}>
               <TouchableOpacity style={[styles.actionItem, styles.actionItemLeft]} onPress={() => navigation.navigate('Friends1')}>
                 <Ionicons name="people" size={42} color="#9ed3ffff" style={styles.actionIcon} />
@@ -536,6 +547,23 @@ const PulsingBadge = ({ badge, onPress }) => {
               from recent game results with time-decay, so recent play counts more.
             </Text>
             <TouchableOpacity style={styles.infoClose} onPress={() => setInfoVisible(false)}>
+              <Text style={styles.infoCloseText}>Got it</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+
+      <Modal transparent visible={coinInfoVisible} animationType="fade" onRequestClose={() => setCoinInfoVisible(false)}>
+        <View style={styles.infoBackdrop}>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoTitle}>Coin system:</Text>
+            <Text style={styles.infoText}>
+              Earn coins each day you participate in a personal challenge or by winning
+              group challenges! Spend coins to get into group challenges or buy customized
+              avatars!
+            </Text>
+            <TouchableOpacity style={styles.infoClose} onPress={() => setCoinInfoVisible(false)}>
               <Text style={styles.infoCloseText}>Got it</Text>
             </TouchableOpacity>
           </View>

@@ -32,7 +32,7 @@ class Memoji(models.Model):
 class User(AbstractUser):
     name = models.CharField(max_length=255, default='Anonymous')
     bio = models.TextField(blank=True, null=True) # can be null
-    numCoins = models.IntegerField(default=0)
+    numCoins = models.IntegerField(default=20)
     currentMemoji = models.ForeignKey(
         Memoji,
         on_delete=models.SET_NULL,
@@ -226,28 +226,28 @@ class Challenge(models.Model):
     # ─────────────────────────────────────────────────────────────────────────
     def get_winner_user(self):
         """
-        Return User who has the most total points in this challenge.
-        Fallback to None if no participants.
+        Return the User who has the highest total score in this challenge.
+        If there's a tie, pick randomly from the top scorers.
+        Return None if no participants.
         """
-
         qs = (
             GamePerformance.objects
             .filter(challenge=self)
-            .values('user')
+            .values('user_id')
             .annotate(total=Sum('score'))
             .order_by('-total')
         )
+
         if not qs.exists():
             return None
 
-        # find all top scorers
         top_total = qs.first()['total']
-        top_users = [row['user'] for row in qs if row['total'] == top_total]
+        top_users = [row['user_id'] for row in qs if row['total'] == top_total]
 
         if len(top_users) == 1:
             return User.objects.get(id=top_users[0])
         else:
-            # tie — pick randomly or return all
+            # tie: randomly select one
             return User.objects.get(id=random.choice(top_users))
 
     # ─────────────────────────────────────────────────────────────────────────

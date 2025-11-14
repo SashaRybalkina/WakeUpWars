@@ -92,13 +92,7 @@ const ChallDetails: React.FC<Props> = ({ navigation }) => {
   const [unlockedCoins, setUnlockedCoins] = useState<number>(0)
   const [isCollecting, setIsCollecting] = useState(false);
   const [progressAnim] = useState(new Animated.Value(0))
-  // type Obligation = {
-  //   id:number; challenge:number; payer:any; payee:any; currency:string; amount:string; remaining:string; status:string;
-  //   reward_type?:string; reward_note?:string;
-  // };
-  // const [toPay, setToPay] = useState<Obligation[]>([]);
-  // const [toReceive, setToReceive] = useState<Obligation[]>([]);
-  // const [canEditReward,setCanEditReward]=useState<boolean>(false);
+
   
   // leaderboard setup
   type LeaderRow = { name: string; points: number; rank: number }
@@ -135,66 +129,98 @@ const ChallDetails: React.FC<Props> = ({ navigation }) => {
     return fullNames[day] || ""
   }
 
-  useEffect(() => {
-    const fetchChallengeDetails = async () => {
-      try {
-              const accessToken = await getAccessToken();
-              if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
 
-                  return;
-              }
-        const res = await axios.get(`${endpoints.challengeDetail(challId)}?t=${Date.now()}`, {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`
-                }
-              });
 
-        const data = res.data
+// useFocusEffect(
+//   useCallback(() => {
+//     const fetchDetails = async () => {
+//       try {
+//         const accessToken = await getAccessToken();
+//         if (!accessToken) return;
 
-        const parsedDaysOfWeek = (data.daysOfWeek as string[])
-          .filter((day): day is keyof typeof DayOfWeekReverseLabels => day in DayOfWeekReverseLabels)
-          .sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b))
-          .map((day) => DayOfWeekReverseLabels[day])
+//         const res = await axios.get(`${endpoints.challengeDetail(challId)}?t=${Date.now()}`, {
+//           headers: { Authorization: `Bearer ${accessToken}` }
+//         });
 
-        setDaysOfWeek(parsedDaysOfWeek.map(String))
+//         const data = res.data;
 
-        setDaysComplete(data.daysCompleted)
-        setTotalDays(data.totalDays ?? 30)
-        console.log('total days??', data.totalDays)
-        setMembers(data.members);
-        try {
-          const schedRes = await axios.get(endpoints.getChallengeSchedule(challId), {
-            headers: { Authorization: `Bearer ${accessToken}` }
-          });
-          setIsPublicChallenge(!!schedRes.data?.isPublic);
-          setGroupIdVal(schedRes.data?.groupId ?? null);
-        } catch {}
-        setWinner(data.winner)
-        setUnlockedCoins(data.unlockedCoins)
-      } catch (err) {
-        console.error(err)
-      }
-    }
+//         setUnlockedCoins(data.unlockedCoins);
+//         setWinner(data.winner);
+//         setDaysComplete(data.daysCompleted);
+//         setTotalDays(data.totalDays ?? 30);
+//         setMembers(data.members);
+//         setWinner(data.winner)
+//         setUnlockedCoins(data.unlockedCoins)
 
-    fetchChallengeDetails()
-  }, [])
+//         const parsedDays = (data.daysOfWeek as string[])
+//           .filter(d => d in DayOfWeekReverseLabels)
+//           .sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b))
+//           .map(d => DayOfWeekReverseLabels[d]);
+
+//         setDaysOfWeek(parsedDays.map(String));
+
+//         // now fetch schedule
+//         const schedRes = await axios.get(endpoints.getChallengeSchedule(challId), {
+//           headers: { Authorization: `Bearer ${accessToken}` }
+//         });
+
+//         setIsPublicChallenge(!!schedRes.data?.isPublic);
+//         setGroupIdVal(schedRes.data?.groupId ?? null);
+
+//       } catch (e) {
+//         console.error(e);
+//       }
+//     };
+
+//     fetchDetails();
+//   }, [challId])
+// );
+
+const fetchDetails = useCallback(async () => {
+  try {
+    const accessToken = await getAccessToken();
+    if (!accessToken) return;
+
+    const res = await axios.get(`${endpoints.challengeDetail(challId)}?t=${Date.now()}`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+
+    const data = res.data;
+
+    console.log("setting to " + data.unlockedCoins)
+    setUnlockedCoins(data.unlockedCoins);
+    setWinner(data.winner);
+    console.log("setting to " + data.daysCompleted)
+    setDaysComplete(data.daysCompleted);
+    setTotalDays(data.totalDays ?? 30);
+    setMembers(data.members);
+
+    const parsedDays = (data.daysOfWeek as string[])
+      .filter(d => d in DayOfWeekReverseLabels)
+      .sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b))
+      .map(d => DayOfWeekReverseLabels[d]);
+
+    setDaysOfWeek(parsedDays.map(String));
+
+    const schedRes = await axios.get(endpoints.getChallengeSchedule(challId), {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+
+    setIsPublicChallenge(!!schedRes.data?.isPublic);
+    setGroupIdVal(schedRes.data?.groupId ?? null);
+
+  } catch (e) {
+    console.error(e);
+  }
+}, [challId]);
+
+useFocusEffect(
+  useCallback(() => {
+    fetchDetails();
+  }, [fetchDetails])
+);
+
+
 
   // AI generated
 //   ---------- Leaderboard fetch ----------
@@ -333,53 +359,7 @@ const loadPerformances = async () => {
     // run every time the screen gains focus
     useFocusEffect(
       useCallback(() => {
-        // Immediately refetch challenge details on focus
-        (async () => {
-          try {
-            let accessToken = await getAccessToken();
-            if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
 
-                  return;
-            }
-            if (!accessToken) return;
-            const res = await axios.get(`${endpoints.challengeDetail(challId)}?t=${Date.now()}`, {
-              headers: { Authorization: `Bearer ${accessToken}` }
-            });
-            const data = res.data;
-            const parsedDaysOfWeek = (data.daysOfWeek as string[])
-              .filter((day): day is keyof typeof DayOfWeekReverseLabels => day in DayOfWeekReverseLabels)
-              .sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b))
-              .map((day) => DayOfWeekReverseLabels[day]);
-            setDaysOfWeek(parsedDaysOfWeek.map(String));
-            setDaysComplete(data.daysCompleted);
-            setTotalDays(data.totalDays ?? 30);
-            setMembers(data.members);
-            try {
-              const schedRes = await axios.get(endpoints.getChallengeSchedule(challId), {
-                headers: { Authorization: `Bearer ${accessToken}` }
-              });
-              setIsPublicChallenge(!!schedRes.data?.isPublic);
-              setGroupIdVal(schedRes.data?.groupId ?? null);
-            } catch {}
-          } catch {}
-        })();
 
         if (isPublicChallenge === null && groupIdVal === null) {
           return () => {};
@@ -395,101 +375,15 @@ const loadPerformances = async () => {
           const refreshOnce = async () => {
             try {
               await loadLeaderboard();
-              const accessToken = await getAccessToken();
-              if (!accessToken) {
-                                      await logout();
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
 
-                  return;
-              }
-              if (accessToken) {
-                const res = await axios.get(`${endpoints.challengeDetail(challId)}?t=${Date.now()}`, {
-                  headers: { Authorization: `Bearer ${accessToken}` }
-                });
-                const data = res.data;
-                const parsedDaysOfWeek = (data.daysOfWeek as string[])
-                  .filter((day): day is keyof typeof DayOfWeekReverseLabels => day in DayOfWeekReverseLabels)
-                  .sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b))
-                  .map((day) => DayOfWeekReverseLabels[day]);
-                setDaysOfWeek(parsedDaysOfWeek.map(String));
-                setDaysComplete(data.daysCompleted);
-                setTotalDays(data.totalDays ?? 30);
-                setMembers(data.members);
-              }
             } catch {}
           };
-          // bursts.forEach(ms => {
-          //   const id = setTimeout(refreshOnce, ms) as unknown as number;
-          //   timeoutIds.push(id);
-          // });
-          // return () => {
-          //   timeoutIds.forEach(id => clearTimeout(id));
-          // };
+
         }
       }, [challId, isPublicChallenge, groupIdVal])
     );
 
-    // useEffect(() => {
-    //   (async () => {
-    //     try {
-    //       const obligations = await loadMyObligations();
-    //       setToPay(obligations.to_pay);
-    //       setToReceive(obligations.to_receive);
-    //     } catch (err:any) {
-    //       Alert.alert('Error: ', err.message);
-    //     }
-    //   })();
-    // }, []);
 
-  //   const showRewardInfo = () => {
-  //   Alert.alert('Rewards', 'Choose the reward the winner will get. \n\nMoney: Send a USD amount. \nPoints: In-app points. \nCustom: Any creative prize. \n\nAfter saving, rewards are locked.');
-  // };
-
-  // const finalizeChallenge = async (challId: number) => {
-  //     try {
-
-  //     const accessToken = await getAccessToken();
-  //     if (!accessToken) {
-  //       throw new Error("Not authenticated");
-  //     }
-
-  //       const res = await fetch(`${BASE_URL}/api/challenges/${challId}/finalize/`, {
-  //         method: 'POST',
-  //         headers: {
-  //           'Content-Type': 'application/json',
-  //           "Authorization": `Bearer ${accessToken}`,
-  //         },
-  //       });
-
-  //       if (!res.ok) {
-  //         const err = await res.json().catch(() => ({}));
-  //         throw new Error(err?.detail || err?.message || `Finalize failed (${res.status})`);
-  //       }
-
-  //       // await loadMyObligations();
-  //       // navigation.navigate("Rewards", { challengeId: challId });
-
-  //       //Alert.alert('Finalized', 'Obligations created. You can settle up now.');
-  //     } catch (e: any) {
-  //       Alert.alert('Finalize failed', e.message);
-  //     }
-  //   };
 
   useEffect(() => {
     // Animate progress bar
@@ -530,7 +424,7 @@ const loadPerformances = async () => {
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
       Alert.alert("🎉 Success", `You collected ${amount} 🪙!`);
       setUnlockedCoins(0)
-      // await onRefresh();
+      await fetchDetails();
     } catch (err) {
       console.error("Collect error:", err);
       Alert.alert("Error", "Failed to collect winnings.");
@@ -609,7 +503,8 @@ const loadPerformances = async () => {
 
 
 
-{(whichChall === "Group" || whichChall === "Public") && winner && (
+{/* {(whichChall === "Group" || whichChall === "Public") && winner && ( */}
+{!isPersonal && winner && (
   <>
     <Text style={[styles.winnerText, { textAlign: "center", marginBottom: 10 }]}>
       The winner is {winner.username}! 🏆
@@ -631,7 +526,8 @@ const loadPerformances = async () => {
   </>
 )}
 
-{whichChall === "Personal" && unlockedCoins > 0 && (
+{/* {whichChall === "Personal" && unlockedCoins > 0 && ( */}
+{isPersonal && unlockedCoins > 0 && (
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: "#4CAF50", marginTop: 10, marginBottom: 20 }]}
           onPress={() => collectWinnings(unlockedCoins)}

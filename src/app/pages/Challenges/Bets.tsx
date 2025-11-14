@@ -305,7 +305,7 @@ return (
       .map(bet => (
         <View key={bet.id} style={styles.pendingBetCard}>
           <Text style={styles.pendingText}>
-            {bet.initiatorName} invited you to bet 💰 {bet.betAmount}
+            {bet.initiatorName} invited you to bet {bet.betAmount} 🪙
           </Text>
           <View style={styles.pendingActions}>
             <TouchableOpacity
@@ -331,7 +331,7 @@ return (
       .map(bet => (
         <View key={bet.id} style={styles.pendingBetCard}>
           <Text style={styles.pendingText}>
-            You challenged {bet.recipientName} for 💰 {bet.betAmount} — waiting for response
+            You challenged {bet.recipientName} for {bet.betAmount} 🪙 — waiting for response
           </Text>
         </View>
       ))}

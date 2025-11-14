@@ -49,9 +49,6 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
         try:
             ch = instance.challenge
 
-            if not ch.groupID and not ch.isPublic and not instance.auto_generated:
-                Challenge.objects.filter(pk=ch.id).update(unlockedCoins=5)
-
             play_date = instance.date
             if not ch.startDate:
                 return
@@ -119,6 +116,9 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
                 .filter(pk=ch.id, daysCompleted__lt=day_index)
                 .update(daysCompleted=day_index)
             )
+            
+            if not ch.groupID and not ch.isPublic and not instance.auto_generated:
+                Challenge.objects.filter(pk=ch.id).update(unlockedCoins=5)
 
             if updated:
                 # Optionally complete the challenge if this was the last day

@@ -8,8 +8,6 @@ function isTokenExpired(token: string | null): boolean {
 
   try {
     const decoded: any = jwtDecode(token);
-    console.log("decoded:", decoded);
-    console.log("exp: " + decoded?.exp);
     return decoded?.exp * 1000 < Date.now();
   } catch (e) {
     console.error("Failed to decode token", e);
@@ -49,7 +47,6 @@ export async function getAccessToken(): Promise<string | null> {
         let data;
         if (contentType?.includes("application/json")) {
           data = await res.json();
-          console.log("Refresh response:", data);
         } else {
           console.error("Expected JSON but got:", await res.text());
           return null;
@@ -60,7 +57,6 @@ export async function getAccessToken(): Promise<string | null> {
         if (newAccess) {
           await SecureStore.setItemAsync("access", newAccess);
           console.log("Token refreshed:", newAccess.slice(0, 20));
-          console.log("Current stored access token prefix:", (await SecureStore.getItemAsync("access"))?.slice(0, 20));
         }
 
         return newAccess ?? null;

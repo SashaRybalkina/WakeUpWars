@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Alert, Modal } from 'react-native';
+import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Alert, Modal, ImageBackground } from 'react-native';
 import { useFocusEffect, useRoute, useNavigation } from '@react-navigation/native';
 import { NavigationProp } from '@react-navigation/native';
 import { getAccessToken } from '../../auth';
 import { useUser } from '../../context/UserContext';
 import { BASE_URL, endpoints } from '../../api';
+import { Ionicons } from '@expo/vector-icons';
 
 type Memoji = {
   id: number;
@@ -175,7 +176,17 @@ const EditAvatar2: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
+    <ImageBackground
+      source={require('../../images/cgpt.png')}
+      style={styles.background}
+      resizeMode="cover"
+    >
     <View style={styles.container}>
+  <View style={styles.backButtonWrapper}>
+    <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+      <Ionicons name="arrow-back" size={24} color="#FFF" />
+    </TouchableOpacity>
+  </View>
       <Text style={styles.coinsText}>{numCoins} 🪙</Text>
 
 
@@ -258,15 +269,32 @@ const EditAvatar2: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.doneText}>Done</Text>
       </TouchableOpacity>
     </View>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+backButtonWrapper: {
+  position: "absolute",
+  top: 40,
+  left: 16,
+  zIndex: 10,
+},
   container: {
     flex: 1,
-    backgroundColor: '#121212',
     alignItems: 'center',
-    paddingTop: 30,
+    paddingTop: 60,
     paddingHorizontal: 16,
   },
   coinsText: {
@@ -329,7 +357,7 @@ const styles = StyleSheet.create({
     height: 90,
     borderRadius: 45,
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: '#000000ff',
   },
   selectedAvatar: {
     borderColor: '#FFD700',
@@ -350,7 +378,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   purchasedLabel: {
-    color: '#ccc',
+    color: '#000000ff',
     marginTop: 5,
     fontSize: 14,
   },
