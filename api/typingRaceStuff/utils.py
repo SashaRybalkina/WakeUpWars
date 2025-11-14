@@ -85,6 +85,7 @@ def get_or_create_typing_race_game(challenge_id: int, user, allow_join: bool = T
         raise ValueError(f"Challenge {challenge_id} not found")
 
     is_group = challenge.groupID_id is not None
+    print("is_group is true or not?", is_group)
     logger.warning(f"[TYPING][STEP1] Fetch Challenge took {(time.time()-t1)*1000:.2f}ms")
 
     # Use alarm_datetime if provided, otherwise use now
@@ -116,6 +117,7 @@ def get_or_create_typing_race_game(challenge_id: int, user, allow_join: bool = T
                 .order_by("id")
                 .first()
             )
+        
         if not typing_game:
             raise ValueError("No Typing Race game found (single or multiplayer).")
 
@@ -491,20 +493,6 @@ def _save_leaderboard_cache_to_db(game_state_or_id):
         f"typing_text_len_{game_state_id}",
     ])
     logger.warning(f"[DB][SYNC] ✅ Leaderboard + unfinished progress persisted for game {game_state_id}")
-
-
-# def _assign_ranks_and_scores_for_finishers(state: TypingRaceGameState):
-#     """
-#     assign ranks and final scores based on finish order
-#     """
-#     all_players = TypingRaceGamePlayer.objects.filter(game_state=state)
-#     finishers = list(all_players.filter(is_completed=True).exclude(finished_at=None).order_by("finished_at"))
-#     total = all_players.count()
-
-#     for idx, p in enumerate(finishers, start=1):
-#         p.rank = idx
-#         p.final_score = compute_multiplayer_score(idx, total)
-#         p.save(update_fields=["rank", "final_score"])
 
 # ===============================
 # Async wrappers (for WebSocket)

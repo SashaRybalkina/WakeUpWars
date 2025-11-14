@@ -9,7 +9,7 @@ from django.utils import timezone
 from api.models import GamePerformance
 from asgiref.sync import sync_to_async
 from django.core.cache import cache
-from api.tasks import close_join_window, broadcast_leaderboard
+from api.tasks import close_join_window
 
 ALL_COLORS = [
     'hotpink', 'coral', 'orange', 'lawngreen', 'aqua',

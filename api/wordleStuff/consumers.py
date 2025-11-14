@@ -5,7 +5,6 @@ from django.utils import timezone
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
 from django.core.cache import cache
-from api.tasks import broadcast_leaderboard
 
 from api.wordleStuff.utils import validate_wordle_move_async
 from api.models import (
