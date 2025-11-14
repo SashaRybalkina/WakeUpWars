@@ -4967,8 +4967,25 @@ class SavePushTokenView(APIView):
 class UserNotificationsView(APIView):
     def get(self, request, user_id):
         notifications = UserNotification.objects.filter(user_id=user_id).order_by('-timestamp')
-        data = [
-            {
+        data = []
+
+        for n in notifications:
+            members_list = [
+                {
+                    "id": u.id,
+                    "name": u.name,
+                    "username": u.username,
+                    "numCoins": u.numCoins,
+                    "avatar": {
+                        "id": u.currentMemoji.id if u.currentMemoji else None,
+                        "imageUrl": u.currentMemoji.imageUrl if u.currentMemoji else None,
+                        "backgroundColor": u.memojiBgColor,
+                    } if u.currentMemoji else None
+                }
+                for u in n.members()
+            ] if n.challengeId else []
+
+            data.append({
                 "id": n.id,
                 "type": n.type,
                 "title": n.title,
@@ -4979,12 +4996,13 @@ class UserNotificationsView(APIView):
                 "challName": n.challName,
                 "whichChall": n.whichChall,
                 "groupId": n.groupId,
-                "accepted": str(n.accepted),
-                "startDate": str(n.startDate),
-                "endDate": str(n.endDate),
-            }
-            for n in notifications
-        ]
+                "accepted": str(n.accepted) if n.accepted is not None else None,
+                "startDate": str(n.startDate) if n.startDate else None,
+                "endDate": str(n.endDate) if n.endDate else None,
+                "isCompleted": n.isCompleted,
+                "members": members_list
+            })
+
         return Response(data, status=status.HTTP_200_OK)
 
 
