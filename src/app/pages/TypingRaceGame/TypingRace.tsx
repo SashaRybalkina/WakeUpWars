@@ -403,7 +403,6 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
             countdownRef.current = setInterval(tick, 1000);
           }
         }
-      }
         // === 👥 Player list update ===
         if (msg.type === "player_list") {
           //console.log("[TypingRace] Player list updated:", msg.players);

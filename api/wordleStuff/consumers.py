@@ -430,7 +430,7 @@ class WordleConsumer(AsyncWebsocketConsumer):
     async def _check_join_deadline(self, gs):
         now = timezone.now()
         if not gs.join_deadline_at:
-            gs.join_deadline_at = (gs.created_at or now) + timezone.timedelta(minutes=2)
+            gs.join_deadline_at = (gs.created_at or now) + timezone.timedelta(seconds=20)
             await sync_to_async(gs.save)(update_fields=["join_deadline_at"])
 
         if gs.joins_closed or now > gs.join_deadline_at:

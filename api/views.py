@@ -1669,6 +1669,8 @@ class GetChallengeScheduleView(APIView):
                     screen = 'Wordle'
                 elif 'pattern' in n:
                     screen = 'PatternGame'
+                elif 'typing' in n:
+                    screen = 'TypingRace'
                 else:
                     screen = 'ChallDetails'
 
@@ -1788,6 +1790,8 @@ class GetChallengeUserScheduleView(APIView):
                     screen = 'Wordle'
                 elif 'pattern' in n:
                     screen = 'PatternGame'
+                elif 'typing' in n:
+                    screen = 'TypingRace'
                 else:
                     screen = 'ChallDetails'
 

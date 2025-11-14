@@ -73,7 +73,7 @@ def get_or_create_pattern_game(challenge_id: int, user, allow_join: bool = True,
         'current_round': 1,
         'pattern_sequence': pattern,
         'is_completed': False,
-        'join_deadline_at': timezone.now() + timedelta(minutes=2),
+        'join_deadline_at': timezone.now() + timedelta(seconds=20),
     }
 
     # Use get_or_create with proper unique constraint fields

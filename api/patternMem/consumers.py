@@ -49,7 +49,7 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
         )(id=self.game_state_id)
 
         if not gs.join_deadline_at:
-            gs.join_deadline_at = (gs.created_at or now) + timezone.timedelta(minutes=2)
+            gs.join_deadline_at = (gs.created_at or now) + timezone.timedelta(seconds=20)
             await sync_to_async(gs.save)(update_fields=["join_deadline_at"])
 
         # closed?
