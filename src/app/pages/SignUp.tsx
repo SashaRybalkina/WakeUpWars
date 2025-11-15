@@ -172,7 +172,7 @@ const SignUpScreen: React.FC<Props> = ({ navigation }) => {
 
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
+    // <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
       <ImageBackground source={require("../images/cgpt3.png")} style={styles.backgroundImage} resizeMode="cover">
         <View style={styles.contentContainer}>
           <TouchableOpacity style={styles.backButton} onPress={goToLogin}>
@@ -181,7 +181,6 @@ const SignUpScreen: React.FC<Props> = ({ navigation }) => {
 
           <View style={styles.headerContainer}>
             <Image source={require("../images/wakeupwars.png")} style={styles.logoImage} resizeMode="contain" />
-            <Text style={styles.subHeaderText}>Join the challenge</Text>
           </View>
 
           <View style={styles.formContainer}>
@@ -275,7 +274,7 @@ const SignUpScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </View>
       </ImageBackground>
-    </KeyboardAvoidingView>
+    // </KeyboardAvoidingView>
   )
 }
 
@@ -285,14 +284,17 @@ const styles = StyleSheet.create({
   },
   backgroundImage: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
   },
-  contentContainer: {
-    width: "100%",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 40,
+contentContainer: {
+  width: '100%',
+  alignItems: 'center',
+  paddingHorizontal: 20,
+  paddingTop: 50,   // same as your working screen
+},
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
+    marginTop: 70,
   },
   backButton: {
     position: "absolute",

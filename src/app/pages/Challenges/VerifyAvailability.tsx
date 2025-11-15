@@ -284,7 +284,7 @@ useFocusEffect(
       <View style={styles.cell} />
       {TIMES.map((time, timeIdx) => (
         <View key={timeIdx} style={styles.cell}>
-          <Text style={styles.cellText}>{time}</Text>
+          <Text style={styles.cellText}>{formatTo12Hour(time)}</Text>
         </View>
       ))}
     </View>

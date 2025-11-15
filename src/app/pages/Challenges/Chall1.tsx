@@ -21,11 +21,13 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
     // whichCall will be "Personal", "Group", or "Public"
   }
   const { user, logout } = useUser()
+  const [isLoading, setIsLoading] = useState(false);
   const [challs, setChalls] = useState<any[]>([])
 
   useFocusEffect(
     useCallback(() => {
       if (!user) return
+      setIsLoading(true)
 
       const fetchChallenges = async () => {
         try {
@@ -78,6 +80,8 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
           console.log(challs)
         } catch (error) {
           console.error(error)
+        } finally {
+          setIsLoading(false)
         }
       }
 
@@ -117,8 +121,11 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
         </View>
 
 
-
-              {challs.length === 0 ? (
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading challenges...</Text>
+          </View>
+        ) : challs.length === 0 ? (
                 <View style={styles.emptyStateContainer}>
                   <Ionicons name="flag-outline" size={40} color="rgba(255,255,255,0.7)" />
                   <Text style={styles.emptyStateText}>No active challenges</Text>
@@ -179,6 +186,16 @@ const styles = StyleSheet.create({
   background: {
     flex: 1,
     paddingTop: 50,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    color: "#FFF",
+    fontSize: 18,
+    fontWeight: "600",
   },
   headerContainer: {
     paddingHorizontal: 20,

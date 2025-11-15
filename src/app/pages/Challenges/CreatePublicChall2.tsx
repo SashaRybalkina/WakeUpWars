@@ -248,6 +248,17 @@ const onTimeChange = (event: any, time?: Date) => {
     setShowTimePicker(false)
   }
 
+  const toAmPm = (time24: string) => {
+    // Split into hours and minutes
+    const [hoursStr, minutes] = time24.split(":");
+    let hours = parseInt(hoursStr, 10);
+    const ampm = hours >= 12 ? "PM" : "AM";
+    
+    hours = hours % 12 || 12; // convert 0 -> 12 for midnight, 13 -> 1, etc.
+    
+    return `${hours}:${minutes} ${ampm}`;
+  };
+
   const handleGameAdd = (game: { id: number; name: string }, categoryId: number) => {
     if (!selectedGameDay) return;
 
@@ -488,7 +499,7 @@ const onTimeChange = (event: any, time?: Date) => {
                     {day}
                   </Text>
                   {hasTime && (
-                    <Text style={styles.timeText}>{dayTimeMapping[day]}</Text>
+                    <Text style={styles.timeText}>{toAmPm(dayTimeMapping[day])}</Text>
                   )}
                 </TouchableOpacity>
               )
@@ -697,9 +708,22 @@ const onTimeChange = (event: any, time?: Date) => {
 
 
 
+          <View style={styles.formSection}>
+            <Text style={styles.sectionTitle}>Set Reward 🪙</Text>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Amount"
+                placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                keyboardType="numeric"
+                value={participationFee}
+                onChangeText={setParticipationFee}
+              />
+            </View>
+          </View>
 
 
-
+{/* 
           <View style={styles.rewardHeader}>
             <Text style={styles.sectionTitle}>Set Reward</Text>
 
@@ -714,7 +738,7 @@ const onTimeChange = (event: any, time?: Date) => {
               />
               <Text style={styles.coinEmoji}>🪙</Text>
             </View>
-          </View>
+          </View> */}
 
 
           <TouchableOpacity
