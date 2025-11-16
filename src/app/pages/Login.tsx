@@ -7,6 +7,7 @@ import {
   ImageBackground,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -150,15 +151,16 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
+    // <KeyboardAvoidingView
+    //   behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    //   style={styles.container}
+    // >
       <ImageBackground
         source={require('../images/cgpt3.png')}
         style={styles.backgroundImage}
         resizeMode="cover"
       >
+        <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
         <View style={styles.contentContainer}>
           <View style={styles.logoContainer}>
             <Image
@@ -234,7 +236,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </View>
       </ImageBackground>
-    </KeyboardAvoidingView>
+    // </KeyboardAvoidingView>
   );
 };
 
@@ -244,17 +246,17 @@ const styles = StyleSheet.create({
   },
   backgroundImage: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  contentContainer: {
-    width: '100%',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
+contentContainer: {
+  width: '100%',
+  alignItems: 'center',
+  paddingHorizontal: 20,
+  paddingTop: 50,   // same as your working screen
+},
   logoContainer: {
     alignItems: 'center',
     marginBottom: 40,
+    marginTop: 70,
   },
   logoImage: {
     width: 300,

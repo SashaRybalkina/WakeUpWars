@@ -293,14 +293,15 @@ const GroupChallCollab2: React.FC<Props> = ({ navigation }) => {
             showsVerticalScrollIndicator={false}
           >
 
-      <View style={styles.container}>
+      {/* <View style={styles.container}>
         <Text style={styles.pageTitle}>Group Challenge</Text>
-      </View>
+      </View> */}
 
           <View style={styles.formSection}>
           <Text style={styles.sectionTitle}>Select Games For Each Day</Text>
           <ScrollView 
-            horizontal 
+            horizontal
+            style={styles.scrollContainer} 
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.daysScrollContent}
           >
@@ -466,23 +467,20 @@ const GroupChallCollab2: React.FC<Props> = ({ navigation }) => {
 
 
 
-
-          <View style={styles.rewardHeader}>
-            <Text style={styles.sectionTitle}>Set Reward</Text>
-
-            <View style={styles.inputRow}>
+          <View style={styles.formSection}>
+            <Text style={styles.sectionTitle}>Set Participation Fee 🪙</Text>
+            <View style={styles.inputContainer}>
               <TextInput
-                style={[styles.input, { flex: 1 }]}
+                style={styles.input}
                 placeholder="Amount"
-                placeholderTextColor="rgba(255,255,255,0.6)"
+                placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 keyboardType="numeric"
                 value={participationFee}
                 onChangeText={setParticipationFee}
               />
-              <Text style={styles.coinEmoji}>🪙</Text>
             </View>
           </View>
-            
+
 
 
 
@@ -512,7 +510,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingTop: 50,
+    paddingTop: 20,
     paddingHorizontal: 20
   },
   backButton: {
@@ -522,21 +520,33 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 20,
+    marginTop: 30,
+    marginLeft: 10,
     marginBottom: 10,
+  },
+  scrollContainer: {
+    flex: 1,
+    marginBottom: 10,
+  },
+  inputContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 12,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   pageTitle: {
     fontSize: 28,
     fontWeight: '700',
     color: '#FFF',
     textAlign: 'center',
-    marginBottom: 20,
   },
   formSection: {
     backgroundColor: 'rgba(0,0,0,0.2)',
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
+    marginTop: 10,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },

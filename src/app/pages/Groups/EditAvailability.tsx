@@ -18,6 +18,7 @@ import { BASE_URL, endpoints } from '../../api';
 import { getAccessToken } from '../../auth';
 import { scheduleAlarmsForUser } from '../../alarmService';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const DAYS = ["M", "T", "W", "TH", "F", "S", "SU"];
 const DayOfWeekLabels: Record<number, string> = { 1: "M", 2: "T", 3: "W", 4: "TH", 5: "F", 6: "S", 7: "SU" }
@@ -818,20 +819,59 @@ return (
     </View>
   )}
 
-  <TouchableOpacity style={styles.saveButton} onPress={handleSubmit}>
+  {/* <TouchableOpacity style={styles.saveButton} onPress={handleSubmit}>
     <Text style={styles.saveButtonText}>Save My Availability</Text>
-  </TouchableOpacity>
+  </TouchableOpacity> */}
+
+{userAvailability.length > 0 && (
+            <TouchableOpacity
+            style={styles.createButton}
+            onPress={handleSubmit}
+          >
+            <LinearGradient
+              colors={["#FFD700", "#FFC107"]}
+              style={styles.createButtonGradient}
+            >
+              <Text style={styles.createButtonText}>Save My Availability</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+)}
+
 
   {accepted !== 1 && (
-    <TouchableOpacity style={styles.saveButton} onPress={handleDecline}>
-      <Text style={styles.saveButtonText}>Decline Challenge Invite</Text>
-    </TouchableOpacity>
+    // <TouchableOpacity style={styles.saveButton} onPress={handleDecline}>
+    //   <Text style={styles.saveButtonText}>Decline Challenge Invite</Text>
+    // </TouchableOpacity>
+
+            <TouchableOpacity
+            style={styles.createButton}
+            onPress={handleDecline}
+          >
+            <LinearGradient
+              colors={["#FFD700", "#FFC107"]}
+              style={styles.createButtonGradient}
+            >
+              <Text style={styles.createButtonText}>Decline Challenge Invite</Text>
+            </LinearGradient>
+          </TouchableOpacity>
   )}
 
   {isInitiator && uniqueUserIds.length > 1 && (
-    <TouchableOpacity style={styles.saveButton} onPress={handleFinalizeSchedule}>
-      <Text style={styles.saveButtonText}>Finalize Challenge</Text>
-    </TouchableOpacity>
+    // <TouchableOpacity style={styles.saveButton} onPress={handleFinalizeSchedule}>
+    //   <Text style={styles.saveButtonText}>Finalize Challenge</Text>
+    // </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.createButton}
+            onPress={handleFinalizeSchedule}
+          >
+            <LinearGradient
+              colors={["#FFD700", "#FFC107"]}
+              style={styles.createButtonGradient}
+            >
+              <Text style={styles.createButtonText}>Finalize Challenge</Text>
+            </LinearGradient>
+          </TouchableOpacity>
   )}
 </ScrollView>
 
@@ -858,11 +898,22 @@ const styles = StyleSheet.create({
   paddingHorizontal: 12,
   paddingBottom: 100, // give room for last button
 },
-//   container: {
-//     flex: 1,
-//     paddingTop: 50,
-//     paddingHorizontal: 12,
-//   },
+  createButton: {
+    borderRadius: 12,
+    overflow: "hidden",
+    marginVertical: 10,
+    marginBottom: 30,
+  },
+  createButtonGradient: {
+    paddingVertical: 15,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  createButtonText: {
+    color: "#333",
+    fontSize: 18,
+    fontWeight: "700",
+  },
   title: {
     color: '#FFF',
     fontSize: 24,

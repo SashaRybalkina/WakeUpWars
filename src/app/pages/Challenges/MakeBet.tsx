@@ -146,49 +146,48 @@ return (
           <Ionicons name="arrow-back" size={28} color="#FFF" />
         </TouchableOpacity>
 
-        <Text style={{ color: "#FFF", marginTop: 15 }}>Select a member to bet with:</Text>
-        <View style={{
-          backgroundColor: "#222",
-          borderRadius: 10,
-          marginVertical: 10,
-          paddingHorizontal: 10,
-        }}>
-          <Picker
-            selectedValue={recipientId}
-            onValueChange={(value) => setRecipientId(value)}
-            dropdownIconColor="#FFF"
-            style={{ color: "#FFF" }}
-          >
-            <Picker.Item label="Select member..." value={undefined} />
-            {challengeMembers
-            .filter(
-              m => m.id !== user?.id && !existingOpponents.includes(m.id) // exclude self and users with bets
-            )
-              .map(m => (
-                <Picker.Item
-                  key={m.id}
-                  label={`${m.username} (${m.numCoins} 🪙)`}
-                  value={m.id}
-                />
-            ))}
-          </Picker>
-        </View>
+          <View style={styles.formSection}>
+            <Text style={styles.sectionTitle}>Select a member to bet with:</Text>
+            <View style={styles.inputContainer}>
+              <Picker
+                selectedValue={recipientId}
+                onValueChange={(value) => setRecipientId(value)}
+                dropdownIconColor="#FFF"
+                style={{ color: "#FFF" }}
+              >
+                <Picker.Item label="Select member..." value={undefined} />
+                {challengeMembers
+                .filter(
+                  m => m.id !== user?.id && !existingOpponents.includes(m.id) // exclude self and users with bets
+                )
+                  .map(m => (
+                    <Picker.Item
+                      key={m.id}
+                      label={`${m.username} (${m.numCoins} 🪙)`}
+                      value={m.id}
+                    />
+                ))}
+              </Picker>
+            </View>
+          </View>
 
-          <View style={styles.rewardHeader}>
-            <Text style={styles.sectionTitle}>Set Bet Amount</Text>
 
-            <View style={styles.inputRow}>
+
+
+          <View style={styles.formSection}>
+            <Text style={styles.sectionTitle}>Set Bet Amount 🪙</Text>
+            <View style={styles.inputContainer}>
               <TextInput
-                style={[styles.input, { flex: 1 }]}
+                style={styles.input}
                 placeholder="Amount"
-                placeholderTextColor="rgba(255,255,255,0.6)"
+                placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 keyboardType="numeric"
                 value={betAmount}
                 onChangeText={setBetAmount}
               />
-              <Text style={styles.coinEmoji}>🪙</Text>
             </View>
           </View>
+
 
           <TouchableOpacity
             style={styles.createButton}
@@ -228,32 +227,13 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 10,
   },
-  coinEmoji: {
-    fontSize: 20,
-    marginLeft: 6,
-  },
-  container: {
-    flex: 1,
-    paddingTop: 50,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 20,
-    marginBottom: 10,
-  },
-  scrollContainer: {
-    flex: 1,
-    width: '100%',
-    marginTop: 20,
-  },
-  scrollContent: {
-    paddingBottom: 60,
-    alignItems: 'center',
+  formSection: {
+    marginBottom: 25,
+    backgroundColor: "rgba(0, 0, 0, 0.2)",
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
   },
   sectionTitle: {
     fontSize: 20,
@@ -263,6 +243,41 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0, 0, 0, 0.2)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
+  },
+  inputContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 12,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+  },
+  coinEmoji: {
+    fontSize: 20,
+    marginLeft: 6,
+  },
+  container: {
+    flex: 1,
+    paddingTop: 50,
+    paddingHorizontal: 20,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 10,
+    marginBottom: 20,
+  },
+  scrollContainer: {
+    flex: 1,
+    width: '100%',
+    marginTop: 20,
+  },
+  scrollContent: {
+    paddingBottom: 60,
+    alignItems: 'center',
   },
   createButton: {
     borderRadius: 12,

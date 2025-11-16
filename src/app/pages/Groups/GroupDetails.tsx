@@ -294,14 +294,14 @@ useFocusEffect(
               <Text style={styles.sectionTitle}>Overall Ranking</Text>
               <View style={styles.leaderboardCard}>
                 {lbSince && lbUntil && (
-                  <Text style={{ color: "#ffcf4dff", textAlign: "center", marginBottom: 8, fontSize: 12 }}>
+                  <Text style={{ color: "#f6be25ff", textAlign: "center", marginBottom: 8, fontSize: 12 }}>
                     Window: {lbSince} – {lbUntil}
                   </Text>
                 )}
                 {lbLoading && <Text style={{ color: "#FFD700", textAlign: "center" }}>Loading…</Text>}
                 {lbError && <Text style={{ color: "#F88", textAlign: "center" }}>{lbError}</Text>}
                 {!lbLoading && !lbError && displayRows().length === 0 && (
-                  <Text style={{ color: "#ffcf4dff", textAlign: "center" }}>No scores yet — be the first!</Text>
+                  <Text style={{ color: "#f8c12bff", textAlign: "center" }}>No scores yet — be the first!</Text>
                 )}
                 {!lbLoading && !lbError && displayRows().map((row, index) => (
                   'ellipsis' in (row as any) ? (
@@ -313,7 +313,7 @@ useFocusEffect(
                       <View style={styles.rankPosition}>
                         <Text style={styles.rankEmoji}>{getRankEmoji((row as LeaderRow).rank)}</Text>
                       </View>
-                      <Text style={[styles.rankName, (row as LeaderRow).name === myName && { color: "#ffcf4dff" }]}>
+                      <Text style={[styles.rankName, (row as LeaderRow).name === myName && { color: "#fec936ff" }]}>
                         {(row as LeaderRow).name === myName ? "You" : (row as LeaderRow).name}
                       </Text>
                       <Text style={styles.rankPoints}>{(row as LeaderRow).points} pts</Text>
@@ -324,14 +324,14 @@ useFocusEffect(
                   style={styles.viewDetailsButton}
                   onPress={() => navigation.navigate("GroupLeaderboardDetails", { groupId, myName })}
                 >
-                  <LinearGradient
-                      colors={["#FFE0B2", "#ffcf4dff"]}
-                      start={{ x: 0, y: 0.5 }}
-                      end={{ x: 0.5, y: 1 }}
-                    style={styles.viewDetailsGradient}
-                  >
-                    <Text style={styles.viewDetailsText}>View leaderboard details</Text>
-                  </LinearGradient>
+                <LinearGradient
+                  colors={["#FFD700", "#f7aa1cff"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.scheduleButtonGradient}
+                >
+                  <Text style={styles.scheduleButtonText}>View leaderboard details</Text>
+                </LinearGradient>
                 </TouchableOpacity>
               </View>
             </View>
@@ -428,22 +428,20 @@ useFocusEffect(
               )}
             </View>
 
-            <TouchableOpacity
-              style={styles.pastButtonContainer}
-              onPress={() => navigation.navigate("PastChallenges", { type: "Group", groupId })}
-            >
-              <LinearGradient
-              colors={["#FFE0B2", "#ffcf4dff"]}
-              start={{ x: 0, y: 0.5 }}
-              end={{ x: 0.5, y: 1 }}
-                style={styles.pastButtonGradient}
-              >
-                <View style={styles.pastButtonRow}>
-                  <Ionicons name="time-outline" size={18} color="#333" style={{ marginRight: 8 }} />
-                  <Text style={styles.pastButtonText}>View past challenges</Text>
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
+<TouchableOpacity
+  style={styles.pastButtonWrapper}
+  onPress={() => navigation.navigate("PastChallenges", { type: "Group", groupId })}
+>
+  <LinearGradient
+    colors={["#FFD700", "#fdb021ff"]}
+    start={{ x: 0, y: 0 }}
+    end={{ x: 1, y: 0 }}
+    style={styles.pastButtonGradient}
+  >
+    <Text style={styles.pastButtonText}>View past challenges</Text>
+  </LinearGradient>
+</TouchableOpacity>
+
           </ScrollView>
       </View>
 
@@ -466,6 +464,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: 50,
+  },
+  scheduleButtonGradient: {
+    width: "100%",
+    height: "100%",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  scheduleButtonText: {
+    color: "#333",
+    fontWeight: "700",
+    fontSize: 16,
+    textShadowColor: "rgba(0, 0, 0, 0.1)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   backButton: {
     width: 40,
@@ -619,20 +632,23 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     width: "90%",
   },
-  pastButtonGradient: {
-    borderRadius: 24,
-    paddingVertical: 12,
-    paddingHorizontal: 22,
-    minWidth: 220,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.35)",
-  },
+pastButtonWrapper: {
+  alignSelf: "center",
+  marginTop: 20,
+  width: "90%",
+  height: 45,        
+  borderRadius: 22.5,
+  overflow: "hidden",
+},
+
+pastButtonGradient: {
+  width: "100%",
+  height: "100%",
+  justifyContent: "center",
+  alignItems: "center",
+  borderRadius: 22.5,
+},
+
   pastButtonText: {
     color: "#333",
     fontSize: 16,
