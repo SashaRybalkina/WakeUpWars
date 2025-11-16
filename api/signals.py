@@ -5,6 +5,8 @@ from django.db import transaction
 from django.db.models import Q, Count, F, Value, Sum, Max
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
+import logging
+logger = logging.getLogger(__name__)
 
 from api.utils.notifications import send_fcm_notification
 from .models import (
@@ -48,6 +50,10 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
     def _after_commit():
         try:
             print("Well it should reach here...")
+            logger.warning(
+                f"[SIG][ENTER] challenge={instance.challenge_id} date={instance.date} "
+                f"user={instance.user_id} auto={instance.auto_generated}"
+            )
             ch = instance.challenge
 
             play_date = instance.date
@@ -108,6 +114,10 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
             print("Expected: ", expected)
             print("Found: ", found)
             if found < expected:
+                logger.warning(
+                    f"[SIG][EARLY] expected={expected} found={found} "
+                    f"challenge={ch.id} date={play_date}"
+                )
                 return
 
             # Compute today's index and atomically raise daysCompleted

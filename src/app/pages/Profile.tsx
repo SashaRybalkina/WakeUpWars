@@ -322,7 +322,7 @@ const handleHmm = async (b: boolean) => {
         </TouchableOpacity>
 
 
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.logoutButton}
           activeOpacity={0.8}
           onPress={() => handleHmm(true)}
@@ -334,7 +334,7 @@ const handleHmm = async (b: boolean) => {
             style={styles.logoutIcon}
           />
           <Text style={styles.logoutText}>Hmm</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
 
         {/* Add padding at the bottom to ensure content isn't hidden behind the nav bar */}

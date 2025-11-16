@@ -161,7 +161,7 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
         #print(f"[Typing][CACHE] Remaining connections: {list(conns)}")
 
         # Auto-save zero score for disconnected users
-        await self._save_zero_score_if_needed()
+        #await self._save_zero_score_if_needed()
 
         # Notify others of updated lobby state
         await self._broadcast_lobby_state()
@@ -218,7 +218,7 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
         )(joins_closed=True)
 
         # Auto-assign zero scores to absent players
-        await self._auto_save_zero_for_absent_players()
+        #await self._auto_save_zero_for_absent_players()
 
         #cache.delete(_deadline_key(self.game_id))
         await self.channel_layer.group_send(
@@ -650,20 +650,32 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
     
     @database_sync_to_async
     def _save_game_performance_from_typing_results(self):
-        """
-        Sync TypingRaceGamePlayer results into GamePerformance for leaderboard use.
-        Called only once at the end of the match.
-        """
+        logger.warning(f"[PERF][START] game_id={self.game_id}")
 
-        # --- Handle absent players before syncing performances ---
-        absent_ids = cache.get(f"absent_players_{self.game_id}") or []
         try:
             state = TypingRaceGameState.objects.select_related("challenge", "game").get(id=self.game_id)
             today = date.today()
 
+            # Correct absent calculation
+            all_members = list(
+                ChallengeMembership.objects.filter(challengeID=state.challenge)
+                .values_list("uID_id", flat=True)
+            )
+
+            connected_ids = set(cache.get(_conns_key(self.game_id)) or [])
+
+            absent_ids = [uid for uid in all_members if uid not in connected_ids]
+
+            # --- Handle absent players ---
             if absent_ids and bool(getattr(state.game, 'isMultiplayer', False)):
                 users = list(User.objects.filter(id__in=absent_ids))
                 for user in users:
+                    # log BEFORE write
+                    logger.warning(
+                        f"[PERF][ABSENT] game_id={self.game_id} "
+                        f"user={user.id}/{user.username} score=0 auto_generated=True"
+                    )
+
                     TypingRaceGamePlayer.objects.get_or_create(
                         game_state=state,
                         player=user,
@@ -681,28 +693,53 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
                         date=today,
                         defaults={"score": 0, "auto_generated": True},
                     )
-                cache.delete(f"absent_players_{self.game_id}")
-                logger.warning(
-                    f"[Typing][AUTOZERO][TIMEOUT] Persisted {len(users)} absent players with 0 score"
-                )
 
-            # --- Now sync all players to GamePerformance ---
+                cache.delete(f"absent_players_{self.game_id}")
+                logger.warning(f"[PERF][ABSENT][DONE] {len(users)} absent saved")
+
+            # --- Sync actual players ---
             players = TypingRaceGamePlayer.objects.filter(game_state=state)
             for p in players:
+                final_score = int(p.final_score or 0)
+
+                logger.warning(
+                    f"[PERF][PLAYER] game_id={self.game_id} "
+                    f"user={p.player.id}/{p.player.username} "
+                    f"final_score={final_score} auto_generated=False"
+                )
+
                 GamePerformance.objects.update_or_create(
                     challenge=state.challenge,
                     game=state.game,
                     user=p.player,
                     date=today,
                     defaults={
-                        "score": int(p.final_score or 0),
+                        "score": final_score,
                         "auto_generated": False,
                     },
                 )
-            logger.warning(f"[Typing][SYNC] GamePerformance synced for game_state={self.game_id}")
+
+            # --- Snapshot (MOST IMPORTANT) ---
+            logger.warning(
+                f"[PERF][META] game_state_id={self.game_id} "
+                f"challenge_id={state.challenge.id} "
+                f"game_id={state.game.id} "
+                f"date={today}"
+            )
+            gp_snapshot = list(
+                GamePerformance.objects.filter(
+                    challenge=state.challenge,
+                    game=state.game,
+                    date=today
+                ).values("user_id", "score", "auto_generated")
+            )
+            logger.warning(
+                f"[PERF][SNAPSHOT] game_id={self.game_id} GP={gp_snapshot}"
+            )
 
         except Exception as e:
-            logger.error(f"[Typing][SYNC][ERROR] Failed syncing GamePerformance: {e}")
+            logger.error(f"[PERF][ERROR] game_id={self.game_id} {e}")
+
 
     
     # ===== Helper: join deadline check =====
@@ -745,26 +782,26 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
             return False
         return True
     
-    async def _auto_save_zero_for_absent_players(self):
-        """Just record absent players to cache; no DB writes yet."""
-        gs = await sync_to_async(
-            TypingRaceGameState.objects.select_related("challenge", "game").get
-        )(id=self.game_id)
+    # async def _auto_save_zero_for_absent_players(self):
+    #     """Just record absent players to cache; no DB writes yet."""
+    #     gs = await sync_to_async(
+    #         TypingRaceGameState.objects.select_related("challenge", "game").get
+    #     )(id=self.game_id)
 
-        if not bool(getattr(gs.game, "isMultiplayer", False)):
-            return
+    #     if not bool(getattr(gs.game, "isMultiplayer", False)):
+    #         return
 
-        all_members = await sync_to_async(list)(
-            ChallengeMembership.objects.filter(
-                challengeID=gs.challenge
-            ).select_related("uID")
-        )
+    #     all_members = await sync_to_async(list)(
+    #         ChallengeMembership.objects.filter(
+    #             challengeID=gs.challenge
+    #         ).select_related("uID")
+    #     )
 
-        connected_ids = set(cache.get(_conns_key(self.game_id)) or [])
-        absent_ids = [m.uID.id for m in all_members if m.uID.id not in connected_ids]
+    #     connected_ids = set(cache.get(_conns_key(self.game_id)) or [])
+    #     absent_ids = [m.uID.id for m in all_members if m.uID.id not in connected_ids]
 
-        cache.set(f"absent_players_{self.game_id}", absent_ids, timeout=3600)
-        logger.warning(f"[Typing][AUTOZERO][CACHE] Marked {len(absent_ids)} absent players for game_id={self.game_id}")
+    #     cache.set(f"absent_players_{self.game_id}", absent_ids, timeout=3600)
+    #     logger.warning(f"[Typing][AUTOZERO][CACHE] Marked {len(absent_ids)} absent players for game_id={self.game_id}")
 
 
 
