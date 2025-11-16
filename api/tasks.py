@@ -1,5 +1,5 @@
 from django.utils import timezone
-from datetime import date
+from datetime import date, timedelta
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 import logging
@@ -103,6 +103,10 @@ def open_join_window(challenge_id, game_id, game_code, user_id=None):
         gs.join_deadline_at = timezone.now() + timezone.timedelta(seconds=20)
         gs.save(update_fields=["join_deadline_at"])
     
+    logger.info(
+        "[join-window] scheduling close for %s id=%s at %s (now=%s)",
+        Model.__name__, gs.id, gs.join_deadline_at, timezone.now()
+    )
     close_join_window.apply_async(
         args=[Model.__name__, gs.id],
         eta=gs.join_deadline_at,
@@ -114,6 +118,10 @@ def open_join_window(challenge_id, game_id, game_code, user_id=None):
 def close_join_window(model_name, gs_id):
     Model = globals()[model_name]
     gs = Model.objects.select_related("challenge", "game").get(pk=gs_id)
+    logger.info(
+        "[join-window] executing close for %s id=%s at %s (deadline=%s)",
+        model_name, gs_id, timezone.now(), getattr(gs, "join_deadline_at", None)
+    )
     if gs.joins_closed:
         return  # already handled by safety-net
 

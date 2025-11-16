@@ -40,10 +40,13 @@ AUTH_USER_MODEL = 'api.User'
 
 # Application definition
 
-# TODO: not good for production but fine for development
+# Channels layer: use Redis so cross-process (Daphne/Celery) broadcasts work
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer"
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [os.getenv("REDIS_URL", os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0"))],
+        },
     }
 }
 

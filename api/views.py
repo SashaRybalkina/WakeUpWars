@@ -1852,7 +1852,6 @@ class RespondToBetInviteView(APIView):
             user=bet.initiator,
             title=f"Bet {response}",
             body=f"{bet.recipient.name or bet.recipient.username} has {response.lower()} the bet invite.",
-            body=f"{bet.recipient.name or bet.recipient.username} has {response.lower()} the bet invite.",
             type="bet_response",
             screen="Bets",
             challengeId=bet.challenge.id,
@@ -3400,26 +3399,26 @@ class ValidatePatternMoveView(APIView):
             payload["scores"] = result["scores"]
 
         # # ⭐⭐ GAME PERFORMANCE WRITE HERE ⭐⭐
-        # if result.get("is_complete"):   # only on final round
-        #     today = timezone.localdate()
+        if result.get("is_complete"):   # only on final round
+            today = timezone.localdate()
 
-        #     # get accumulated score
-        #     player_rec = PatternMemorizationGamePlayer.objects.get(
-        #         game_state=gs,
-        #         player=user,
-        #     )
-        #     final_score = player_rec.score  # <-- correct (100)
+            # get accumulated score
+            player_rec = PatternMemorizationGamePlayer.objects.get(
+                game_state=gs,
+                player=user,
+            )
+            final_score = player_rec.score  # <-- correct (100)
 
-        #     GamePerformance.objects.update_or_create(
-        #         challenge=gs.challenge,
-        #         game=gs.game,
-        #         user=user,
-        #         date=today,
-        #         defaults={
-        #             "score": final_score,
-        #             "auto_generated": False
-        #         }
-        #     )
+            GamePerformance.objects.update_or_create(
+                challenge=gs.challenge,
+                game=gs.game,
+                user=user,
+                date=today,
+                defaults={
+                    "score": final_score,
+                    "auto_generated": False
+                }
+            )
 
         if result.get('is_correct'):
             return Response({"success": True, "result": "correct", **payload}, status=status.HTTP_200_OK)

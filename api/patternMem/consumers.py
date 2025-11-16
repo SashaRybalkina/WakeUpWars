@@ -3,7 +3,7 @@ import asyncio
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
 from django.core.cache import cache
-from datetime import date
+from datetime import date, timedelta
 
 from api.models import PatternMemorizationGameState, PatternMemorizationGamePlayer, User, ChallengeMembership, GamePerformance
 from api.patternMem.utils import validate_pattern_move
@@ -205,8 +205,7 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
                     "type": "game.start",
                 })
                 print("[DEBUG From Consumers] group_send → game.start has been sent", flush=True)
-                # Ensure server-side close logic runs (populate zeros, schedule leaderboard)
-                close_join_window.delay('PatternMemorizationGameState', self.game_state_id)
+                # Do NOT close join window immediately here; rely on eta-scheduled task set at open/connect
 
     async def _handle_player_answer(self, data):
         # NEW: reject any answers during the freeze window (3-second global pause)
@@ -295,6 +294,10 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
             "started": event.get("started", False),
             "ready_count": event.get("ready_count", 0),
             "expected_count": event.get("expected_count", 0),
+            "created_at": event.get("created_at"),
+            "join_deadline_at": event.get("join_deadline_at"),
+            "server_now": event.get("server_now"),
+            "online_ids": event.get("online_ids"),
         }))
 
     async def join_window_closed(self, event):
