@@ -232,13 +232,33 @@ function countAlarmDaysBetween(startDate: Date, endDate: Date, alarmDays: number
 
             // Schedule native alarms on this device for the newly created challenge
             try {
-                const newId = (data && (data.id ?? data.challenge_id)) as number | undefined;
-                if (newId) {
-                console.log(newId)
+              const newId = (data && (data.id ?? data.challenge_id)) as number | undefined;
+              if (newId) {
                 await scheduleAlarmsForUser(newId, name, Number(user?.id));
-                }
+              }
             } catch (e) {
-                console.warn('Failed to schedule alarms for new challenge', e);
+              if ((e as Error).message === "AUTH_EXPIRED") {
+                Alert.alert(
+                  "Session expired",
+                  "Your login session has expired. Please log in again.",
+                  [
+                    {
+                      text: "OK",
+                      onPress: async () => {
+                        await logout();
+                        navigation.reset({
+                          index: 0,
+                          routes: [{ name: "Login" }],
+                        });
+                      },
+                    },
+                  ],
+                  { cancelable: false }
+                );
+                return;
+              }
+
+              console.warn("Failed to fetch schedule for user", e);
             }
             setSubmitting(false);
             Alert.alert('Success', 'Challenge created successfully', [

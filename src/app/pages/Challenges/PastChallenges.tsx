@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react"
-import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from "react-native"
+import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Alert } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { useFocusEffect, type NavigationProp, useRoute } from "@react-navigation/native"
 import { useUser } from "../../context/UserContext"
@@ -20,7 +20,7 @@ import PublicChallengeCard from "./PublicChallengeCard"
  const PastChallenges: React.FC<Props> = ({ navigation }) => {
   const route = useRoute()
   const { type, groupId } = route.params as RouteParams
-  const { user } = useUser()
+  const { user, logout } = useUser()
 
   const [loading, setLoading] = useState(true)
   const [items, setItems] = useState<any[]>([])
@@ -31,7 +31,27 @@ import PublicChallengeCard from "./PublicChallengeCard"
         try {
           setLoading(true)
           const accessToken = await getAccessToken();
-          if (!accessToken) throw new Error('Not authenticated')
+          if (!accessToken) {
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
+          }
 
           if (type === 'Personal') {
             const res = await fetch(endpoints.challengeList(Number(user!.id), 'Personal'), {

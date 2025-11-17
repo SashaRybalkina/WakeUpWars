@@ -140,8 +140,6 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
                   return;
       }
 
-      // await scheduleAlarmsForUser(challId, challName, Number(user?.id));
-
       const res = await fetch(endpoints.acceptPersonalChallenge(Number(user!.id), challId), {
         method: 'POST',
         headers: {
@@ -155,6 +153,33 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
         throw new Error(data.message || "Failed to accept challenge");
       }
       console.log('Challenge accepted:', data);
+
+            try {
+              await scheduleAlarmsForUser(challId, challName, Number(user?.id));
+            } catch (e) {
+              if ((e as Error).message === "AUTH_EXPIRED") {
+                Alert.alert(
+                  "Session expired",
+                  "Your login session has expired. Please log in again.",
+                  [
+                    {
+                      text: "OK",
+                      onPress: async () => {
+                        await logout();
+                        navigation.reset({
+                          index: 0,
+                          routes: [{ name: "Login" }],
+                        });
+                      },
+                    },
+                  ],
+                  { cancelable: false }
+                );
+                return;
+              }
+
+              console.warn("Failed to fetch schedule for user", e);
+            }
 
 
       // refresh after accepting

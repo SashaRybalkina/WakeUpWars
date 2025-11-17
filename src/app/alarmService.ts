@@ -71,26 +71,30 @@ export async function scheduleAlarmsForChallenge(
   }
 }
 
+
 export async function scheduleAlarmsForUser(
   challId: number,
   challName: string,
   userId: number,
   whichChall: string = '',
 ): Promise<void> {
-  try {
+
     const access = await getAccessToken();
     if (!access) {
-      throw new Error("Not authenticated");
+      throw new Error("AUTH_EXPIRED");
     }
+
     const res = await fetch(endpoints.getChallengeUserSchedule(challId, userId), {
-      headers: {
-        Authorization: `Bearer ${access}`
-      }
+      headers: { Authorization: `Bearer ${access}` }
     });
 
+    // If JWT is expired, you'll see 401 here
+    if (res.status === 401) {
+      throw new Error("AUTH_EXPIRED");
+    }
+
     if (!res.ok) {
-      console.warn('Could not fetch challenge schedule', res.status);
-      return;
+      throw new Error(`HTTP_${res.status}`);
     }
 
     const data = await res.json();
@@ -128,9 +132,6 @@ export async function scheduleAlarmsForUser(
 
     // console.log(alarms)
     await scheduleAlarms(alarms);
-  } catch (err) {
-    console.error('Failed to sync alarms:', err);
-  }
 }
 
 /**

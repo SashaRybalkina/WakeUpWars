@@ -273,7 +273,7 @@ return (
       <Text style={styles.noBetsText}>No bets yet.</Text>
     ) : (
       bets.map((bet) => (
-        <BetCard key={bet.id} bet={bet} user={user} challengeMembers={challengeMembers} onRefresh={fetchData} />
+        <BetCard key={bet.id} bet={bet} user={user} logout={logout} challengeMembers={challengeMembers} onRefresh={fetchData} navigation={navigation} />
       )))
   ) : (
     <>
@@ -342,7 +342,7 @@ return (
         <Text style={styles.noBetsText}>No bets yet.</Text>
       ) : (
         myBets.map((bet) => (
-            <BetCard key={bet.id} bet={bet} user={user} challengeMembers={challengeMembers} onRefresh={fetchData} />
+            <BetCard key={bet.id} bet={bet} user={user} logout={logout} challengeMembers={challengeMembers} onRefresh={fetchData} navigation={navigation} />
         ))
       )}
     </>
@@ -640,7 +640,8 @@ export default Bets
 
 
 
-const BetCard: React.FC<{ bet: Bet; user: any; challengeMembers: Member[]; onRefresh: () => Promise<void> }> = ({ bet, user, challengeMembers, onRefresh }) => {
+const BetCard: React.FC<{ bet: Bet; user: any; logout: () => Promise<void>; challengeMembers: Member[]; onRefresh: () => Promise<void>; navigation: NavigationProp<any>; }> = ({ bet, user, logout, challengeMembers, onRefresh, navigation }) => {
+  
   const initiator = challengeMembers.find((m) => m.id === bet.initiatorId);
   const recipient = challengeMembers.find((m) => m.id === bet.recipientId);
 
@@ -661,7 +662,26 @@ const BetCard: React.FC<{ bet: Bet; user: any; challengeMembers: Member[]; onRef
     try {
       setIsCollecting(true);
       const accessToken = await getAccessToken();
-      if (!accessToken) {throw new Error("Not authenticated");}
+      if (!accessToken) {
+                Alert.alert(
+                  "Session expired",
+                  "Your login session has expired. Please log in again.",
+                  [
+                    {
+                      text: "OK",
+                      onPress: async () => {
+                        await logout();
+                        navigation.reset({
+                          index: 0,
+                          routes: [{ name: "Login" }],
+                        });
+                      },
+                    },
+                  ],
+                  { cancelable: false }
+                );
+                return;
+      }
 
       const res = await fetch(endpoints.collectBetCoins(), {  
         method: "POST",
@@ -688,7 +708,27 @@ const BetCard: React.FC<{ bet: Bet; user: any; challengeMembers: Member[]; onRef
     try {
       setIsCollecting(true);
       const accessToken = await getAccessToken();
-      if (!accessToken) throw new Error("Not authenticated");
+      if (!accessToken) {
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
+      }
 
       const res = await fetch(endpoints.collectBetRefund(), {  
         method: "POST",

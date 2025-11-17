@@ -86,7 +86,26 @@ const Conversation: React.FC<Props> = ({ route, navigation }) => {
       try {
         setProfileLoading(true)
         const token = await getAccessToken()
-        if (!token) return
+        if (!token) {
+                Alert.alert(
+                  "Session expired",
+                  "Your login session has expired. Please log in again.",
+                  [
+                    {
+                      text: "OK",
+                      onPress: async () => {
+                        await logout();
+                        navigation.reset({
+                          index: 0,
+                          routes: [{ name: "Login" }],
+                        });
+                      },
+                    },
+                  ],
+                  { cancelable: false }
+                );
+                return;
+        }
         // Use the all-users endpoint which returns avatar info
         const res = await fetch(endpoints.allUsers(), {
           headers: { Authorization: `Bearer ${token}` },

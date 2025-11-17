@@ -254,14 +254,6 @@ const handleHmm = async (b: boolean) => {
 
 
 
-    const setUserAlarms = async() => {
-      try {
-        await scheduleAlarmsForUser(212, 'PAlarm', 5, '');
-      } catch (e) {
-        console.warn('Failed to schedule alarms for new group challenge', e);
-        Alert.alert('Error', 'Failed to schedule alarms');
-      }
-    }
 
 
 

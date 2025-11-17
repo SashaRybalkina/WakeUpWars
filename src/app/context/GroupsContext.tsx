@@ -35,19 +35,18 @@ export const GroupsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const refreshGroups = useCallback(async () => {
     setIsLoading(true);
-    try {
       const accessToken = await getAccessToken();
-      if (!accessToken) throw new Error("Not authenticated");
+      if (!accessToken) throw new Error("AUTH_EXPIRED");
 
+    try {
         const groupsRes = await fetch(endpoints.groups(Number(user?.id)), { headers: { Authorization: `Bearer ${accessToken}` } })
-
 
       if (groupsRes.ok) {
         const groupsData = await groupsRes.json();
         setGroups(groupsData);
       }
     } catch (err) {
-      console.error("Failed to refresh groups:", err);
+      console.error("Failed to fetch groups:", err);
     } finally {
       setIsLoading(false);
       setInvalid(false);

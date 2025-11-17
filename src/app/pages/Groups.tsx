@@ -69,7 +69,34 @@ const Groups: React.FC<Props> = ({ navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (invalid) refreshGroups();
+      if (invalid) {
+        try {
+          refreshGroups();
+        } catch (e) {
+          if ((e as Error).message === "AUTH_EXPIRED") {
+            Alert.alert(
+              "Session expired",
+              "Your login session has expired. Please log in again.",
+              [
+                {
+                  text: "OK",
+                  onPress: async () => {
+                    await logout();
+                    navigation.reset({
+                      index: 0,
+                      routes: [{ name: "Login" }],
+                    });
+                  },
+                },
+              ],
+              { cancelable: false }
+            );
+            return;
+          }
+
+          console.warn("Failed to fetch groups", e);
+        }
+      }
       fetchInvites();
     }, [invalid, refreshGroups, user?.id])
   );
