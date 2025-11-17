@@ -6,6 +6,7 @@ from asgiref.sync import sync_to_async
 from django.core.cache import cache
 from channels.db import database_sync_to_async
 from time import time
+import json
 import logging
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,7 @@ from api.models import (
     ChallengeMembership
 )
 from api.typingRaceStuff.utils import apply_progress_update_async, _save_leaderboard_cache_to_db
+from api.tasks import close_join_window
 
 
 # ===== Cache Key Helpers =====
@@ -206,9 +208,10 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
         """Triggered when a player starts the game. Broadcast start signal."""
         #print(f"[Typing][START] Game start triggered by {self.user.username}")
         
+        print(f"[Typing][START] Game start triggered by {self.user.username}")
         started_key = _started_key(self.game_id)
         if cache.get(started_key):
-            #print(f"[Typing][START] Ignored duplicate start signal for game {self.game_id}")
+            print(f"[Typing][START] Ignored duplicate start signal for game {self.game_id}")
             return
         cache.set(started_key, True, timeout=CACHE_TTL)
 
@@ -221,9 +224,25 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
         #await self._auto_save_zero_for_absent_players()
 
         #cache.delete(_deadline_key(self.game_id))
-        await self.channel_layer.group_send(
+        await self._close_joins_and_broadcast()
+
+    @sync_to_async
+    def _close_joins_and_broadcast(self):
+        try:
+            gs = TypingRaceGameState.objects.get(id=self.game_id)
+            if not gs.joins_closed:
+                gs.joins_closed = True
+                gs.save(update_fields=['joins_closed'])
+        except TypingRaceGameState.DoesNotExist:
+            return
+        # broadcast to group
+        from asgiref.sync import async_to_sync
+        async_to_sync(self.channel_layer.group_send)(
             self.room_group_name,
-            {"type": "join_window_closed"}
+            {
+                'type': 'join_window_closed',
+                'server_now': timezone.now().isoformat(),
+            }
         )
 
     async def _handle_progress_update(self, total_typed, total_errors):
@@ -356,7 +375,6 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
         all_done = all(p.is_completed for p in players)
         return leaderboard, all_done
 
-
     async def _handle_game_finished(self):
         """Handle player finishing the game and broadcast leaderboard if all done."""
         try:
@@ -406,10 +424,13 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
 
         except Exception as e:
             logger.error(f"[Typing][ERROR] game_finished failed: {e}")
-            await self.send_json({
-                "type": "error",
-                "message": f"Game finish failed: {e}"
-            })
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "error",
+                    "message": f"Game finish failed: {e}"
+                }
+            )
 
     async def _handle_game_timeout(self):
         """
@@ -484,9 +505,11 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
         })
 
     async def join_window_closed(self, event):
-        """Notify clients that the join window (waiting room) has closed."""
-        #print(f"[Typing][SEND] join_window_closed -> {self.user.username}")
-        await self.send_json({"type": "join_window_closed"})
+        print("[Typing] broadcasting join_window_closed")
+        await self.send(text_data=json.dumps({
+            'type': 'join_window_closed',
+            'server_now': event.get('server_now'),
+        }))
 
     async def lobby_state(self, event):
         """Forward updated lobby state to each client."""
@@ -578,6 +601,7 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
         if not join_deadline_at:
             join_deadline_at = (timezone.now() + timedelta(seconds=JOIN_TIMEOUT_SEC)).isoformat()
             cache.set(_deadline_key(self.game_id), join_deadline_at, timeout=CACHE_TTL)
+            logger.warning(f"[Typing][DEADLINE] (broadcast) set fresh deadline {join_deadline_at}")
 
 
         message = {
@@ -748,6 +772,7 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
         if not getattr(gs, "join_deadline_at", None):
             gs.join_deadline_at = (gs.created_at or now) + timezone.timedelta(seconds=20)
             await sync_to_async(gs.save)(update_fields=["join_deadline_at"])
+            logger.warning(f"[Typing][DEADLINE][DB] Refreshed DB join_deadline_at to {gs.join_deadline_at}")
 
         # if joins_closed or deadline passed, block the join
         if getattr(gs, "joins_closed", False) or now > gs.join_deadline_at:

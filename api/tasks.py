@@ -138,32 +138,57 @@ def close_join_window(model_name, gs_id):
     if is_multiplayer:
         participant_ids = set(
             ChallengeMembership.objects.filter(challengeID=gs.challenge)
-                                       .values_list("uID_id", flat=True)
+                                    .values_list("uID_id", flat=True)
         )
+        print(f"[join-window] participant_ids={participant_ids}")
+
         existing_ids = set(
-            GamePerformance.objects.filter(challenge=gs.challenge,
-                                           game=gs.game,
-                                           date=today)
-                                   .values_list("user_id", flat=True)
+            GamePerformance.objects.filter(
+                challenge=gs.challenge,
+                game=gs.game,
+                date=today
+            ).values_list("user_id", flat=True)
         )
-        for uid in participant_ids - existing_ids:
-            GamePerformance.objects.get_or_create(
-                challenge=gs.challenge, game=gs.game,
-                user_id=uid, date=today,
-                defaults={"score": 0, "auto_generated": True},
-            )
+        print(f"[join-window] existing_ids={existing_ids}")
+
+        if model_name == 'TypingRaceGameState':
+            connected_ids = set(cache.get(f"typing_conns_{gs.id}") or [])
+            print(f"[join-window] connected_ids={connected_ids}")
+
+            if connected_ids:
+                absent_ids = (participant_ids - existing_ids) - connected_ids
+                print(f"[join-window] absent_ids_to_zero={absent_ids}")
+                for uid in absent_ids:
+                    GamePerformance.objects.get_or_create(
+                        challenge=gs.challenge,
+                        game=gs.game,
+                        user_id=uid,
+                        date=today,
+                        defaults={"score": 0, "auto_generated": True},
+                    )
+            else:
+                print("[join-window] no online users; skipping auto 0-scores for TypingRace at join close")
+        else:
+            for uid in participant_ids - existing_ids:
+                GamePerformance.objects.get_or_create(
+                    challenge=gs.challenge,
+                    game=gs.game,
+                    user_id=uid,
+                    date=today,
+                    defaults={"score": 0, "auto_generated": True},
+                )
     else:
         owner_id = getattr(gs, 'user_id', None)
         if owner_id and not GamePerformance.objects.filter(
             challenge=gs.challenge, game=gs.game, date=today, user_id=owner_id
         ).exists():
-            GamePerformance.objects.update_or_create(
-                challenge=gs.challenge,
-                game=gs.game,
-                user_id=owner_id,
-                date=today,
-                defaults={"score": 0, "auto_generated": True},
-            )
+                GamePerformance.objects.update_or_create(
+                    challenge=gs.challenge,
+                    game=gs.game,
+                    user_id=owner_id,
+                    date=today,
+                    defaults={"score": 0, "auto_generated": True},
+                )
 
     gs.joins_closed = True
     gs.save(update_fields=["joins_closed"])

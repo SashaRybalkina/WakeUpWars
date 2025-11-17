@@ -50,9 +50,21 @@ AUTH_USER_MODEL = 'api.User'
 #     }
 # }
 # TODO: not good for production but fine for development
+# Shared cache across processes
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": os.getenv("REDIS_URL", "redis://127.0.0.1:6379/1"),
+    }
+}
+
+# Channels layer: use Redis so cross-process (Daphne/Celery) sends work
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [os.getenv("REDIS_URL", os.getenv("CELERY_BROKER_URL", "redis://127.0.0.1:6379/0"))],
+        },
     }
 }
 

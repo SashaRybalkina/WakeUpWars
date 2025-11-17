@@ -140,8 +140,7 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
                   return;
       }
 
-      // await scheduleAlarmsForUser(challId, challName, Number(user?.id));
-
+      
       const res = await fetch(endpoints.acceptPersonalChallenge(Number(user!.id), challId), {
         method: 'POST',
         headers: {
@@ -149,13 +148,14 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
           "Authorization": `Bearer ${accessToken}`,
         },
       });
-
+      
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.message || "Failed to accept challenge");
       }
+      await scheduleAlarmsForUser(challId, challName, Number(user?.id));
       console.log('Challenge accepted:', data);
-
+      
 
       // refresh after accepting
       await fetchChallenges()

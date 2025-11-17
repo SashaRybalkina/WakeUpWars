@@ -169,7 +169,8 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
   const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
   // Start a local countdown to the join deadline (for waiting room)
-  const startLocalCountdown = useCallback((deadlineISO: string | null) => {
+  // serverNowISO compensates for device clock skew vs server time
+  const startLocalCountdown = useCallback((deadlineISO: string | null, serverNowISO?: string | null) => {
     if (countdownRef.current) {
       clearInterval(countdownRef.current);
       countdownRef.current = null;
@@ -177,8 +178,9 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
     setJoinDeadlineISO(deadlineISO);
     if (!deadlineISO) { setRemainingSec(null); return; }
     const deadline = new Date(deadlineISO).getTime();
+    const offsetMs = serverNowISO ? (new Date(serverNowISO).getTime() - Date.now()) : 0;
     const tick = () => {
-      const now = Date.now();
+      const now = Date.now() + offsetMs;
       const diffMs = Math.max(0, deadline - now);
       setRemainingSec(Math.floor(diffMs / 1000));
     };
@@ -342,7 +344,7 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
             setExpectedCount((msg as any).expected_count || 0);
             if (Array.isArray((msg as any).online_ids)) setOnlineIds((msg as any).online_ids);
             // Join window deadline for waiting-room countdown
-            if ((msg as any).join_deadline_at) startLocalCountdown((msg as any).join_deadline_at as any);
+            if ((msg as any).join_deadline_at) startLocalCountdown((msg as any).join_deadline_at as any, (msg as any).server_now ?? null);
             setWaitingActive(!msg.started);
             if (msg.started && !gameTimerStartedRef.current) {
               startGameTimer();
@@ -525,7 +527,7 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
         if (j.is_multiplayer) {
           // Start waiting-room countdown ASAP from create response
           if (j.join_deadline_at) {
-            startLocalCountdown(j.join_deadline_at);
+            startLocalCountdown(j.join_deadline_at, j.server_now ?? null);
             setWaitingActive(true);
           }
           // Preload members for waiting overlay

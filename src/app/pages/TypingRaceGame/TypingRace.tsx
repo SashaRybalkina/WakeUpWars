@@ -162,7 +162,6 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
   const [members, setMembers] = useState<any[]>([]);
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdownValue, setCountdownValue] = useState<number | null>(null);
-  const [canStartNow, setCanStartNow] = useState(false);
   const [onlineIds, setOnlineIds] = useState<number[]>([]);
 
 
@@ -345,6 +344,7 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
         }
 
         // === 🧭 Waiting room updates ===
+        
         if (msg.type === 'lobby_state') {         
           setWaitingActive(true);
           setReadyCount(msg.ready_count);
@@ -386,7 +386,6 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
           //   });
           }
 
-          if (msg.can_start_now !== undefined) setCanStartNow(msg.can_start_now);
           if (msg.online_ids) setOnlineIds(msg.online_ids);
 
           if (msg.join_deadline_at) {
@@ -431,29 +430,16 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
             });
           }
 
-
-        // === 🚦 Countdown start ===
         if (msg.type === 'join_window_closed') {
           console.log('[TypingRace] join_window_closed → start 3-second countdown');
           setWaitingActive(false);
-          setJoinDeadlineISO(null);
-          setRemainingSec(null);
-
-          if (countdownRef.current) clearInterval(countdownRef.current);
-
-          // Show 3-2-1 countdown overlay
-          setShowCountdown(true);
-          setCountdownValue(COUNTDOWN_START);
-
-          let c = COUNTDOWN_START;
-          const timer = setInterval(() => {
-            c -= 1;
-            setCountdownValue(c);
-            if (c <= 0) {
-              clearInterval(timer);
-              setShowCountdown(false);
-            }
-          }, 1000);
+          if (countdownRef.current) {
+            clearInterval(countdownRef.current);
+            countdownRef.current = null;
+          }
+          setShowCountdown(false);
+          setCountdownValue(null);
+          
         }
 
         // === 🚀 Player progress update ===
@@ -633,7 +619,7 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
         setPassage(data.text);
         setGameStateId(data.game_state_id);
         setIsMultiplayer(data.is_multiplayer);
-
+        setJoinDeadlineISO(data.join_deadline_at);
         // 🧍 Wait for lobby_state to load members from WebSocket
         setWaitingActive(true);
         //console.log('[TypingRace] Waiting for lobby members via WebSocket...');
@@ -669,23 +655,6 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
   }, [challId]);
 
   // ===============================
-  // 🕒 Countdown timer before start
-  // ===============================
-  useEffect(() => {
-    if (remainingSec === 0 && waitingActive) {
-      //console.log("[TypingRace] Countdown ended, auto starting game!");
-      const ws = socketRef.current;
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: "start_game" }));
-      }
-      setWaitingActive(false);
-      setJoinDeadlineISO(null);
-      if (countdownRef.current) clearInterval(countdownRef.current);
-    }
-  }, [remainingSec, waitingActive]);
-
-
-  // ===============================
   // ⏳ Game timer countdown
   // ===============================
   useEffect(() => {
@@ -697,6 +666,7 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
           socketRef.current.send(JSON.stringify({ type: "game_timeout" }));
         }
       }
+
       // this is single-player
       finishGame();
       return;
@@ -705,89 +675,32 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
     return () => clearInterval(t);
   }, [passage, waitingActive, gameOver, gameTime]);
 
-  // ===============================
-  // 🔄 Reset Game (Play Again)
-  // ===============================
-  const resetRace = async () => {
-    //console.log('[TypingRace] Resetting game...');
+  useEffect(() => {
+            if (!waitingActive) {
+            if (showCountdown) {
+              setShowCountdown(false);
+              setCountdownValue(null);
+            }
+            return;
+          }
 
-    
-    setInput('');
-    lastInputRef.current = '';
-    setTypedCount(0);
-    setErrorCount(0);
-    setPlayerProgress(ps => ps.map(p => ({ ...p, progress: 0, wpm: 0 })));
-
-    
-    setWaitingActive(false);
-    setCountdown(COUNTDOWN_START);
-    setGameTime(GAME_SECONDS);
-    setHasFinished(false);
-    setGameOver(false);
-
-    try {
-      
-      if (socketRef.current) {
-        socketRef.current.close();
-        socketRef.current = null;
-      }
-
-      
-      const accessToken = await getAccessToken();
-      if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
-
-                  return;
-      }
-
-      
-      const res = await fetch(endpoints.typingRaceCreate, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ challenge_id: challId }),
-      });
-
-      if (!res.ok) throw new Error('Failed to create new game');
-      const data = await res.json();
-
-      
-      setPassage(data.text);
-      setGameStateId(data.game_state_id);
-      setIsMultiplayer(data.is_multiplayer);
-
-      
-      if (data.is_multiplayer) {
-        //console.log('[TypingRace] Multiplayer restart — reconnecting...');
-        setWaitingActive(true);
-        connectWebSocket(data.game_state_id);
-      } else {
-        console.log('[TypingRace] Single-player restart.');
-        setWaitingActive(false);
-      }
-    } catch (err) {
-      console.error('[TypingRace] Failed to reset game:', err);
-      Alert.alert('Error', 'Failed to restart game.');
-    }
-  };
+          if (remainingSec <= 3 && remainingSec > 0) {
+            setShowCountdown(true);
+            setCountdownValue(remainingSec);
+          } else if (remainingSec <= 0) {
+            if (showCountdown) {
+              setShowCountdown(false);
+              setCountdownValue(null);
+            }
+            socketRef.current?.send(JSON.stringify({ type: 'start_game' }));
+          } else {
+            // more than 3 seconds left
+            if (showCountdown) {
+              setShowCountdown(false);
+              setCountdownValue(null);
+            }
+          }
+        }, [remainingSec, waitingActive]);
 
   // ===============================
   // 🏁 Finish Game
@@ -801,7 +714,6 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
         '🎉 Race Finished',
         `Accuracy: ${accuracy}%\nWPM: ${me?.wpm ?? 0}\nErrors: ${errorCount}`,
         [
-          { text: 'Play Again', onPress: () => resetRace() },
           { text: 'Exit', onPress: () => navigation.navigate("ChallDetails", { challId: challId, challName, whichChall }) },
         ]
       );
@@ -1137,7 +1049,7 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
             </Text>
 
             {/* 🚦 Start button (for host only) */}
-            {canStartNow && socketRef.current && (
+            {socketRef.current && (
               <TouchableOpacity
                 style={styles.startBtn}
                 onPress={() => {

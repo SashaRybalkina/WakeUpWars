@@ -157,6 +157,8 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
             await self._handle_player_ready()
         elif msg_type == "player_answer":
             await self._handle_player_answer(data)
+        elif msg_type == "start_game":
+            await self._handle_manual_start()
 
     # ---------------- HANDLERS ----------------
 
@@ -206,6 +208,20 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
                 })
                 print("[DEBUG From Consumers] group_send → game.start has been sent", flush=True)
                 # Do NOT close join window immediately here; rely on eta-scheduled task set at open/connect
+
+    async def _handle_manual_start(self):
+        conns = set(cache.get(_conns_key(self.game_state_id)) or [])
+        if cache.add(_started_key(self.game_state_id), True, timeout=3600):
+            cache.set(_ready_key(self.game_state_id), [], timeout=3600)
+            for t in [3, 2, 1]:
+                await self.channel_layer.group_send(self.group_name, {
+                    "type": "lobby.countdown",
+                    "seconds": t,
+                })
+                await asyncio.sleep(1)
+            await self.channel_layer.group_send(self.group_name, {
+                "type": "game.start",
+            })
 
     async def _handle_player_answer(self, data):
         # NEW: reject any answers during the freeze window (3-second global pause)
@@ -301,10 +317,29 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
         }))
 
     async def join_window_closed(self, event):
+        # Forward event to the client
         await self.send(text_data=json.dumps({
             "type": "join_window_closed",
             "server_now": event.get("server_now"),
         }))
+
+        # Auto-start when join window closes (only once across all consumers)
+        if cache.add(_started_key(self.game_state_id), True, timeout=3600):
+            # Clear ready list for next lobby reuse
+            cache.set(_ready_key(self.game_state_id), [], timeout=3600)
+
+            # 3-2-1 lobby countdown
+            for t in [3, 2, 1]:
+                await self.channel_layer.group_send(self.group_name, {
+                    "type": "lobby.countdown",
+                    "seconds": t,
+                })
+                await asyncio.sleep(1)
+
+            # Broadcast start (handled by game_start → pattern_sequence)
+            await self.channel_layer.group_send(self.group_name, {
+                "type": "game.start",
+            })
 
     async def round_countdown(self, event):
         # NEW: in-game freeze countdown handler
