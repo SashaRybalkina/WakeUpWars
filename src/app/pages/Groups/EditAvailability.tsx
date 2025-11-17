@@ -684,10 +684,16 @@ return (
           const lower = game.name.toLowerCase();
           const isSudoku = lower.includes("sudoku");
           const isPattern = lower.includes("pattern");
+          const isWordle = lower.includes("wordle");
+          const isTyping = lower.includes("typing");
           const image = isSudoku
             ? require("../../images/sudoku.png")
             : isPattern
             ? require("../../images/patternGame.png")
+            : isWordle
+            ? require("../../images/wordle.png")
+            : isTyping
+            ? require("../../images/typingrace.png")
             : null;
 
           return (

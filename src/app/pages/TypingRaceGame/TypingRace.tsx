@@ -23,7 +23,7 @@ import styles from './Styles'
 // ===============================
 // ⚙️ Game Config
 // ===============================
-const GAME_SECONDS = 120; // total game time
+const GAME_SECONDS = 90; // total game time
 const CAR_SIZE = 24;
 const COUNTDOWN_START = 3; // pre-game countdown
 
