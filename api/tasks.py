@@ -6,6 +6,7 @@ import logging
 from django.contrib.auth import get_user_model
 from celery import shared_task, uuid
 from django.db.models import F
+from django.core.cache import cache
 from api.sudokuStuff.utils import get_or_create_game as sudoku_init
 from api.wordleStuff.utils import get_or_create_game_wordle as wordle_init
 from api.patternMem.utils import get_or_create_pattern_game as pattern_init
@@ -113,6 +114,8 @@ def open_join_window(challenge_id, game_id, game_code, user_id=None):
         eta=gs.join_deadline_at,
         taREDACTEDid=f"close-{Model.__name__}-{gs.id}-{uuid()}",
     )
+    # Prevent duplicate scheduling by consumers
+    cache.add(f"pm_deadline_scheduled_{gs.id}", True, timeout=3600)
 
 # B. fire 2 minutes later
 @shared_task

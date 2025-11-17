@@ -23,6 +23,10 @@ type WsLobbyState = {
   started: boolean;
   ready_count: number;
   expected_count: number;
+  created_at?: string;
+  join_deadline_at?: string | null;
+  server_now?: string;
+  online_ids?: number[];
 };
 type WsLobbyCountdown = {
   type: 'lobby_countdown';
@@ -77,6 +81,8 @@ type CreateResp = {
   max_rounds: number;
   is_multiplayer: boolean;
   pattern_sequence?: string[][];
+  join_deadline_at?: string | null;
+  server_now?: string;
   error?: string;
 };
 
@@ -517,6 +523,20 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
         setIsMultiplayer(!!j.is_multiplayer);
 
         if (j.is_multiplayer) {
+          // Start waiting-room countdown ASAP from create response
+          if (j.join_deadline_at) {
+            startLocalCountdown(j.join_deadline_at);
+            setWaitingActive(true);
+          }
+          // Preload members for waiting overlay
+          try {
+            const detailRes = await fetch(endpoints.challengeDetail(challengeId), {
+              headers: { 'Authorization': `Bearer ${accessToken}` },
+            });
+            const detail = await detailRes.json();
+            setMembers(detail?.members || []);
+          } catch {}
+          // Then open WebSocket
           openWs(j.game_state_id);
           // Multiplayer: sequence is pushed by server
         } else {

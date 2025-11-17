@@ -3312,14 +3312,26 @@ class CreatePatternGameView(APIView):
         try:
             payload = get_or_create_pattern_game(int(challenge_id), user)
             # utils returns: game_state_id, pattern_sequence, current_round, max_rounds, is_multiplayer
+            gs_id = payload.get("game_state_id")
+            join_deadline = None
+            try:
+                if gs_id:
+                    gs = PatternMemorizationGameState.objects.only("join_deadline_at").get(id=gs_id)
+                    if getattr(gs, "join_deadline_at", None):
+                        join_deadline = gs.join_deadline_at.isoformat()
+            except Exception:
+                pass
             return Response({
                 "success": True,
-                "game_state_id": payload.get("game_state_id"),
+                "game_state_id": gs_id,
                 "current_round": payload.get("current_round", 1),
                 "max_rounds": payload.get("max_rounds", 5),
                 "is_multiplayer": payload.get("is_multiplayer", True),
                 # expose for debug;
                 "pattern_sequence": payload.get("pattern_sequence", []),
+                # waiting room helpers
+                "join_deadline_at": join_deadline,
+                "server_now": timezone.now().isoformat(),
             }, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'success': False, 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

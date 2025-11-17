@@ -52,8 +52,7 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
             gs.join_deadline_at = now + timedelta(seconds=20)
             await sync_to_async(gs.save)(update_fields=["join_deadline_at"])
             cache.delete(f"pm_deadline_scheduled_{self.game_state_id}")
-        if cache.add(f"pm_deadline_scheduled_{self.game_state_id}", True, timeout=3600):
-            close_join_window.apply_async(args=['PatternMemorizationGameState', self.game_state_id], eta=gs.join_deadline_at)
+        # Scheduling is handled by open_join_window Celery task to avoid duplicates across processes.
 
         # closed?
         if gs.joins_closed or now > gs.join_deadline_at:
@@ -397,16 +396,6 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
                 defaults={"score": int(row.get("score", 0))}
             )
             submitted_ids.add(u.id)
-
-        # auto-zero missing participants of THIS session only (players who joined this game_state)
-        session_player_ids = set(
-            PatternMemorizationGamePlayer.objects.filter(game_state=gs).values_list("player_id", flat=True)
-        )
-        for uid in session_player_ids - submitted_ids:
-            GamePerformance.objects.update_or_create(
-                challenge=gs.challenge, game=gs.game, user_id=uid, date=play_date,
-                defaults={"score": 0, "auto_generated": True}
-            )
 
         # lock further joins
         gs.joins_closed = True
