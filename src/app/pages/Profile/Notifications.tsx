@@ -101,7 +101,7 @@ const NotificationsPage: React.FC<Props> = ({ navigation }) => {
         pendingChallengeName: n.challName, 
         pendingChallengeStartDate: n.startDate,
         pendingChallengeEndDate: n.endDate,
-        accepted: n.accepted,
+        accepted:1,
       })
     }
     else if (n.screen === "Bets") {
