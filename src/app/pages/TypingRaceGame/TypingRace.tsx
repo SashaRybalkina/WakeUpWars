@@ -389,18 +389,19 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
 
           if (msg.online_ids) setOnlineIds(msg.online_ids);
 
-          if (msg.join_deadline_at) {
+          if (msg.join_deadline_at && msg.server_now) {
             const deadlineMs = new Date(msg.join_deadline_at).getTime();
+            // Reset any previous ticker
             if (countdownRef.current) {
               clearInterval(countdownRef.current);
               countdownRef.current = null;
             }
-            if (msg.server_now) {
-              const serverNowMs = new Date(msg.server_now).getTime();
-              clockOffsetRef.current = Date.now() - serverNowMs;
-            }
+            // Use server-provided time as the single source of truth
+            const serverNowMs = new Date(msg.server_now).getTime();
+            clockOffsetRef.current = Date.now() - serverNowMs;
+
             const tick = () => {
-              const nowAdj = Date.now() - (clockOffsetRef.current || 0);
+              const nowAdj = Date.now() - clockOffsetRef.current;
               const diffMs = Math.max(0, deadlineMs - nowAdj);
               const sec = Math.floor(diffMs / 1000);
               setRemainingSec(sec);
@@ -409,9 +410,14 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
                 countdownRef.current = null;
               }
             };
-
             tick();
             countdownRef.current = setInterval(tick, 1000);
+          } else {
+            // Without server_now, do not run a local countdown
+            if (countdownRef.current) {
+              clearInterval(countdownRef.current);
+              countdownRef.current = null;
+            }
           }
         }
         // === 👥 Player list update ===
