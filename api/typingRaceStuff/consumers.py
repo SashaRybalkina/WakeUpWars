@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 import asyncio
 from django.utils import timezone
+from django.conf import settings
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from asgiref.sync import sync_to_async
 from django.core.cache import cache
@@ -38,7 +39,7 @@ def _started_key(game_id: int):
 
 
 CACHE_TTL = 360
-JOIN_TIMEOUT_SEC = 20
+JOIN_TIMEOUT_SEC = int(getattr(settings, "JOIN_WINDOW_SECONDS", 20) or 20)
 
 # ===== Feature switches =====
 ENABLE_JOIN_DEADLINE = True
@@ -140,6 +141,13 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
 
         # Broadcast lobby (waiting room) state to all players
         await self._broadcast_lobby_state()
+
+        # Start a single per-game ticker to broadcast server-driven countdown seconds
+        try:
+            gs_for_deadline = await sync_to_async(TypingRaceGameState.objects.only("join_deadline_at").get)(id=self.game_id)
+            await self._ensure_lobby_countdown_ticker(gs_for_deadline.join_deadline_at)
+        except Exception:
+            pass
 
         # Notify current client of successful connection
         await self.send_json({
@@ -493,6 +501,16 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
             "player": event["player"],
         })
 
+    async def lobby_countdown(self, event):
+        # Server-driven countdown seconds remaining until join window closes
+        try:
+            await self.send_json({
+                "type": "lobby_countdown",
+                "seconds": int(event.get("seconds", 0)),
+            })
+        except Exception:
+            pass
+
 
     async def game_complete(self, event):
         """Send final game completion message to clients."""
@@ -578,12 +596,10 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
             gs, expected_count, members = await self._get_lobby_state_data()
 
             if not gs:
-                #print(f"[Typing][WARN] GameState {self.game_id} not found.")
                 expected_count = ready_count
                 members = []
 
             if not members:
-                #print("[Typing][DEBUG] Members empty, fallback to connected users")
                 def get_online_users_sync():
                     users = User.objects.filter(id__in=list(conns))
                     return [{"id": u.id, "name": u.username} for u in users]
@@ -595,14 +611,10 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
             members = []
 
         join_deadline_at = cache.get(_deadline_key(self.game_id))
-        started_key = _started_key(self.game_id)
-
-        join_deadline_at = cache.get(_deadline_key(self.game_id))
         if not join_deadline_at:
             join_deadline_at = (timezone.now() + timedelta(seconds=JOIN_TIMEOUT_SEC)).isoformat()
             cache.set(_deadline_key(self.game_id), join_deadline_at, timeout=CACHE_TTL)
             logger.warning(f"[Typing][DEADLINE] (broadcast) set fresh deadline {join_deadline_at}")
-
 
         message = {
             "type": "lobby_state",
@@ -618,6 +630,34 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
 
         logger.warning(f"[Typing][BROADCAST] lobby_state -> {message}")
         await self.channel_layer.group_send(self.room_group_name, message)
+
+    async def _ensure_lobby_countdown_ticker(self, deadline):
+        """Start a single per-game ticker that emits lobby_countdown seconds until deadline."""
+        if not deadline:
+            return
+        key = f"typing_lobby_ticker_{self.game_id}"
+        if not cache.add(key, True, timeout=JOIN_TIMEOUT_SEC + 60):
+            return
+
+        async def _ticker():
+            try:
+                while True:
+                    now = timezone.now()
+                    try:
+                        remaining = int(max(0, (deadline - now).total_seconds()))
+                    except Exception:
+                        remaining = 0
+                    await self.channel_layer.group_send(
+                        self.room_group_name,
+                        {"type": "lobby_countdown", "seconds": remaining},
+                    )
+                    if remaining <= 0:
+                        break
+                    await asyncio.sleep(1)
+            finally:
+                cache.delete(key)
+
+        asyncio.create_task(_ticker())
 
     
     @sync_to_async
@@ -770,7 +810,7 @@ class TypingRaceConsumer(AsyncJsonWebsocketConsumer):
     async def _check_join_deadline(self, gs):
         now = timezone.now()
         if not getattr(gs, "join_deadline_at", None):
-            gs.join_deadline_at = (gs.created_at or now) + timezone.timedelta(seconds=20)
+            gs.join_deadline_at = (gs.created_at or now) + timezone.timedelta(seconds=JOIN_TIMEOUT_SEC)
             await sync_to_async(gs.save)(update_fields=["join_deadline_at"])
             logger.warning(f"[Typing][DEADLINE][DB] Refreshed DB join_deadline_at to {gs.join_deadline_at}")
 

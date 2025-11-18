@@ -447,6 +447,19 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
             });
           }
 
+        if (msg.type === 'lobby_countdown') {
+          // Server-driven countdown: stop local timer and show 3-2-1 overlay
+          if (countdownRef.current) {
+            clearInterval(countdownRef.current);
+            countdownRef.current = null;
+          }
+          setJoinDeadlineISO(null);
+          setRemainingSec(null);
+          setWaitingActive(false);
+          setShowCountdown(true);
+          setCountdownValue(Math.max(0, Number(msg.seconds ?? 0)));
+        }
+
         if (msg.type === 'join_window_closed') {
           console.log('[TypingRace] join_window_closed → start 3-second countdown');
           setWaitingActive(false);

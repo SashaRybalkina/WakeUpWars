@@ -10,9 +10,11 @@ import asyncio, contextlib, threading
 logger = logging.getLogger(__name__)
 
 
-from django.db import transaction, IntegrityError
+from django.db import transaction, IntegrityError, close_old_connections
 from django.utils import timezone
+from django.conf import settings
 from asgiref.sync import sync_to_async
+from channels.db import database_sync_to_async
 from django.core.cache import cache
 from datetime import timedelta
 
@@ -104,11 +106,12 @@ def get_or_create_typing_race_game(challenge_id: int, user, allow_join: bool = T
 
     logger.warning(f"[TYPING][STEP1] Fetch Challenge took {(time.time()-t1)*1000:.2f}ms")
 
-    # Use alarm_datetime if provided, otherwise use now
-    if alarm_datetime is None:
-        alarm_datetime = timezone.now()
-    # Normalize to minute precision so concurrent calls share the same key
-    alarm_datetime = alarm_datetime.replace(second=0, microsecond=0)
+    # Use alarm_datetime if provided, otherwise now; align to JOIN_WINDOW_SECONDS slot
+    window = int(getattr(settings, "JOIN_WINDOW_SECONDS", 20) or 20)
+    base_time = alarm_datetime or timezone.now()
+    ts = int(base_time.timestamp())
+    slot_ts = ts - (ts % window)
+    alarm_datetime = datetime.fromtimestamp(slot_ts, tz=base_time.tzinfo)
 
     # === 2️⃣ Get or cache Typing Game ===
     t2 = time.time()
@@ -154,7 +157,7 @@ def get_or_create_typing_race_game(challenge_id: int, user, allow_join: bool = T
     defaults = {
         "game": typing_game,
         "text": random.choice(TYPING_PASSAGES),
-        "join_deadline_at": timezone.now() + timedelta(seconds=20),
+        "join_deadline_at": timezone.now() + timedelta(seconds=int(getattr(settings, "JOIN_WINDOW_SECONDS", 20) or 20)),
     }
 
     # Use get_or_create with proper unique constraint fields
@@ -253,7 +256,6 @@ def get_or_create_typing_race_game(challenge_id: int, user, allow_join: bool = T
         "join_deadline_at": getattr(game_state.join_deadline_at, "isoformat", lambda: None)(),
     }
 
-@transaction.atomic
 def apply_progress_update(game_state_id: int, user, correct_typed: int, total_errors: int) -> Dict[str, Any]:
     """
     Multiplayer — update ONLY THIS player's progress and accuracy.
@@ -271,6 +273,7 @@ def apply_progress_update(game_state_id: int, user, correct_typed: int, total_er
     cache_key = f"typing_progress_{game_state_id}_{user.id}"  # Unique cache key per player per game
     leaderboard_key = f"typing_leaderboard_{game_state_id}"
 
+    close_old_connections()
     # === 🧠 Calculate player's progress and accuracy ===
     try:
         # 🚀 Try to get cached text length first (avoid DB hit)
@@ -521,5 +524,5 @@ def _save_leaderboard_cache_to_db(game_state_or_id):
 # ===============================
 
 get_or_create_typing_race_game_async = sync_to_async(get_or_create_typing_race_game, thread_sensitive=True)
-apply_progress_update_async = sync_to_async(apply_progress_update, thread_sensitive=False)
+apply_progress_update_async = database_sync_to_async(apply_progress_update)
 finalize_single_result_async = sync_to_async(finalize_single_result, thread_sensitive=True)

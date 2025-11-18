@@ -17,7 +17,9 @@ from .models import (
     SudokuGameState,
     WordleGameState,
     PatternMemorizationGameState,
+    PatternMemorizationGamePlayer,
     TypingRaceGameState,
+    TypingRaceGamePlayer,
     SudokuGamePlayer,
     Challenge,
     GamePerformance,
@@ -103,7 +105,8 @@ def open_join_window(challenge_id, game_id, game_code, user_id=None):
     # Schedule close_join_window task (refresh stale or missing deadline)
     now = timezone.now()
     if not gs.join_deadline_at or gs.join_deadline_at <= now:
-        gs.join_deadline_at = now + timedelta(seconds=20)
+        window = int(getattr(settings, "JOIN_WINDOW_SECONDS", 20) or 20)
+        gs.join_deadline_at = now + timedelta(seconds=window)
         gs.save(update_fields=["join_deadline_at"])
     
     logger.info(
@@ -156,36 +159,44 @@ def close_join_window(model_name, gs_id):
             connected_ids = set(cache.get(f"typing_conns_{gs.id}") or [])
             print(f"[join-window] connected_ids={connected_ids}")
 
-            if connected_ids:
-                absent_ids = (participant_ids - existing_ids) - connected_ids
-                print(f"[join-window] absent_ids_to_zero={absent_ids}")
-                for uid in absent_ids:
-                    GamePerformance.objects.get_or_create(
-                        challenge=gs.challenge,
-                        game=gs.game,
-                        user_id=uid,
-                        date=today,
-                        defaults={"score": 0, "auto_generated": True},
-                    )
-            else:
-                print("[join-window] no online users; skipping auto 0-scores for TypingRace at join close")
+            # Also include anyone who joined the room earlier (DB records)
+            db_player_ids = set(
+                TypingRaceGamePlayer.objects.filter(game_state_id=gs.id).values_list("player_id", flat=True)
+            )
+            present_ids = connected_ids.union(db_player_ids)
+            print(f"[join-window] present_ids (conn ∪ DB)={present_ids}")
+
+            absent_ids = (participant_ids - existing_ids) - present_ids
+            print(f"[join-window] absent_ids_to_zero={absent_ids}")
+            for uid in absent_ids:
+                GamePerformance.objects.get_or_create(
+                    challenge=gs.challenge,
+                    game=gs.game,
+                    user_id=uid,
+                    date=today,
+                    defaults={"score": 0, "auto_generated": True},
+                )
         elif model_name == 'PatternMemorizationGameState':
             connected_ids = set(cache.get(f"pm_conns_{gs.id}") or [])
             print(f"[join-window] pm connected_ids={connected_ids}")
 
-            if connected_ids:
-                absent_ids = (participant_ids - existing_ids) - connected_ids
-                print(f"[join-window] pm absent_ids_to_zero={absent_ids}")
-                for uid in absent_ids:
-                    GamePerformance.objects.get_or_create(
-                        challenge=gs.challenge,
-                        game=gs.game,
-                        user_id=uid,
-                        date=today,
-                        defaults={"score": 0, "auto_generated": True},
-                    )
-            else:
-                print("[join-window] no online users; skipping auto 0-scores for PatternMem at join close")
+            # Include anyone who joined earlier (DB records)
+            db_player_ids = set(
+                PatternMemorizationGamePlayer.objects.filter(game_state_id=gs.id).values_list("player_id", flat=True)
+            )
+            present_ids = connected_ids.union(db_player_ids)
+            print(f"[join-window] pm present_ids (conn ∪ DB)={present_ids}")
+
+            absent_ids = (participant_ids - existing_ids) - present_ids
+            print(f"[join-window] pm absent_ids_to_zero={absent_ids}")
+            for uid in absent_ids:
+                GamePerformance.objects.get_or_create(
+                    challenge=gs.challenge,
+                    game=gs.game,
+                    user_id=uid,
+                    date=today,
+                    defaults={"score": 0, "auto_generated": True},
+                )
         else:
             for uid in participant_ids - existing_ids:
                 GamePerformance.objects.get_or_create(

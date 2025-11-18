@@ -4,6 +4,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
 from django.core.cache import cache
 from django.conf import settings
+from django.utils import timezone
 from datetime import date, timedelta
 
 from api.models import PatternMemorizationGameState, PatternMemorizationGamePlayer, User, ChallengeMembership, GamePerformance
@@ -49,7 +50,6 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
         self.user: User = self.scope["user"]
 
         # ─── join-window gating ──────────────────────────────────
-        from django.utils import timezone
         now = timezone.now()
 
         gs: PatternMemorizationGameState = await sync_to_async(
@@ -57,7 +57,8 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
         )(id=self.game_state_id)
 
         if not gs.join_deadline_at or gs.join_deadline_at <= now:
-            gs.join_deadline_at = now + timedelta(seconds=20)
+            window = int(getattr(settings, "JOIN_WINDOW_SECONDS", 20) or 20)
+            gs.join_deadline_at = now + timedelta(seconds=window)
             await sync_to_async(gs.save)(update_fields=["join_deadline_at"])
             cache.delete(f"pm_deadline_scheduled_{self.game_state_id}")
         # Scheduling is handled by open_join_window Celery task to avoid duplicates across processes.
@@ -118,6 +119,12 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
             "server_now": timezone.now().isoformat(),
             "online_ids": list(conns),
         })
+
+        # Start a single per-game ticker to broadcast server-driven remaining seconds
+        try:
+            await self._ensure_lobby_remaining_ticker(gs.join_deadline_at)
+        except Exception:
+            pass
 
     async def disconnect(self, close_code):
         # remove from online users
@@ -327,6 +334,16 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
             "online_ids": event.get("online_ids"),
         }))
 
+    async def lobby_remaining(self, event):
+        # Forward server-driven remaining seconds (do not start overlay here)
+        try:
+            await self.send(text_data=json.dumps({
+                "type": "lobby_remaining",
+                "seconds": int(event.get("seconds", 0)),
+            }))
+        except Exception:
+            pass
+
     async def join_window_closed(self, event):
         # Forward event to the client (ignore if already closed)
         try:
@@ -336,6 +353,9 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
             }))
         except Exception:
             pass
+
+        # Stop ticker when window is closed
+        cache.delete(f"pm_lobby_ticker_{self.game_state_id}")
 
         # Auto-start when join window closes (only once across all consumers)
         if cache.add(_started_key(self.game_state_id), True, timeout=3600):
@@ -455,6 +475,35 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
             "round_number": self.last_round,
             "sequence": self.last_sequence,
         }))
+
+    async def _ensure_lobby_remaining_ticker(self, deadline):
+        """Start a single per-game ticker that emits lobby_remaining seconds until deadline."""
+        if not deadline:
+            return
+        key = f"pm_lobby_ticker_{self.game_state_id}"
+        # allow small grace beyond window
+        if not cache.add(key, True, timeout=int(getattr(settings, "JOIN_WINDOW_SECONDS", 20) or 20) + 60):
+            return
+
+        async def _ticker():
+            try:
+                while True:
+                    now = timezone.now()
+                    try:
+                        remaining = int(max(0, (deadline - now).total_seconds()))
+                    except Exception:
+                        remaining = 0
+                    await self.channel_layer.group_send(
+                        self.group_name,
+                        {"type": "lobby.remaining", "seconds": remaining},
+                    )
+                    if remaining <= 0:
+                        break
+                    await asyncio.sleep(1)
+            finally:
+                cache.delete(key)
+
+        asyncio.create_task(_ticker())
 
 
 

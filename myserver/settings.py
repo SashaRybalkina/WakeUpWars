@@ -134,6 +134,7 @@ DATABASES = {
     }
 }
 
+JOIN_WINDOW_SECONDS = int(os.getenv("JOIN_WINDOW_SECONDS", "20"))
 
 
 # Password validation

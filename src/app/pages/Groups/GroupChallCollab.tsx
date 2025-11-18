@@ -30,7 +30,7 @@ const DAYS = ["M", "T", "W", "TH", "F", "S", "SU"]
 // const TIMES = Array.from({ length: 12 }, (_, i) => `${i + 6}:00`); // 6am - 5pm 
 
 const TIMES = Array.from({ length: 100 }, (_, i) => {
-  const totalMinutes = 1 * 60 + i * 5; // start at 4:00
+  const totalMinutes = 9 * 60 + i * 5; // start at 4:00
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
@@ -133,7 +133,15 @@ const GroupChallCollab: React.FC<Props> = ({ navigation }) => {
 
 const convertTo24Hour = (time12: string) => {
   // "4:15 AM" => "04:15", "3:00 PM" => "15:00"
-  const [time, modifier] = time12.split(" ");
+  const s = time12.trim();
+  if (/^\d{1,2}:\d{2}$/.test(s)) {
+    const [hoursStr, minutesStr] = s.split(":");
+    const hours = Number(hoursStr);
+    const minutes = Number(minutesStr);
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+  }
+
+  const [time, modifier] = s.split(" ");
   if (!time || !modifier) throw new Error(`Invalid time format: ${time12}`);
 
   const [hoursStr, minutesStr] = time.split(":");
