@@ -93,9 +93,15 @@ def get_or_create_typing_race_game(challenge_id: int, user, allow_join: bool = T
         .values_list('isMultiplayer', flat=True)
         .first()
     )
-    print("is_group is true or not?", is_group)
-    print("is_public is true or not?", is_public)
+    is_group_multiplayer = GameScheduleGameAssociation.objects.filter(
+        game_schedule__challenge_id=challenge_id,
+        game_id=47,
+    ).exists()
+    maybe_multi = bool(is_public_multiplayer) or bool(is_group_multiplayer)
+    
     print("is_public_multiplayer is true or not?", is_public_multiplayer)
+    print("is_group_multiplayer is true or not?", is_group_multiplayer)
+
     logger.warning(f"[TYPING][STEP1] Fetch Challenge took {(time.time()-t1)*1000:.2f}ms")
 
     # Use alarm_datetime if provided, otherwise use now
@@ -106,7 +112,7 @@ def get_or_create_typing_race_game(challenge_id: int, user, allow_join: bool = T
 
     # === 2️⃣ Get or cache Typing Game ===
     t2 = time.time()
-    game_cache_key = f"typing_game_cache_{int(is_group)}_{challenge_id}"
+    game_cache_key = f"typing_game_cache_{int(maybe_multi)}_{challenge_id}"
     typing_game = cache.get(game_cache_key)
     cache_hit = typing_game is not None
 
@@ -118,7 +124,7 @@ def get_or_create_typing_race_game(challenge_id: int, user, allow_join: bool = T
             .filter(
                 game_schedule__challenge_id=challenge_id,
                 game__name__icontains="typing",
-                game__isMultiplayer=1 if is_group or is_public_multiplayer else 0
+                game__isMultiplayer=1 if maybe_multi else 0
             )
             .order_by("game_order", "id")
             .first()
@@ -127,7 +133,7 @@ def get_or_create_typing_race_game(challenge_id: int, user, allow_join: bool = T
 
         if not typing_game:
             typing_game = (
-                Game.objects.filter(name__icontains="typing", isMultiplayer=1 if is_group or is_public_multiplayer else 0)
+                Game.objects.filter(name__icontains="typing", isMultiplayer=1 if maybe_multi else 0)
                 .order_by("id")
                 .first()
             )

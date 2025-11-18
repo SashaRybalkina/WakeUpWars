@@ -182,7 +182,12 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
     const tick = () => {
       const now = Date.now() + offsetMs;
       const diffMs = Math.max(0, deadline - now);
-      setRemainingSec(Math.floor(diffMs / 1000));
+      const sec = Math.floor(diffMs / 1000);
+      setRemainingSec(sec);
+      if (sec <= 0 && countdownRef.current) {
+        clearInterval(countdownRef.current);
+        countdownRef.current = null;
+      }
     };
     tick();
     countdownRef.current = setInterval(tick, 1000);

@@ -159,6 +159,7 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
   const [joinDeadlineISO, setJoinDeadlineISO] = useState<string | null>(null);
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
+  const clockOffsetRef = useRef<number>(0);
   const [members, setMembers] = useState<any[]>([]);
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdownValue, setCountdownValue] = useState<number | null>(null);
@@ -389,14 +390,24 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
           if (msg.online_ids) setOnlineIds(msg.online_ids);
 
           if (msg.join_deadline_at) {
-            const deadline = new Date(msg.join_deadline_at).getTime();
-            if (countdownRef.current) clearInterval(countdownRef.current);
-
+            const deadlineMs = new Date(msg.join_deadline_at).getTime();
+            if (countdownRef.current) {
+              clearInterval(countdownRef.current);
+              countdownRef.current = null;
+            }
+            if (msg.server_now) {
+              const serverNowMs = new Date(msg.server_now).getTime();
+              clockOffsetRef.current = Date.now() - serverNowMs;
+            }
             const tick = () => {
-              const now = Date.now();
-              const diffMs = Math.max(0, deadline - now);
+              const nowAdj = Date.now() - (clockOffsetRef.current || 0);
+              const diffMs = Math.max(0, deadlineMs - nowAdj);
               const sec = Math.floor(diffMs / 1000);
               setRemainingSec(sec);
+              if (sec <= 0 && countdownRef.current) {
+                clearInterval(countdownRef.current);
+                countdownRef.current = null;
+              }
             };
 
             tick();
@@ -692,7 +703,7 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
               setShowCountdown(false);
               setCountdownValue(null);
             }
-            socketRef.current?.send(JSON.stringify({ type: 'start_game' }));
+            setWaitingActive(true);
           } else {
             // more than 3 seconds left
             if (showCountdown) {

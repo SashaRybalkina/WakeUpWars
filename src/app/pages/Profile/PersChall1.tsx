@@ -153,7 +153,7 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
       if (!res.ok) {
         throw new Error(data.message || "Failed to accept challenge");
       }
-      await scheduleAlarmsForUser(challId, challName, Number(user?.id));
+      // await scheduleAlarmsForUser(challId, challName, Number(user?.id));
       console.log('Challenge accepted:', data);
       
             try {
