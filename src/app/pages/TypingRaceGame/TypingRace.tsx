@@ -631,8 +631,8 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
         setGameStateId(data.game_state_id);
         setIsMultiplayer(data.is_multiplayer);
         setJoinDeadlineISO(data.join_deadline_at);
-        // 🧍 Wait for lobby_state to load members from WebSocket
-        setWaitingActive(true);
+        // Show waiting room only in multiplayer
+        setWaitingActive(!!data.is_multiplayer);
         //console.log('[TypingRace] Waiting for lobby members via WebSocket...');
         // try {
         //   const detailRes = await fetch(endpoints.challengeDetail(challId), {
@@ -650,8 +650,16 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
         if (data.is_multiplayer) {
           connectWebSocket(data.game_state_id);
         } else {
-          // 🧍 Single-player: start immediately
+          // 🧍 Single-player: start immediately and ensure no waiting state
           setWaitingActive(false);
+          if (countdownRef.current) {
+            clearInterval(countdownRef.current);
+            countdownRef.current = null;
+          }
+          setJoinDeadlineISO(null);
+          setRemainingSec(null);
+          setShowCountdown(false);
+          setCountdownValue(null);
         }
       } catch (err) {
         console.error(err);
@@ -703,7 +711,8 @@ const TypingRace: React.FC<Props> = ({ navigation }) => {
               setShowCountdown(false);
               setCountdownValue(null);
             }
-            setWaitingActive(true);
+            // Countdown reached zero: hide waiting overlay and rely on server to start
+            setWaitingActive(false);
           } else {
             // more than 3 seconds left
             if (showCountdown) {
