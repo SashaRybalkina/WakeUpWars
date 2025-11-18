@@ -800,6 +800,25 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
                 })}
               </View>
               <Text style={{ color: 'white', textAlign: 'center', marginTop: 8 }}>Players: {readyCount}/{expectedCount}</Text>
+
+              {/* Manual Start Game Button */}
+              <TouchableOpacity
+                style={[styles.smallBtnStart, { alignSelf: 'center', marginTop: 12 }]}
+                onPress={() => {
+                  const ws = wsRef.current;
+                  if (ws) {
+                    try {
+                      ws.send(JSON.stringify({ type: 'start_game' }));
+                    } catch (e) {
+                      Alert.alert('Error', 'Failed to send start command.');
+                    }
+                  } else {
+                    Alert.alert('Not connected', 'WebSocket not connected yet.');
+                  }
+                }}
+              >
+                <Text style={styles.smallBtnText}>Start Game</Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -923,6 +942,7 @@ const styles = StyleSheet.create({
   colorRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
   colorButton: { width: 70, height: 70, margin: 10, borderRadius: 12, borderWidth: 2, borderColor: 'black' },
   smallBtn: { backgroundColor: 'white', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
+  smallBtnStart: { backgroundColor: '#FFD700', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
   smallBtnText: { fontWeight: '600' },
   smallBtnPrimary: { backgroundColor: '#0ea5e9', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
   smallBtnPrimaryText: { color: 'white', fontWeight: '700' },

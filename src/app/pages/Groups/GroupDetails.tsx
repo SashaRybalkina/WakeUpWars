@@ -494,7 +494,10 @@ useFocusEffect(
     end={{ x: 1, y: 0 }}
     style={styles.pastButtonGradient}
   >
-    <Text style={styles.pastButtonText}>View past challenges</Text>
+              <View style={styles.pastButtonRow}>
+                <Ionicons name="time-outline" size={18} color="#333" style={{ marginRight: 8 }} />
+                <Text style={styles.pastButtonText}>View past challenges</Text>
+              </View>
   </LinearGradient>
 </TouchableOpacity>
 

@@ -207,7 +207,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  title: { color: "#fff", fontSize: 38, fontWeight: "800", marginBottom: 20 },
+  title: { color: "#fff", fontSize: 38, fontWeight: "800", marginBottom: 20,     textShadowColor: "rgba(0, 0, 0, 0.2)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3, textAlign: "center" },
   card: {
     flexDirection: "row",
     backgroundColor: "rgba(50,50,60,0.3)",
