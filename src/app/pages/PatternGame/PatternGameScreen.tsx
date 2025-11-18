@@ -216,25 +216,25 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
     try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
+        return;
       }
       const response = await fetch(endpoints.gameTimerExpired, {
         method: 'POST',
@@ -328,25 +328,25 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
     async (id: number) => {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
+        return;
       }
       const url = wsUrlFor(id, accessToken);
       const ws = new WebSocket(url);
@@ -363,7 +363,7 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
             });
             const detail = await detailRes.json();
             setMembers(detail?.members || []);
-          } catch {}
+          } catch { }
         })();
       };
 
@@ -462,8 +462,8 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
             //   break;
             // }
             if (msg.is_correct) {
-              if (Platform.OS === 'android')  
-              showToast('✅ Correct');
+              if (Platform.OS === 'android')
+                showToast('✅ Correct');
               setPlayerInput([]);
             } else {
               if (Platform.OS === 'android') Vibration.vibrate([0, 150, 60, 150]); // NEW: pattern
@@ -507,7 +507,7 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
     ws.onmessage = null;
     ws.onerror = null;
     ws.onclose = null;
-    try { ws.close(1000, 'screen exit'); } catch {}
+    try { ws.close(1000, 'screen exit'); } catch { }
     wsRef.current = null;
   }, []);
 
@@ -518,28 +518,28 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
         setLoading(true);
         if (challengeId == null) throw new Error('Missing challengeId');
 
-      const accessToken = await getAccessToken();
-      if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        const accessToken = await getAccessToken();
+        if (!accessToken) {
+          Alert.alert(
+            "Session expired",
+            "Your login session has expired. Please log in again.",
+            [
+              {
+                text: "OK",
+                onPress: async () => {
+                  await logout();
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Login" }],
+                  });
+                },
+              },
+            ],
+            { cancelable: false }
+          );
 
-                  return;
-      }
+          return;
+        }
 
         const res = await fetch(endpoints.patternCreate, {
           method: 'POST',
@@ -552,11 +552,11 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
         if (res.status === 403) {
           const data = await res.json();
           if (data.code === 'JOINS_CLOSED' || data.code === 'GAME_ENDED') {
-              Alert.alert('Join closed', 'This game can no longer be joined.');
-              navigation.goBack();
-              return;
+            Alert.alert('Join closed', 'This game can no longer be joined.');
+            navigation.goBack();
+            return;
           }
-      }
+        }
         const j: CreateResp = await res.json();
         if (!res.ok || !j.success) throw new Error(j?.error || 'create failed');
 
@@ -578,7 +578,7 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
             });
             const detail = await detailRes.json();
             setMembers(detail?.members || []);
-          } catch {}
+          } catch { }
           // Then open WebSocket
           openWs(j.game_state_id);
           // Multiplayer: sequence is pushed by server
@@ -626,25 +626,25 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
 
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
+        return;
       }
       const res = await fetch(endpoints.patternCreate, {
         method: 'POST',
@@ -707,25 +707,25 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
       setSubmitting(true);
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
+        return;
       }
       const res = await fetch(endpoints.patternValidate, {
         method: 'POST',
@@ -754,38 +754,38 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
             if (!isMultiplayer && gameStateId) {
               const token2 = await getAccessToken();
               if (!token2) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
+                Alert.alert(
+                  "Session expired",
+                  "Your login session has expired. Please log in again.",
+                  [
+                    {
+                      text: "OK",
+                      onPress: async () => {
+                        await logout();
+                        navigation.reset({
+                          index: 0,
+                          routes: [{ name: "Login" }],
+                        });
                       },
-                    ],
-                    { cancelable: false }
-                  );
+                    },
+                  ],
+                  { cancelable: false }
+                );
 
-                  return;
+                return;
               }
 
-                await fetch(endpoints.gameTimerExpired, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token2}`,
-                  },
-                  body: JSON.stringify({
-                    model: 'PatternMemorizationGameState',
-                    game_state_id: gameStateId,
-                  }),
-                });
+              await fetch(endpoints.gameTimerExpired, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token2}`,
+                },
+                body: JSON.stringify({
+                  model: 'PatternMemorizationGameState',
+                  game_state_id: gameStateId,
+                }),
+              });
             }
           } catch (e) {
             console.error('[Pattern] finalize on complete failed', e);
@@ -795,7 +795,7 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
           ]);
         } else {
           if (Platform.OS === 'android')  // NEW
-          showToast(`✅ +${j.round_score}`);
+            showToast(`✅ +${j.round_score}`);
           const nextRound =
             typeof j.current_round === 'number' && j.current_round > level
               ? j.current_round
@@ -911,16 +911,24 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
 
         {/* Controls */}
         <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
-          {/* No Replay for multiplayer (server handles it) */}
-          {!isMultiplayer && (
-            <TouchableOpacity
-              style={[styles.smallBtn, showingPattern && { opacity: 0.5 }]}
-              onPress={() => playRound(level)}
-              disabled={showingPattern || submitting}
-            >
-              <Text style={styles.smallBtnText}>{showingPattern ? 'Playing...' : 'Replay Round'}</Text>
-            </TouchableOpacity>
-          )}
+
+          <TouchableOpacity
+            style={[styles.smallBtn, showingPattern && { opacity: 0.5 }]}
+            onPress={() => {
+              if (isMultiplayer && wsRef.current) {
+                // Multiplayer → ask server to resend the pattern
+                wsRef.current.send(JSON.stringify({ type: 'request_replay' }));
+              } else {
+                // Single-player → replay directly
+                playRound(level);
+              }
+            }}
+            disabled={showingPattern || submitting}
+          >
+            <Text style={styles.smallBtnText}>
+              {showingPattern ? 'Playing...' : 'Replay Round'}
+            </Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={[styles.smallBtn, (showingPattern || playerInput.length === 0) && { opacity: 0.5 }]}
             onPress={() => setPlayerInput([])}
