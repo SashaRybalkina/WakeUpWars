@@ -118,7 +118,7 @@ import PublicChallengeCard from "./PublicChallengeCard"
               </View>
             ) : (
               <View style={styles.challengeCardsContainer}>
-                {items.map((c: any) => (
+                {(items ?? []).map((c: any) => (
                   <TouchableOpacity
                     key={c.id}
                     style={styles.challengeCardWrapper}
@@ -134,7 +134,7 @@ import PublicChallengeCard from "./PublicChallengeCard"
                     {type === 'Public' ? (
                       <PublicChallengeCard
                         title={c.name}
-                        icon={require("../../images/school.png")}
+                        icon={require("../../images/ytrophy.png")}
                         startDate={c.startDate}
                         endDate={c.endDate}
                         daysOfWeek={c.daysOfWeek}
@@ -147,7 +147,7 @@ import PublicChallengeCard from "./PublicChallengeCard"
                     ) : (
                       <ChallengeCard
                         title={c.name}
-                        icon={require("../../images/school.png")}
+                        icon={require("../../images/ytrophy.png")}
                         startDate={c.startDate}
                         endDate={c.endDate}
                         daysOfWeek={c.daysOfWeek}

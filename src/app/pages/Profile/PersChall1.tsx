@@ -274,7 +274,7 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
                   <PendingChallengeActionCard
                     key={c.id}
                     title={c.name}
-                    icon={require("../../images/school.png")}
+                    icon={require("../../images/ytrophy.png")}
                     onAccept={() => handleAccept(c.id, c.name)}
                     onDecline={() => handleDecline(c.id)}
                     onPress={() =>
@@ -319,7 +319,7 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
                     >
                       <ChallengeCard
                         title={c.name}
-                        icon={require("../../images/school.png")}
+                        icon={require("../../images/ytrophy.png")}
                         startDate={c.startDate}
                         endDate={c.endDate}
                         daysCompleted={c.daysCompleted}

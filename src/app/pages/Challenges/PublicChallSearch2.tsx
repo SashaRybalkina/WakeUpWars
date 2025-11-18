@@ -73,7 +73,7 @@ const PublicChallSearch2: React.FC<Props> = ({ navigation }) => {
         >
           <PendingPublicChallengeCard
             title={m.summary.name}
-            icon={require("../../images/school.png")}
+            icon={require("../../images/ytrophy.png")}
             numEnrolledMembers={m.summary.numParticipants}
             totalDays={m.summary.totalDays}
             daysOfWeek={m.summary.daysOfWeek}

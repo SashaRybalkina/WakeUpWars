@@ -226,7 +226,7 @@ const PublicChallenges: React.FC<Props> = ({ navigation }) => {
                     >
                       <PendingPublicChallengeCard
                         title={challenge.name}
-                        icon={require("../../images/school.png")}
+                        icon={require("../../images/chall.png")}
                         numEnrolledMembers={challenge.numParticipants}
                         totalDays={challenge.totalDays}
                         daysOfWeek={challenge.daysOfWeek}
@@ -273,7 +273,7 @@ const PublicChallenges: React.FC<Props> = ({ navigation }) => {
                   >
                     <PublicChallengeCard
                       title={challenge.name}
-                      icon={require("../../images/school.png")}
+                      icon={require("../../images/ytrophy.png")}
                       startDate={challenge.startDate}
                       endDate={challenge.endDate}
                       daysOfWeek={challenge.daysOfWeek}

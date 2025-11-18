@@ -412,7 +412,7 @@ useFocusEffect(
         >
           <PendingChallengeCard
             title={challenge.name}
-            icon={require("../../images/school.png")}
+            icon={require("../../images/ytrophy.png")}
             showInvite={challenge.accepted === 2}
             isOwner={user?.id === challenge.initiatorId} // Pass ownership
             onDelete={async () => handleDelete(challenge.id)}
@@ -456,7 +456,7 @@ useFocusEffect(
                     >
                       <ChallengeCard
                         title={challenge.name}
-                        icon={require("../../images/school.png")}
+                        icon={require("../../images/ytrophy.png")}
                         startDate={challenge.startDate}
                         endDate={challenge.endDate}
                         daysOfWeek={challenge.daysOfWeek}
