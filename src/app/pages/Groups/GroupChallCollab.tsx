@@ -18,6 +18,7 @@ import {
   ImageBackground,
   TextInput,
   Platform,
+  Modal,
 } from 'react-native';
 import { BASE_URL, endpoints } from '../../api';
 import { Picker } from '@react-native-picker/picker';
@@ -81,6 +82,7 @@ const GroupChallCollab: React.FC<Props> = ({ navigation }) => {
   const { user } = useUser()
 
   const [name, setName] = useState("")
+  const [infoVisible, setInfoVisible] = React.useState(false);
 
   const horizontalScrollRef = useRef<ScrollView>(null);
   // const [selectedDate, setSelectedDate] = useState(new Date())
@@ -243,7 +245,17 @@ const convertTo24Hour = (time12: string) => {
           </View> */}
 
 <View style={styles.formSection}>
-  <Text style={styles.label}>Select Availability</Text>
+  <View style={[styles.formSection2, { flexDirection: "row", alignItems: "center" }]}>
+    <Text style={styles.label}>Select Availability</Text>
+
+    <TouchableOpacity
+      onPress={() => setInfoVisible(true)}
+      style={{ marginLeft: 6, marginTop: -10 }}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+    >
+      <Ionicons name="help-circle" size={22} color="rgba(255,255,255,0.85)" />
+    </TouchableOpacity>   
+  </View>
 
   <View style={{ flexDirection: 'row', flex: 1 }}>
     {/* Fixed left column (times) */}
@@ -292,6 +304,23 @@ const convertTo24Hour = (time12: string) => {
   </View>
 </View>
 
+      <Modal transparent visible={infoVisible} animationType="fade" onRequestClose={() => setInfoVisible(false)}>
+        <View style={styles.infoBackdrop}>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoTitle}>How to set my availability?</Text>
+            <Text style={styles.infoText}>
+              Availability slots are in 15 mintute segments. Selecting, for example,
+              the 6 AM slot on Monday means that you are available to have a 6 AM 
+              alarm on Mondays. All group members will be able to enter their availabilities
+              into this chart once you send the invite. You will also be able to edit your
+              availability if needed.
+            </Text>
+            <TouchableOpacity style={styles.infoClose} onPress={() => setInfoVisible(false)}>
+              <Text style={styles.infoCloseText}>Got it</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
           <TouchableOpacity style={styles.createButton} onPress={handleNext}>
             <LinearGradient
@@ -351,6 +380,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },
+formSection2: {
+  flexDirection: "row",
+  alignItems: "center",
+  paddingVertical: 4,
+  paddingHorizontal: 2,
+},
   label: {
     fontSize: 18,
     fontWeight: '600',
@@ -445,7 +480,54 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
   },
+  infoBtn: {
+    marginLeft: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoIcon: {
 
+    textShadowColor: 'rgba(0, 0, 0, 0.30)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+  },
+  infoBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  infoCard: {
+    width: '90%',
+    backgroundColor: 'rgba(40, 40, 48, 0.65)',
+    borderRadius: 26,
+    padding: 23,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  infoTitle: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+  infoText: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 14,
+  },
+  infoClose: {
+    alignSelf: 'flex-end',
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 8,
+  },
+  infoCloseText: {
+    color: '#FFF',
+    fontWeight: '700',
+  },
 })
 
 

@@ -65,21 +65,22 @@ contentContainer: {
   position: "relative", // Required for absolute badge positioning
 },
 
-iconContainer: {
-  width: 65,
-  height: 65,
-  borderRadius: 32.5,
-  backgroundColor: "rgba(138, 43, 226, 0.1)",
-  justifyContent: "center",
-  alignItems: "center",
-  marginRight: 12,
-},
-
-icon: {
-  width: 55,
-  height: 55,
-  resizeMode: "contain",
-},
+  iconContainer: {
+    width: 75,
+    height: 75,
+    borderRadius: 75 / 2,
+    borderColor: "#fbae33ff",
+    borderWidth: 2,
+    backgroundColor: "#D1C4E9",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  icon: {
+    width: 70,
+    height: 70,
+    resizeMode: "contain",
+  },
 
 detailsContainer: {
   flex: 1,

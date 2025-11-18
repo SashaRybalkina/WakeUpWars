@@ -156,6 +156,33 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
       await scheduleAlarmsForUser(challId, challName, Number(user?.id));
       console.log('Challenge accepted:', data);
       
+            try {
+              await scheduleAlarmsForUser(challId, challName, Number(user?.id));
+            } catch (e) {
+              if ((e as Error).message === "AUTH_EXPIRED") {
+                Alert.alert(
+                  "Session expired",
+                  "Your login session has expired. Please log in again.",
+                  [
+                    {
+                      text: "OK",
+                      onPress: async () => {
+                        await logout();
+                        navigation.reset({
+                          index: 0,
+                          routes: [{ name: "Login" }],
+                        });
+                      },
+                    },
+                  ],
+                  { cancelable: false }
+                );
+                return;
+              }
+
+              console.warn("Failed to fetch schedule for user", e);
+            }
+
 
       // refresh after accepting
       await fetchChallenges()
@@ -249,7 +276,7 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
                   <PendingChallengeActionCard
                     key={c.id}
                     title={c.name}
-                    icon={require("../../images/school.png")}
+                    icon={require("../../images/ytrophy.png")}
                     onAccept={() => handleAccept(c.id, c.name)}
                     onDecline={() => handleDecline(c.id)}
                     onPress={() =>
@@ -294,7 +321,7 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
                     >
                       <ChallengeCard
                         title={c.name}
-                        icon={require("../../images/school.png")}
+                        icon={require("../../images/ytrophy.png")}
                         startDate={c.startDate}
                         endDate={c.endDate}
                         daysCompleted={c.daysCompleted}

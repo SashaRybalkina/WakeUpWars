@@ -418,13 +418,32 @@ const addGameToDay = async (game: { id: number; name: string }) => {
         setHasSetAlarms(true);
         setIsPending(false);
 
-        try {
-          if (challId) {
-            await scheduleAlarmsForUser(challId, challName, Number(user?.id));
-          }
-        } catch (e) {
-          console.warn('Failed to schedule alarms for new challenge', e);
-        }
+            try {
+              await scheduleAlarmsForUser(challId, challName, Number(user?.id));
+            } catch (e) {
+              if ((e as Error).message === "AUTH_EXPIRED") {
+                Alert.alert(
+                  "Session expired",
+                  "Your login session has expired. Please log in again.",
+                  [
+                    {
+                      text: "OK",
+                      onPress: async () => {
+                        await logout();
+                        navigation.reset({
+                          index: 0,
+                          routes: [{ name: "Login" }],
+                        });
+                      },
+                    },
+                  ],
+                  { cancelable: false }
+                );
+                return;
+              }
+
+              console.warn("Failed to fetch schedule for user", e);
+            }
 
         Alert.alert('Success', 'Joined Challenge', [
           { text: 'OK', onPress: () => navigation.navigate('PublicChallenges') },
@@ -778,9 +797,37 @@ return (
     onPress={async () => {
       if (settingAlarms || joining) return;
       setSettingAlarms(true);
-      try {
-        await scheduleAlarmsForUser(challId, challName, Number(user?.id));
 
+
+            try {
+              await scheduleAlarmsForUser(challId, challName, Number(user?.id));
+            } catch (e) {
+              if ((e as Error).message === "AUTH_EXPIRED") {
+                Alert.alert(
+                  "Session expired",
+                  "Your login session has expired. Please log in again.",
+                  [
+                    {
+                      text: "OK",
+                      onPress: async () => {
+                        await logout();
+                        navigation.reset({
+                          index: 0,
+                          routes: [{ name: "Login" }],
+                        });
+                      },
+                    },
+                  ],
+                  { cancelable: false }
+                );
+                return;
+              }
+
+              console.warn("Failed to fetch schedule for user", e);
+            }
+
+
+      try {
               const accessToken = await getAccessToken();
               if (!accessToken) {
                   Alert.alert(
@@ -817,8 +864,7 @@ return (
         setHasSetAlarms(true);
         console.log("Alarms set and API updated");
       } catch (e) {
-        console.warn("Failed to set alarms", e);
-        Alert.alert("Failed", "Failed to schedule alarms for new challenge", [
+        Alert.alert("Failed", "Failed to update backend", [
           { text: "OK" },
         ]);
       } finally {

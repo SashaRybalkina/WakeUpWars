@@ -218,7 +218,26 @@ const [hasShownResult, setHasShownResult] = useState(false);
     
     try {
       const accessToken = await getAccessToken();
-        if (!accessToken) return;
+        if (!accessToken) {
+                Alert.alert(
+                  "Session expired",
+                  "Your login session has expired. Please log in again.",
+                  [
+                    {
+                      text: "OK",
+                      onPress: async () => {
+                        await logout();
+                        navigation.reset({
+                          index: 0,
+                          routes: [{ name: "Login" }],
+                        });
+                      },
+                    },
+                  ],
+                  { cancelable: false }
+                );
+                return;
+        }
   
         const response = await fetch(endpoints.gameTimerExpired, {
           method: 'POST',
@@ -416,7 +435,26 @@ const [hasShownResult, setHasShownResult] = useState(false);
   }) => {
     try {
       const accessToken = await getAccessToken();
-      if (!accessToken) throw new Error("Not authenticated");
+      if (!accessToken) {
+                Alert.alert(
+                  "Session expired",
+                  "Your login session has expired. Please log in again.",
+                  [
+                    {
+                      text: "OK",
+                      onPress: async () => {
+                        await logout();
+                        navigation.reset({
+                          index: 0,
+                          routes: [{ name: "Login" }],
+                        });
+                      },
+                    },
+                  ],
+                  { cancelable: false }
+                );
+                return;
+      }
 
       // Fire and forget — no UI delay
       const res = await fetch(endpoints.finalizeSudokuResult, {

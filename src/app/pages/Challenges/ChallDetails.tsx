@@ -180,7 +180,27 @@ const ChallDetails: React.FC<Props> = ({ navigation }) => {
 const fetchDetails = useCallback(async () => {
   try {
     const accessToken = await getAccessToken();
-    if (!accessToken) return;
+    if (!accessToken) {
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
+    }
 
     const res = await axios.get(`${endpoints.challengeDetail(challId)}?t=${Date.now()}`, {
       headers: { Authorization: `Bearer ${accessToken}` }
@@ -412,7 +432,27 @@ const loadPerformances = async () => {
     try {
       setIsCollecting(true);
       const accessToken = await getAccessToken();
-      if (!accessToken) {throw new Error("Not authenticated");}
+      if (!accessToken) {
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
+      }
 
       const res = await fetch(endpoints.collectChallengeCoins(), {  
         method: "POST",

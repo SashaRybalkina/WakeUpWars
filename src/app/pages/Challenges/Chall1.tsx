@@ -150,7 +150,7 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
                       >
                         <ChallengeCard
                           title={c.name}
-                          icon={require("../../images/school.png")}
+                          icon={require("../../images/chall.png")}
                           startDate={c.startDate}
                           endDate={c.endDate}
                           daysCompleted={c.daysCompleted}

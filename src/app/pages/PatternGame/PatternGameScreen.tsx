@@ -194,7 +194,27 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
     timerExpiredSentRef.current = true;
     try {
       const accessToken = await getAccessToken();
-      if (!accessToken) return;
+      if (!accessToken) {
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
+      }
       const response = await fetch(endpoints.gameTimerExpired, {
         method: 'POST',
         headers: {
@@ -712,7 +732,28 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
           try {
             if (!isMultiplayer && gameStateId) {
               const token2 = await getAccessToken();
-              if (token2) {
+              if (!token2) {
+                  Alert.alert(
+                    "Session expired",
+                    "Your login session has expired. Please log in again.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: async () => {
+                          await logout();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Login" }],
+                          });
+                        },
+                      },
+                    ],
+                    { cancelable: false }
+                  );
+
+                  return;
+              }
+
                 await fetch(endpoints.gameTimerExpired, {
                   method: 'POST',
                   headers: {
@@ -724,7 +765,6 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
                     game_state_id: gameStateId,
                   }),
                 });
-              }
             }
           } catch (e) {
             console.error('[Pattern] finalize on complete failed', e);

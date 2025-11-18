@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { scheduleAlarms } from '../../Alarm';
-import { Dimensions } from 'react-native';
+import { Dimensions, Modal } from 'react-native';
 
 import {
   View,
@@ -127,6 +127,7 @@ const EditAvailability: React.FC<Props> = ({ navigation }) => {
   // const [challengeStartDate, setChallengeStartDate] = useState<string | null>(
   //   pendingChallengeStartDate ?? null
   // );
+  const [infoVisible, setInfoVisible] = React.useState(false);
 
   const [schedule, setSchedule] = useState<
     {
@@ -720,7 +721,17 @@ return (
 
   {/* Availability Editor */}
 <View style={styles.formSection}>
-  <Text style={styles.sectionTitle}>Edit Your Availability</Text>
+  <View style={[styles.formSection2, { flexDirection: "row", alignItems: "center" }]}>
+    <Text style={styles.sectionTitle}>Edit Availability</Text>
+
+    <TouchableOpacity
+      onPress={() => setInfoVisible(true)}
+      style={{ marginLeft: 6 }}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+    >
+      <Ionicons name="help-circle" size={22} color="rgba(255,255,255,0.85)" />
+    </TouchableOpacity>   
+  </View>
 
   {/* Centered container sized to chart */}
   {/* <View style={styles.chartWrapper}> */}
@@ -798,6 +809,28 @@ return (
     </View>
   </View>
 {/* </View> */}
+
+      <Modal transparent visible={infoVisible} animationType="fade" onRequestClose={() => setInfoVisible(false)}>
+        <View style={styles.infoBackdrop}>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoTitle}>How will our schedules be meshed?</Text>
+            <Text style={styles.infoText}>
+              Availability slots are in 15 mintute segments. Selecting, for example,
+              the 6 AM slot on Monday means that you are available to have a 6 AM 
+              alarm on Mondays. If all members are available at the same time slot on a given day,
+              the system will select that time for all members' alarms on that day, and you will be
+              scheduled to play the multiplayer version of that day's game.
+
+              If not all members are available at the
+              same time slot on a given day, you will be scheduled to play the singleplayer
+              version of that day's game.
+            </Text>
+            <TouchableOpacity style={styles.infoClose} onPress={() => setInfoVisible(false)}>
+              <Text style={styles.infoCloseText}>Got it</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
 
   {/* Legends & Buttons */}
@@ -1275,8 +1308,60 @@ disabledCell: {
   opacity: 0.4, // visually dimmed
   backgroundColor: '#f0f0f0', // light gray background
 },
+  infoBtn: {
+    marginLeft: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoIcon: {
 
-
+    textShadowColor: 'rgba(0, 0, 0, 0.30)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+  },
+  infoBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  infoCard: {
+    width: '90%',
+    backgroundColor: 'rgba(40, 40, 48, 0.65)',
+    borderRadius: 26,
+    padding: 23,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  infoTitle: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+  infoText: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 14,
+  },
+  infoClose: {
+    alignSelf: 'flex-end',
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 8,
+  },
+  infoCloseText: {
+    color: '#FFF',
+    fontWeight: '700',
+  },
+formSection2: {
+  flexDirection: "row",
+  alignItems: "center",
+  paddingVertical: 4,
+  paddingHorizontal: 2,
+},
 });
 
 export default EditAvailability;
