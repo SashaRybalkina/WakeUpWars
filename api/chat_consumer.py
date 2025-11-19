@@ -1,3 +1,11 @@
+"""
+/**
+ * @file chat_consumer.py
+ * @description WebSocket handler for 1-on-1 and group chat messaging.
+ *   Manages room joins, message saving, presence tracking, and push alerts.
+ */
+"""
+
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
