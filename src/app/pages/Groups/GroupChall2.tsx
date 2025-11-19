@@ -1,3 +1,12 @@
+/**
+ * @file GroupChall2.tsx
+ * @description This screen handles the full manual setup process for a group challenge.
+ * Users can name the challenge, pick days, assign alarm times, choose games for specific
+ * days, and set an end date. Once everything is filled out, the screen builds the payload,
+ * validates the schedule, sends it to the backend, and schedules alarms locally.
+ */
+
+
 import React, { useEffect, useState } from "react"
 import {
   Alert,
