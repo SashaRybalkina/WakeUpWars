@@ -1,3 +1,11 @@
+"""
+/**
+ * @file serializers.py
+ * @description Serializers for users, challenges, games, chat, skills,
+ * and reward/payment systems. Handles validation and API shaping.
+ */
+"""
+
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import (Group, User, SkillLevel, GameCategory, Challenge, GamePerformance, GameSchedule, Message, ChallengeMembership, Game,
