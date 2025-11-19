@@ -1,3 +1,8 @@
+/**
+ * @file ChallSchedule.tsx
+ * @description This file creates a page that displays the schedule for the given challenge (alarm days/times and the game for each day)
+ */
+
 // import React, { useEffect, useState } from "react"
 // import {
 //   View,
