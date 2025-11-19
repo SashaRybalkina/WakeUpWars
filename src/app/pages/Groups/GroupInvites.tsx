@@ -1,3 +1,10 @@
+/**
+ * @file GroupInvites.tsx
+ * @description Allows the user to view any pending group invites, and respond with
+ * either accepting or declining the invite. Accepting results in the user being added
+ * to the group that they got the invite for.
+ */
+
 import type React from "react"
 import { useState, useEffect } from "react"
 import * as SecureStore from "expo-secure-store"
