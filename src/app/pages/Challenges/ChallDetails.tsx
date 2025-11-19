@@ -504,10 +504,11 @@ const loadPerformances = async () => {
     <ImageBackground source={require("../../images/cgpt.png")} style={styles.background} resizeMode="cover">
       <View style={styles.container}>
         {/* Header */}
-        <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color="#FFF" />
+            <Ionicons name="arrow-back" size={28} color="#FFF" />
           </TouchableOpacity>
+        <View style={styles.header}>
+
           <Text style={styles.headerTitle}>{challName}</Text>
         </View>
 
@@ -830,11 +831,13 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
     flex: 1,
     textAlign: "center",
+    marginTop: 10,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    left: 20,
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",

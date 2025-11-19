@@ -720,47 +720,47 @@ return (
                         style={[styles.gameCard, isSudoku && styles.sudokuGameCard]}
                         onPress={() => handleGamePress(game, index)}
                       >
-                        <Text style={styles.gameTitle}>{game.name}</Text>
+                        <Text style={styles.gameTitle} numberOfLines={2} ellipsizeMode="tail">{game.name}</Text>
 
                         {isSudoku ? (
-                          <>
+                          <View style={styles.gameImageWrap}>
                             <ImageBackground
                               source={require("../../images/sudoku.png")}
-                              style={styles.sudokuImage}
-                              resizeMode="contain"
+                              style={styles.gameImage}
+                              resizeMode="cover"
                             />
-                          </>
+                          </View>
                         ) : isPattern ? (
-                          <>
+                          <View style={styles.gameImageWrap}>
                             <ImageBackground
                               source={require("../../images/patternGame.png")}
-                              style={styles.sudokuImage}
-                              resizeMode="contain"
+                              style={styles.gameImage}
+                              resizeMode="cover"
                             />
-                          </>
+                          </View>
                         ) : 
                         isWordle ? (
-                          <>
+                          <View style={styles.gameImageWrap}>
                             <ImageBackground
                               source={require("../../images/wordle.png")}
-                              style={styles.sudokuImage}
-                              resizeMode="contain"
+                              style={styles.gameImage}
+                              resizeMode="cover"
                             />
-                          </>
+                          </View>
                         ) : 
                         isTypingRace ? (
-                          <>
+                          <View style={styles.gameImageWrap}>
                             <ImageBackground
                               source={require("../../images/typingrace.png")}
-                              style={styles.sudokuImage}
-                              resizeMode="contain"
+                              style={styles.gameImage}
+                              resizeMode="cover"
                             />
-                          </>
+                          </View>
                         ) : (
-                          <>
+                          <View>
                             <Text style={styles.gameDetail}>Repeats: -</Text>
                             <Text style={styles.gameDetail}>Minutes: -</Text>
-                          </>
+                          </View>
                         )}
                       </TouchableOpacity>
                     );
@@ -916,7 +916,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "700",
     color: "#FFF",
     textAlign: "center",
@@ -1154,33 +1154,40 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(50, 50, 60, 0.7)",
     borderRadius: 15,
     padding: 12,
-    width: 130,
+    width: 160,
     marginRight: 12,
     alignItems: "center",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.1)",
-    height: 130,
+    overflow: 'hidden',
   },
   sudokuGameCard: {
     borderColor: "rgba(255, 215, 0, 0.3)",
     backgroundColor: "rgba(60, 60, 70, 0.8)",
-    width: 140,
-    height: 160,
   },
   gameTitle: {
     color: "#FFF",
     fontWeight: "700",
     fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 8,
   },
   gameDetail: {
     color: "#DDD",
     fontSize: 12,
     marginBottom: 3,
   },
-  sudokuImage: {
-    width: 85,
-    height: 85,
-    marginTop: 4,
+  gameImageWrap: {
+    width: '90%',
+    aspectRatio: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    marginTop: 6,
+  },
+  gameImage: {
+    width: '100%',
+    height: '100%',
   },
   emptyGamesContainer: {
     backgroundColor: "rgba(30, 30, 40, 0.6)",

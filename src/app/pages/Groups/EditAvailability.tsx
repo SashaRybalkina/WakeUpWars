@@ -637,90 +637,83 @@ return (
   contentContainerStyle={styles.scrollContentContainer}
   showsVerticalScrollIndicator={false}
 >
-  {/* Challenge Info */}
+  {/* Challenge Summary Card (name, dates, fee, days, games) */}
   <View style={styles.challengeCard}>
     <Text style={styles.challengeTitle}>{pendingChallengeName}</Text>
-    <View style={styles.challengeDetailsRow}>
-      <Text style={styles.challengeDateText}>Starts: {pendingChallengeStartDate}</Text>
-      <Text style={styles.challengeDateText}>Ends: {pendingChallengeEndDate}</Text>
-    </View>
+
+    {/* Fee row */}
     <View style={styles.feeRow}>
       <Text style={styles.coinText}>Participation Fee:</Text>
       <Text style={styles.coinValue}>{participationFee} 🪙</Text>
     </View>
-  </View>
 
-  {/* Days Selection */}
-  <View style={styles.section}>
-    <Text style={styles.sectionTitle}>Challenge Days</Text>
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.daysScroll}
-    >
-      {activeDays.map((dayNum, idx) => {
-        const dayLabel = DAYS[dayNum - 1];
-        const dayData = schedule.find(d => DayOfWeekLabels[d.dayOfWeek] === dayLabel);
-        const isActive = dayData?.dayOfWeek === selectedDay;
+    <View style={styles.cardDivider} />
 
-        return (
-          <TouchableOpacity
-            key={idx}
-            style={[styles.dayBubble, isActive && styles.dayBubbleActive]}
-            onPress={() => dayData && setSelectedDay(dayData.dayOfWeek)}
-          >
-            <Text style={[styles.dayBubbleText, isActive && styles.dayBubbleTextActive]}>
-              {dayLabel}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </ScrollView>
-  </View>
-
-  {/* Games Section */}
-  <View style={styles.section}>
-    <Text style={styles.sectionTitle}>
-      {selectedDay ? `Games for ${DayOfWeekLabels[selectedDay]}` : "Select a Day"}
-    </Text>
-    {visibleGames.length > 0 ? (
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {visibleGames.map((game, index) => {
-          const lower = game.name.toLowerCase();
-          const isSudoku = lower.includes("sudoku");
-          const isPattern = lower.includes("pattern");
-          const isWordle = lower.includes("wordle");
-          const isTyping = lower.includes("typing");
-          const image = isSudoku
-            ? require("../../images/sudoku.png")
-            : isPattern
-            ? require("../../images/patternGame.png")
-            : isWordle
-            ? require("../../images/wordle.png")
-            : isTyping
-            ? require("../../images/typingrace.png")
-            : null;
-
-          return (
-            <TouchableOpacity key={index} style={styles.gameCard}>
-              <Text style={styles.gameTitle}>{game.name}</Text>
-              {image ? (
-                <ImageBackground source={image} style={styles.gameImage} resizeMode="contain" />
-              ) : (
-                <>
-                  <Text style={styles.gameDetail}>Repeats: -</Text>
-                  <Text style={styles.gameDetail}>Minutes: -</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-    ) : (
-      <View style={styles.emptyGamesContainer}>
-        <Text style={styles.emptyGamesText}>Select a day to see games</Text>
+    {/* Dates row with pills */}
+    <View style={styles.dateRow}>
+      <View style={styles.dateCol}>
+        <Text style={styles.dateLabel}>Start</Text>
+        <View style={styles.datePill}>
+          <Text style={styles.datePillText}>{pendingChallengeStartDate ? `${pendingChallengeStartDate.slice(5,7)}-${pendingChallengeStartDate.slice(8,10)}-${pendingChallengeStartDate.slice(2,4)}` : '--'}</Text>
+        </View>
       </View>
-    )}
+      <View style={styles.dateCol}>
+        <Text style={styles.dateLabel}>End</Text>
+        <View style={styles.datePill}>
+          <Text style={styles.datePillText}>{pendingChallengeEndDate ? `${pendingChallengeEndDate.slice(5,7)}-${pendingChallengeEndDate.slice(8,10)}-${pendingChallengeEndDate.slice(2,4)}` : '--'}</Text>
+        </View>
+      </View>
+    </View>
+
+    <Text style={styles.sectionTitleInCard}>Challenge Days</Text>
+
+    {/* Day + Assigned Game preview card */}
+    <TouchableOpacity
+      style={styles.dayGameCard}
+      activeOpacity={0.85}
+      onPress={() => {
+        if (activeDays.length === 0) return;
+        const idx = activeDays.findIndex((d) => d === selectedDay);
+        const next = activeDays[(Math.max(idx, -1) + 1) % activeDays.length];
+        setSelectedDay(next);
+      }}
+    >
+      <View style={styles.dayBig}>
+        <Text style={styles.dayBigLetter}>{selectedDay ? DayOfWeekLabels[selectedDay] : '-'}</Text>
+      </View>
+
+      <View style={styles.vDivider} />
+
+      {/* Right side: game name + thumb for first visible game */}
+      <View style={styles.rightCol}>
+        <Text style={styles.cardGameTitle} numberOfLines={2} ellipsizeMode='tail'>
+          {visibleGames[0]?.name ?? 'No game assigned'}
+        </Text>
+        {!!visibleGames[0] && (
+          (() => {
+            const lower = visibleGames[0].name.toLowerCase();
+            const isSudoku = lower.includes('sudoku');
+            const isPattern = lower.includes('pattern');
+            const isWordle = lower.includes('wordle');
+            const isTyping = lower.includes('typing');
+            const image = isSudoku
+              ? require('../../images/sudoku.png')
+              : isPattern
+              ? require('../../images/patternGame.png')
+              : isWordle
+              ? require('../../images/wordle.png')
+              : isTyping
+              ? require('../../images/typingrace.png')
+              : null;
+            return image ? (
+              <View style={styles.thumbWrap}>
+                <ImageBackground source={image} style={styles.thumbImage} resizeMode='cover' />
+              </View>
+            ) : null;
+          })()
+        )}
+      </View>
+    </TouchableOpacity>
   </View>
 
   {/* Availability Editor */}
@@ -730,7 +723,7 @@ return (
 
     <TouchableOpacity
       onPress={() => setInfoVisible(true)}
-      style={{ marginLeft: 6 }}
+      style={{ marginLeft: 6, marginBottom: 10}}
       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
     >
       <Ionicons name="help-circle" size={22} color="rgba(255,255,255,0.85)" />
@@ -950,10 +943,10 @@ const styles = StyleSheet.create({
   paddingBottom: 100, // give room for last button
 },
   createButton: {
-    borderRadius: 12,
+    borderRadius: 15,
     overflow: "hidden",
     marginVertical: 10,
-    marginBottom: 30,
+    marginBottom: 10,
   },
   createButtonGradient: {
     paddingVertical: 15,
@@ -1000,6 +993,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 15,
+    marginLeft: 5,
+    top: 10
   },
   interactiveCell: {
     backgroundColor: "rgba(255, 255, 255, 0)",
@@ -1036,6 +1031,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
+    shadowColor: 'rgba(0,0,0,0.2)',
+    shadowOffset: {width: 1, height: 1},
+    shadowRadius: 23
   },
 sectionLabel: {
   fontSize: 18,
@@ -1079,11 +1077,14 @@ challengeInfoContainer: {
 },
 
 challengeTitle: {
-  fontSize: 20,
+  fontSize: 22,
   fontWeight: '700',
   color: '#FFF',
   marginBottom: 4,
   textAlign: 'center',
+  textShadowColor: "rgba(0, 0, 0, 0.2)",
+  textShadowOffset: { width: 0, height: 1 },
+  textShadowRadius: 2,
 },
 
 challengeEndDate: {
@@ -1098,6 +1099,7 @@ challengeEndDate: {
     textShadowColor: "rgba(0, 0, 0, 0.2)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
+    marginBottom: 10,
   },
   alarmSection: {
     marginBottom: 20,
@@ -1213,13 +1215,16 @@ challengeEndDate: {
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 6,
+    textShadowColor: "rgba(0, 0, 0, 0.2)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   coinEmoji: {
     fontSize: 18,
     marginLeft: 4,
   },
 challengeCard: {
-  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  backgroundColor: 'rgba(0, 0, 0, 0.15)',
   borderRadius: 18,
   padding: 20,
   marginBottom: 25,
@@ -1230,6 +1235,8 @@ challengeCard: {
   shadowOffset: { width: 0, height: 3 },
   shadowOpacity: 0.25,
   shadowRadius: 5,
+  width: '100%',
+  alignSelf: 'center',
 },
 challengeDetailsRow: {
   flexDirection: 'row',
@@ -1256,6 +1263,154 @@ coinValue: {
   marginLeft: 6,
 },
 
+/* Dates and Day/Game preview styles */
+dateRow: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  width: '100%',
+  marginTop: 10,
+  marginBottom: 6,
+},
+dateCol: {
+  width: '48%',
+},
+dateLabel: {
+  color: '#FFF',
+  fontSize: 14,
+  fontWeight: '700',
+  marginBottom: 6,
+  textShadowColor: "rgba(0, 0, 0, 0.2)",
+  textShadowOffset: { width: 0, height: 1 },
+  textShadowRadius: 2,
+},
+datePill: {
+  backgroundColor: 'rgba(255,255,255,0.12)',
+  borderRadius: 16,
+  paddingVertical: 10,
+  paddingHorizontal: 14,
+  borderWidth: 1,
+  borderColor: 'rgba(255,255,255,0.25)'
+},
+datePillText: {
+  color: '#FFF',
+  fontSize: 16,
+  fontWeight: '700'
+},
+
+dayGameCard: {
+  flexDirection: 'row',
+  width: '100%',
+  marginTop: 12,
+  backgroundColor: 'rgba(255,255,255,0.12)',
+  borderRadius: 18,
+  padding: 14,
+  borderWidth: 1,
+  borderColor: 'rgba(255,255,255,0.2)',
+  alignItems: 'center',
+},
+dayBig: {
+  width: 45,
+  height: 45,
+  borderRadius: 28,
+  backgroundColor: '#FFD54F',
+  alignItems: 'center',
+  justifyContent: 'center',
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.25,
+  shadowRadius: 3,
+},
+dayBigLetter: {
+  color: '#333',
+  fontWeight: '900',
+  fontSize: 22,
+},
+vDivider: {
+  width: 1.7,
+  height: 75,
+  backgroundColor: 'rgba(255,255,255,0.2)',
+  marginHorizontal: 14,
+  borderRadius: 1,
+},
+rightCol: {
+  flex: 1,
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+},
+cardGameTitle: {
+  color: '#FFF',
+  fontWeight: '800',
+  fontSize: 18,
+  flex: 1,
+  paddingRight: 2,
+  textShadowColor: 'rgba(0, 0, 0, 0.2)',
+  textShadowOffset: { width: 1, height: 1},
+  textShadowRadius: 3,
+},
+thumbWrap: {
+  width: 90,
+  height: 90,
+  borderRadius: 12,
+  overflow: 'hidden',
+  backgroundColor: 'rgba(0,0,0,0.25)',
+  borderWidth: 1,
+  borderColor: 'rgba(255,255,255,0.15)'
+},
+thumbImage: {
+  width: '100%',
+  height: '100%',
+},
+cardDivider: {
+  height: 2,
+  backgroundColor: 'rgba(255,255,255,0.1)',
+  marginVertical: 12,
+  width: '100%',
+},
+sectionTitleInCard: {
+  color: '#FFF',
+  fontWeight: '700',
+  fontSize: 17,
+  alignSelf: 'flex-start',
+  marginTop: 12,
+  marginBottom: 8,
+  textShadowColor: 'rgba(0, 0, 0, 0.2)',
+  textShadowOffset: { width: 1, height: 1},
+  textShadowRadius: 3,
+},
+miniGameCard: {
+  backgroundColor: 'rgba(255,255,255,0.12)',
+  borderRadius: 14,
+  padding: 10,
+  marginRight: 10,
+  alignItems: 'center',
+  width: 140,
+  borderWidth: 1,
+  borderColor: 'rgba(255,255,255,0.1)',
+  overflow: 'hidden',
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.2,
+  shadowRadius: 3,
+},
+miniGameTitle: {
+  color: '#FFF',
+  fontWeight: '700',
+  fontSize: 12,
+  textAlign: 'center',
+  marginBottom: 6,
+},
+miniImageWrap: {
+  width: '100%',
+  aspectRatio: 1,
+  borderRadius: 10,
+  overflow: 'hidden',
+  backgroundColor: 'rgba(0,0,0,0.2)'
+},
+miniImage: {
+  width: '100%',
+  height: '100%'
+},
 section: {
   marginBottom: 25,
   alignItems: 'center',
@@ -1318,13 +1473,13 @@ disabledCell: {
     marginLeft: 6,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 10
   },
   infoIcon: {
-
     textShadowColor: 'rgba(0, 0, 0, 0.30)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
-  },
+    },
   infoBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

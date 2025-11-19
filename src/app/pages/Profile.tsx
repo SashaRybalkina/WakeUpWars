@@ -570,7 +570,7 @@ const styles = StyleSheet.create({
   notificationButton: {
     position: 'absolute',
     top: 60, // adjust for status bar
-    left: 20,
+    left: 25,
     zIndex: 10,
     backgroundColor: 'rgba(0,0,0,0.3)',
     padding: 10,
