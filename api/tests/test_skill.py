@@ -1,3 +1,11 @@
+"""
+/**
+ * @file test_skill.py
+ * @description This file tests skill recomputation. It checks averaging, decay,
+ * window filtering, and signal-based updates.
+ */
+"""
+
 import math
 from datetime import date, timedelta
 from freezegun import freeze_time
