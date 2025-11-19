@@ -1,3 +1,12 @@
+"""
+/**
+ * @file tasks.py
+ * @description Celery tasks for opening and closing join windows,
+ * creating game states, handling zero-fill scoring, and broadcasting
+ * join-window updates to websocket groups.
+ */
+"""
+
 from django.utils import timezone
 from datetime import date, timedelta
 from asgiref.sync import async_to_sync
