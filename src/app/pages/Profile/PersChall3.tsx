@@ -1,3 +1,8 @@
+/**
+ * @file Perschall3.tsx
+ * @description This file creates a page that allows users to set the start/end date and finally create a given challenge.
+ */
+
 import React, { useEffect, useMemo, useState } from "react"
 import { Calendar } from 'react-native-calendars';
 import {
