@@ -1,3 +1,9 @@
+/**
+ * @file Styles.ts
+ * @description This stylesheet defines all layout, color, and interaction styles used across the
+ * Typing Race screen, including overlays, progress tracks, player rows, buttons, and text formatting.
+ */
+
 import { StyleSheet } from 'react-native';
 const styles = StyleSheet.create({
   background: { flex: 1 },
