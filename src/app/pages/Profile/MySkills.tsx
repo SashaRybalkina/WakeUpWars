@@ -1,3 +1,8 @@
+/**
+ * @file MySkills.tsx
+ * @description This file gets users’ skill levels in each of the game categories..
+ */
+
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, ImageBackground, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
