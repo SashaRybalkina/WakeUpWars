@@ -5489,7 +5489,63 @@ class CreateTypingRaceGameView(APIView):
         except Challenge.DoesNotExist:
             return Response({"error": "Challenge not found"}, status=status.HTTP_404_NOT_FOUND)
                 
-        anchor_dt = timezone.now()
+        # Determine anchor for singleplayer typing based on scheduled slot, if available
+        now = timezone.now()
+        window = int(getattr(settings, "JOIN_WINDOW_SECONDS", 20) or 20)
+        anchor_dt = None
+
+        typing_game = None
+        assoc_single = None
+        try:
+            assoc_single = (
+                GameScheduleGameAssociation.objects
+                .select_related("game_schedule", "game")
+                .filter(
+                    game_schedule__challenge_id=challenge_id,
+                    game__name__icontains="typing",
+                    game__isMultiplayer=False,
+                )
+                .order_by("game_order", "id")
+                .first()
+            )
+            typing_game = assoc_single.game if assoc_single else (
+                Game.objects.filter(name__icontains="typing", isMultiplayer=False).order_by("id").first()
+            )
+        except Exception:
+            typing_game = None
+
+        if typing_game and GamePerformance.objects.filter(
+            challenge_id=challenge_id, game=typing_game, user=user, date=timezone.localdate()
+        ).exists():
+            return Response(
+                {"code": "GAME_COMPLETED", "detail": "This challenge has already been completed today."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            if assoc_single and getattr(assoc_single, "game_schedule", None):
+                day = assoc_single.game_schedule.dayOfWeek
+                t_obj = assoc_single.game_schedule.alarmTime
+                mountain_tz = pytz.timezone("America/Denver")
+                base_date = now.astimezone(mountain_tz).date()
+                current_wd = base_date.isoweekday()
+                delta = (current_wd - day) % 7
+                alarm_date = base_date - timedelta(days=delta)
+                dt = datetime.combine(alarm_date, t_obj)
+                if timezone.is_naive(dt):
+                    dt = mountain_tz.localize(dt)
+                if not (dt <= now <= dt + timedelta(seconds=window)):
+                    return Response(
+                        {"code": "JOIN_CLOSED", "detail": "Join window has closed for this game."},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+                anchor_dt = dt
+        except Exception:
+            anchor_dt = None
+
+        if anchor_dt is None:
+            anchor_dt = now
+
         # Create state without joining yet, anchored to the scheduled slot if present
         game_data = get_or_create_typing_race_game(challenge_id, user, allow_join=False, alarm_datetime=anchor_dt)
         logger.warning(f"[TYPING][CREATE] Game created: {game_data}")
