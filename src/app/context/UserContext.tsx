@@ -1,3 +1,8 @@
+/**
+ * @file UserContext.tsx
+ * @description This file creates a global context that allows us to store user information and also contains a helper method to logout.
+ */
+
 import { NavigationProp, useNavigation } from "@react-navigation/native";
 import * as SecureStore from "expo-secure-store";
 import React, { createContext, useState, useContext } from "react";
