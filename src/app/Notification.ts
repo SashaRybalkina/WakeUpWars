@@ -1,3 +1,8 @@
+/**
+ * @file Notification.ts
+ * @description Creates and sends a push notification to the user's device.
+ */
+
 import { BASE_URL } from "./api";
 import { NativeModules } from 'react-native';
 import { getAccessToken } from "./auth";
