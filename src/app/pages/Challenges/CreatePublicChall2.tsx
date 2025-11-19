@@ -1,3 +1,8 @@
+/**
+ * @file CreatePublicChall2.tsx
+ * @description This file creates a page that allows a users to select the alarms/games for a public challenge.
+ */
+
 import React, { useEffect, useState } from "react"
 import {
   Alert,
