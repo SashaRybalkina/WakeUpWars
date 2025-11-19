@@ -1,3 +1,13 @@
+"""
+/**
+ * @file typing_race_utils.py
+ * @description Utility logic for the Typing Race game. It loads passages,
+ * creates or reuses game states, updates player progress in cache, and
+ * maintains the leaderboard. It also writes all results to the database
+ * when the game ends.
+ */
+"""
+
 # api/games/typing_race_utils.py
 
 from __future__ import annotations
