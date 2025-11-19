@@ -1,3 +1,8 @@
+/**
+ * @file _layout.tsx
+ * @description Handles root layout of the app.
+ */
+
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 import { UserProvider } from './context/UserContext';
