@@ -1,3 +1,8 @@
+/**
+ * @file FriendRequest.tsx
+ * @description This file creates a page that allows users to view their friend requests.
+ */
+
 import type React from "react"
 import { useState, useEffect } from "react"
 import * as SecureStore from "expo-secure-store"
