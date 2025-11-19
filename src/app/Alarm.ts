@@ -1,3 +1,8 @@
+/**
+ * @file Alarm.ts
+ * @description Schedules alarms on the user's device
+ */
+
 // Alarm.ts
 import { Alert, NativeModules } from 'react-native';
 
