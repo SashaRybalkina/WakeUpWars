@@ -1,3 +1,8 @@
+/**
+ * @file FriendSearch.tsx
+ * @description This file creates a page that allows users to search for a new friend via username.
+ */
+
 import type React from "react"
 import { useState, useEffect } from "react"
 import {
