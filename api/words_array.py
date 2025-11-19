@@ -1,3 +1,11 @@
+"""
+/**
+ * @file words_array.py
+ * @description This file provides a fixed list of five-letter words used for
+ * validating guesses and generating puzzles in the Wordle-style game.
+ */
+"""
+
 words = [
     "plant",
     "brick",
