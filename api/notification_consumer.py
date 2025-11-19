@@ -1,3 +1,11 @@
+"""
+/**
+ * @file notification_consumer.py
+ * @description WebSocket consumer for real-time user notifications.
+ *   Receives push-style events and delivers them to subscribed users.
+ */
+"""
+
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
