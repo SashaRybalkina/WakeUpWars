@@ -36,13 +36,21 @@ type Props = { navigation: NavigationProp<any> }
 const DAYS = ["M", "T", "W", "TH", "F", "S", "SU"]
 // const TIMES = Array.from({ length: 12 }, (_, i) => `${i + 6}:00`); // 6am - 5pm 
 
-const TIMES = Array.from({ length: 100 }, (_, i) => {
-  const totalMinutes = 19 * 60 + i * 5; // start at 4:00
+const TIMES = Array.from({ length: 144 }, (_, i) => {
+  const totalMinutes = 12 * 60 + i * 5; // 12:00 PM .. 11:55 PM
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 });
 
+const formatTo12Hour = (time24: string) => {
+  const [hStr, mStr] = time24.split(":");
+  if (!hStr || !mStr) return time24;
+  let hours = parseInt(hStr, 10);
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12;
+  return `${hours}:${mStr} ${ampm}`;
+};
 
 // const START_MIN = 14 * 60; // 10:00 PM
 // const END_MIN = 16 * 60;   // 12:00 AM next day
@@ -275,7 +283,7 @@ const convertTo24Hour = (time12: string) => {
       <View style={styles.cell} />
       {TIMES.map((time, timeIdx) => (
         <View key={timeIdx} style={styles.cell}>
-          <Text style={styles.cellText}>{time}</Text>
+          <Text style={styles.cellText}>{formatTo12Hour(time)}</Text>
         </View>
       ))}
     </View>
@@ -320,7 +328,7 @@ const convertTo24Hour = (time12: string) => {
           <View style={styles.infoCard}>
             <Text style={styles.infoTitle}>How to set my availability?</Text>
             <Text style={styles.infoText}>
-              Availability slots are in 15 mintute segments. Selecting, for example,
+              Availability slots are in 5 minute segments. Selecting, for example,
               the 6 AM slot on Monday means that you are available to have a 6 AM 
               alarm on Mondays. All group members will be able to enter their availabilities
               into this chart once you send the invite. You will also be able to edit your

@@ -56,8 +56,8 @@ const DayOfWeekLabels: Record<number, string> = { 1: "M", 2: "T", 3: "W", 4: "TH
 //   return `${hours12}:${String(minutes).padStart(2, "0")} ${period}`;
 // });
 
-const TIMES = Array.from({ length: 100 }, (_, i) => {
-  const totalMinutes = 19 * 60 + i * 5; // start at 4:00
+const TIMES = Array.from({ length: 144 }, (_, i) => {
+  const totalMinutes = 12 * 60 + i * 5; // 12:00 PM .. 11:55 PM
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
@@ -819,7 +819,7 @@ return (
           <View style={styles.infoCard}>
             <Text style={styles.infoTitle}>How will our schedules be meshed?</Text>
             <Text style={styles.infoText}>
-              Availability slots are in 15 mintute segments. Selecting, for example,
+              Availability slots are in 5 minute segments. Selecting, for example,
               the 6 AM slot on Monday means that you are available to have a 6 AM 
               alarm on Mondays. If all members are available at the same time slot on a given day,
               the system will select that time for all members' alarms on that day, and you will be
