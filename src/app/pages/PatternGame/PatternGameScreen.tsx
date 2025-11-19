@@ -1,3 +1,10 @@
+/**
+ * @file PatternGameScreen.tsx
+ * @description This screen manages the full Pattern Memory game flow, handling both single-player
+ * and multiplayer modes while coordinating REST calls, WebSocket events, timers, animations,
+ * input validation, and overall game progression.
+ */
+
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { endpoints, BASE_URL } from '../../api';
 import {

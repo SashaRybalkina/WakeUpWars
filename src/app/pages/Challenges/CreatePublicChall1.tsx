@@ -1,3 +1,8 @@
+/**
+ * @file CreatePublicChall1.tsx
+ * @description This file creates a page that allows a user to start configuring a public challenge (choose multiplayer/singleplayer and the game categories).
+ */
+
 import React, { useEffect, useState } from "react";
 import {
   View,

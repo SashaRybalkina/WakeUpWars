@@ -1,3 +1,12 @@
+"""
+/**
+ * @file skill_config.py
+ * @description This file defines the configuration for skill computation.
+ * It sets the window for valid results. It sets the half-life for recency
+ * decay. It provides a single shared SkillConfig instance for use elsewhere.
+ */
+"""
+
 from dataclasses import dataclass
 
 @dataclass(frozen=True)

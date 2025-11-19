@@ -1,3 +1,8 @@
+/**
+ * @file api.ts
+ * @description Abstracts away urls, fecthed leaderboard history, and handles JSON fetch.
+ */
+
 export const BASE_URL = 'https://leathery-punishingly-darcey.ngrok-free.dev';
 // blah
 //export const BASE_URL = 'https://f33a8334ac07.ngrok-free.app';

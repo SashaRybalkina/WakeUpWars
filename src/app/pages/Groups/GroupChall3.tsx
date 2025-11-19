@@ -1,3 +1,11 @@
+/**
+ * @file GroupChall3.tsx
+ * @description This screen lets the user choose whether the upcoming challenge game
+ * should be played in singleplayer or multiplayer. It receives the category and
+ * group information from the previous screen and navigates to the Games screen once
+ * the game mode is selected.
+ */
+
 import React from 'react';
 import {
   ImageBackground,

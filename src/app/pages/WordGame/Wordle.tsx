@@ -1,3 +1,11 @@
+/**
+ * @file Wordle.tsx
+ * @description This screen implements the Wordle challenge in both single-player and multiplayer modes.
+ * It manages waiting-room logic, WebSocket updates, local guess validation, shared board state,
+ * timers, scoring, and finalization. The component coordinates gameplay flow while rendering the full
+ * Wordle grid, keyboard, opponent progress, and countdown experience.
+ */
+
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,

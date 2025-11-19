@@ -1,3 +1,11 @@
+/**
+ * @file GroupDetails.tsx
+ * @description Main screen for viewing a group's profile. Loads group info,
+ * members, leaderboard data, current and pending challenges, and past results.
+ * Also lets users manage invites, delete pending challenges, and jump into
+ * challenge details or create new ones.
+ */
+
 import type React from "react"
 import { useCallback, useEffect, useState } from "react"
 import { BASE_URL, endpoints } from "../../api"

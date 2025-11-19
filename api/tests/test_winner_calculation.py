@@ -1,3 +1,11 @@
+"""
+/**
+ * @file test_winner_calculation.py
+ * @description This file tests how a challenge determines its winner using
+ * daily scores. It covers wins and different tie cases.
+ */
+"""
+
 from django.test import TestCase
 from django.utils import timezone
 from api.models import GameCategory, User, Challenge, Game, GamePerformance

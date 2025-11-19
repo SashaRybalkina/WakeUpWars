@@ -1,3 +1,8 @@
+/**
+ * @file EditAva.tsx
+ * @description This file creates a page that allows users to select their base avatar.
+ */
+
 import React, { useState } from 'react';
 import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Alert, FlatList, ImageBackground } from 'react-native';
 import { useFocusEffect, useRoute, useNavigation } from '@react-navigation/native';

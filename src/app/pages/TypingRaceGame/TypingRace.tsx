@@ -1,3 +1,11 @@
+/**
+ * @file TypingRace.tsx
+ * @description This screen implements the Typing Race game in both single-player and multiplayer modes.
+ * It manages real-time WebSocket updates for multiplayer, waiting-room flow, progress animations,
+ * text input tracking, scoring, and end-of-race handling. The component synchronizes player positions,
+ * updates gameplay timers, and renders the full typing experience with visuals, metrics, and results.
+ */
+
 // TypingRace.tsx
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';

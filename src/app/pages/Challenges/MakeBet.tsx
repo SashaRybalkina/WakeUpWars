@@ -1,3 +1,8 @@
+/**
+ * @file MakeBet.tsx
+ * @description This file creates a page that allows a user to initiate a bet with another challenge member.
+ */
+
 import type React from "react"
 import { useCallback, useEffect, useState } from "react"
 import { endpoints } from "../../api"

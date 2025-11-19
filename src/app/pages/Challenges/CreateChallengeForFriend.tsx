@@ -1,3 +1,8 @@
+/**
+ * @file CreateChallengeForFriend.tsx
+ * @description This file creates a page that allows a user to set up a challenge for a friend, very similar to the personal challenge setup.
+ */
+
 import React, { useEffect, useMemo, useState } from "react"
 import {
   Alert,

@@ -1,3 +1,8 @@
+/**
+ * @file alarmService.ts
+ * @description Handles to set alarms on user's phone with the dates and times given.
+ */
+
 import { scheduleAlarms } from './Alarm';
 import { endpoints } from './api';
 import { getAccessToken } from './auth';

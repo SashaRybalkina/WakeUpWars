@@ -1,3 +1,13 @@
+"""
+/**
+ * @file utils.py
+ * @description This file provides the core logic for the Pattern Memorization game.
+ * It creates or reuses game states. It builds patterns. It validates player moves.
+ * It updates rounds and scores. It completes the game when all rounds are matched.
+ */
+"""
+
+
  # utils.py – core logic for Pattern Memorization
 from math import remainder
 from django.db import transaction

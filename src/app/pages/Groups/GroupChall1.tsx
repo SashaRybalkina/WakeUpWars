@@ -1,3 +1,11 @@
+/**
+ * @file GroupChall1.tsx
+ * @description This screen is the first step in creating a group challenge. It takes
+ * the group’s ID and member list from the previous screen and lets the user choose
+ * between creating the challenge manually or building it collaboratively with other 
+ * members.
+ */
+
 import React, { useEffect } from 'react';
 import {
   ImageBackground,

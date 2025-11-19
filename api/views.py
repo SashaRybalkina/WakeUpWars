@@ -1,3 +1,14 @@
+"""
+/**
+ * @file views.py
+ * @description This file contains the main API view layer for the application.
+ * It defines user authentication, challenge management, scheduling, gameplay
+ * actions, messaging, notifications, profile data, friend interactions, and
+ * payment or reward-related logic. Each view provides structured endpoints
+ * that connect frontend requests to model operations and core business rules.
+ */
+"""
+
 import pytz
 from rest_framework.permissions import AllowAny
 from django.conf import settings

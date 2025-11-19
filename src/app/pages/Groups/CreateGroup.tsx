@@ -1,3 +1,10 @@
+/**
+ * @file CreateGroup.tsx
+ * @description This screen lets users create a new group, which involves giving the group 
+ * a new name and selecting the friends that the user wants to invite to the group upon
+ * creation.
+ */
+
 import type React from "react"
 import { useState, useEffect } from "react"
 import {

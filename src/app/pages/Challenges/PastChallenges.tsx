@@ -1,3 +1,8 @@
+/**
+ * @file PastChallenges.tsx
+ * @description This file creates a page that allows a users to view their past challenges in the given challenge type (personal, group, or public)
+ */
+
 import React, { useCallback, useState } from "react"
 import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Alert } from "react-native"
 import { Ionicons } from "@expo/vector-icons"

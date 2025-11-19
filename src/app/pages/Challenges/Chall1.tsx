@@ -1,3 +1,8 @@
+/**
+ * @file Chall1.tsx
+ * @description This file creates a page that displays the user’s current challenge for the given challenge type (personal, group, or public)
+ */
+
 import type React from "react"
 import { useState, useEffect, useCallback } from "react"
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View, StatusBar, ImageBackground, Alert } from "react-native"

@@ -1,3 +1,8 @@
+/**
+ * @file PersonalPendingChallengeCard.tsx
+ * @description This file creates a reusable component for personal pending challenge cards.
+ */
+
 import type React from "react"
 import { View, Text, Image, StyleSheet, TouchableOpacity, type ImageSourcePropType } from "react-native"
 import { LinearGradient } from "expo-linear-gradient"

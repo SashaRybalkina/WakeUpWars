@@ -1,3 +1,8 @@
+/**
+ * @file LeaderboardDetails.tsx
+ * @description This file loads and displays a challenge leaderboard, also allowing date filtering.
+ */
+
 "use client"
 
 import type React from "react";

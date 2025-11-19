@@ -1,10 +1,8 @@
-// all
-// GroupChallCollab2
-// perschall2copy
-// createchallengeforfriend
-
-// some
-// createpublicchall2
+/**
+ * @file GameSelection.tsx
+ * @description Allows a user to select a category and mode, and then select a game
+ * based on the selected category and mode
+ */
 
 import React, { useEffect, useState } from 'react';
 import {

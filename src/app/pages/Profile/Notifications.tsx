@@ -1,3 +1,8 @@
+/**
+ * @file Notifications.tsx
+ * @description This file creates a page that allows users to view their notifications.
+ */
+
 import React, { useEffect, useState, useRef } from "react"
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, ImageBackground, ActivityIndicator } from "react-native"
 import { Ionicons } from "@expo/vector-icons"

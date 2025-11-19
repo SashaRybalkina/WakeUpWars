@@ -1,3 +1,12 @@
+"""
+/**
+ * @file pattern_memorization_consumer.py
+ * @description This file defines the WebSocket consumer that manages
+ * the Pattern Memorization game flow. It handles lobby updates,
+ * countdowns, round transitions, and final scoring.
+ */
+"""
+
 import json
 import asyncio
 from channels.generic.websocket import AsyncWebsocketConsumer

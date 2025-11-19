@@ -1,3 +1,12 @@
+"""
+/**
+ * @file urls.py
+ * @description Main API routing table. Defines REST routes,
+ * view bindings, DRF routers, authentication endpoints, and
+ * game-related action paths.
+ */
+"""
+
 from .views import (AcceptPersonalChallenge, CollectBetRefundView, CollectChallengeCoinsView, ConversationView, DeclinePersonalChallenge, 
                     ExternalHandleViewSet, FinalizeChallengeView, FinalizePublicChallengeView, 
                     GetMatchingChallengesView, GetPendingPublicChallengesView, GetPersonalChallengeInvites, GetPersonalChallengesView, 
