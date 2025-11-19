@@ -1,3 +1,12 @@
+"""
+/**
+ * @file signals.py
+ * @description Handles side-effects for game performances. Updates skills,
+ * rolls challenge progress, finalizes winners, processes rewards/bets,
+ * and sends badge or push notifications.
+ */
+"""
+
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 import logging
