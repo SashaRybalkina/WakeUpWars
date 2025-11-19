@@ -1,3 +1,8 @@
+/**
+ * @file AcceptGInvite.tsx
+ * @description This file creates a page that allows users to accept a group invite.
+ */
+
 import React from 'react';
 import {
   Image,
