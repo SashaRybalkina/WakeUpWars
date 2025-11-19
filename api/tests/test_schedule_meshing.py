@@ -1,3 +1,11 @@
+"""
+/**
+ * @file test_schedule_meshing.py
+ * @description This file tests the logic that assigns multiplayer or
+ * singleplayer games when finalizing collaborative group challenge schedules.
+ */
+"""
+
 from rest_framework.test import APITestCase
 from rest_framework import status
 from django.utils.timezone import now, timedelta
