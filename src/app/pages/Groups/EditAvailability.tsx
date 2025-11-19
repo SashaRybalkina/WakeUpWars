@@ -1,3 +1,10 @@
+/**
+ * @file EditAvailability.tsx
+ * @description This screen lets everyone in a group challenge set the times they're available
+ * for each challenge day. It pulls everyone’s availability from the backend, shows who picked
+ * which time slots, and lets the user tap on the grid to add/remove their own times.
+ */
+
 import React, { useEffect, useState, useMemo } from 'react';
 import { scheduleAlarms } from '../../Alarm';
 import { Dimensions, Modal } from 'react-native';
