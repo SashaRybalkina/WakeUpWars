@@ -1,3 +1,8 @@
+/**
+ * @file Bets.tsx
+ * @description This file creates a page where users can view the bets for the associated challenge. They can view all challenge bets or just their bets.
+ */
+
 import type React from "react"
 import { useCallback, useEffect, useState } from "react"
 import { BASE_URL, endpoints } from "../../api"
