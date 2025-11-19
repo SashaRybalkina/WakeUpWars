@@ -1,3 +1,8 @@
+/**
+ * @file GroupLeaderboardDetails.tsx
+ * @description This file creates a component to display the group-level leaderboard.
+ */
+
 "use client"
 
 import type React from "react";
