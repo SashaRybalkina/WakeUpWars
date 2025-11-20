@@ -1,3 +1,10 @@
+/**
+ * @file SignUp.tsx
+ * @description Allows the user to create a new account, and checks if a username 
+ * already exists in the database before creation. The screen also validate email
+ * formatting, and ensures that the password fields match.
+ */
+
 import type React from "react"
 import * as SecureStore from "expo-secure-store";
 import { useState } from "react"
