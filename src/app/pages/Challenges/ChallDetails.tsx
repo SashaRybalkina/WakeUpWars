@@ -41,9 +41,9 @@ type Member = {
   username: string;
   numCoins: number;
   avatar?: {
-      id: number;
-      imageUrl: string;
-      backgroundColor: string;
+    id: number;
+    imageUrl: string;
+    backgroundColor: string;
   };
 };
 
@@ -61,10 +61,10 @@ const DayOfWeekReverseLabels: Record<string, number> = {
   SU: 7, // Sunday
 }
 
-  const getRandomPastelColor = (seed: number) => {
-    const hue = (seed * 137.5) % 360
-    return `hsl(${hue}, 70%, 80%)`
-  }
+const getRandomPastelColor = (seed: number) => {
+  const hue = (seed * 137.5) % 360
+  return `hsl(${hue}, 70%, 80%)`
+}
 
 // Function to get initials from name
 const getInitials = (name: string): string => {
@@ -93,13 +93,13 @@ const ChallDetails: React.FC<Props> = ({ navigation }) => {
   const [members, setMembers] = useState<Member[]>([])
   const [daysOfWeek, setDaysOfWeek] = useState<string[]>([])
   const [isFavorite, setIsFavorite] = useState(false)
-  const [winner, setWinner] = useState<{name: string; id: number} | null>(null)
+  const [winner, setWinner] = useState<{ name: string; id: number } | null>(null)
   const [unlockedCoins, setUnlockedCoins] = useState<number>(0)
   const [rewardAmount, setRewardAmount] = useState<number>(0)
   const [isCollecting, setIsCollecting] = useState(false);
   const [progressAnim] = useState(new Animated.Value(0))
 
-  
+
   // leaderboard setup
   type LeaderRow = { name: string; points: number; rank: number }
   const [leaderboard, setLeaderboard] = useState<LeaderRow[]>([])
@@ -135,282 +135,220 @@ const ChallDetails: React.FC<Props> = ({ navigation }) => {
     return fullNames[day] || ""
   }
 
+  const fetchDetails = useCallback(async () => {
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
+        return;
+      }
 
-// useFocusEffect(
-//   useCallback(() => {
-//     const fetchDetails = async () => {
-//       try {
-//         const accessToken = await getAccessToken();
-//         if (!accessToken) return;
+      const res = await axios.get(`${endpoints.challengeDetail(challId)}?t=${Date.now()}`, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
 
-//         const res = await axios.get(`${endpoints.challengeDetail(challId)}?t=${Date.now()}`, {
-//           headers: { Authorization: `Bearer ${accessToken}` }
-//         });
+      const data = res.data;
 
-//         const data = res.data;
+      console.log("setting to " + data.unlockedCoins)
+      setUnlockedCoins(data.unlockedCoins);
+      setWinner(data.winner);
+      console.log("setting to " + data.daysCompleted)
+      setDaysComplete(data.daysCompleted);
+      setTotalDays(data.totalDays ?? 30);
+      setMembers(data.members);
+      setRewardAmount(data.rewardAmount)
 
-//         setUnlockedCoins(data.unlockedCoins);
-//         setWinner(data.winner);
-//         setDaysComplete(data.daysCompleted);
-//         setTotalDays(data.totalDays ?? 30);
-//         setMembers(data.members);
-//         setWinner(data.winner)
-//         setUnlockedCoins(data.unlockedCoins)
+      const parsedDays = (data.daysOfWeek as string[])
+        .filter(d => d in DayOfWeekReverseLabels)
+        .sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b))
+        .map(d => DayOfWeekReverseLabels[d]);
 
-//         const parsedDays = (data.daysOfWeek as string[])
-//           .filter(d => d in DayOfWeekReverseLabels)
-//           .sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b))
-//           .map(d => DayOfWeekReverseLabels[d]);
+      setDaysOfWeek(parsedDays.map(String));
 
-//         setDaysOfWeek(parsedDays.map(String));
+      const schedRes = await axios.get(endpoints.getChallengeSchedule(challId), {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
 
-//         // now fetch schedule
-//         const schedRes = await axios.get(endpoints.getChallengeSchedule(challId), {
-//           headers: { Authorization: `Bearer ${accessToken}` }
-//         });
+      setIsPublicChallenge(!!schedRes.data?.isPublic);
+      setGroupIdVal(schedRes.data?.groupId ?? null);
 
-//         setIsPublicChallenge(!!schedRes.data?.isPublic);
-//         setGroupIdVal(schedRes.data?.groupId ?? null);
-
-//       } catch (e) {
-//         console.error(e);
-//       }
-//     };
-
-//     fetchDetails();
-//   }, [challId])
-// );
-
-const fetchDetails = useCallback(async () => {
-  try {
-    const accessToken = await getAccessToken();
-    if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
-
-                  return;
+    } catch (e) {
+      console.error(e);
     }
+  }, [challId]);
 
-    const res = await axios.get(`${endpoints.challengeDetail(challId)}?t=${Date.now()}`, {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
-
-    const data = res.data;
-
-    console.log("setting to " + data.unlockedCoins)
-    setUnlockedCoins(data.unlockedCoins);
-    setWinner(data.winner);
-    console.log("setting to " + data.daysCompleted)
-    setDaysComplete(data.daysCompleted);
-    setTotalDays(data.totalDays ?? 30);
-    setMembers(data.members);
-    setRewardAmount(data.rewardAmount)
-
-    const parsedDays = (data.daysOfWeek as string[])
-      .filter(d => d in DayOfWeekReverseLabels)
-      .sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b))
-      .map(d => DayOfWeekReverseLabels[d]);
-
-    setDaysOfWeek(parsedDays.map(String));
-
-    const schedRes = await axios.get(endpoints.getChallengeSchedule(challId), {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
-
-    setIsPublicChallenge(!!schedRes.data?.isPublic);
-    setGroupIdVal(schedRes.data?.groupId ?? null);
-
-  } catch (e) {
-    console.error(e);
-  }
-}, [challId]);
-
-useFocusEffect(
-  useCallback(() => {
-    fetchDetails();
-  }, [fetchDetails])
-);
-
-
+  useFocusEffect(
+    useCallback(() => {
+      fetchDetails();
+    }, [fetchDetails])
+  );
 
   // AI generated
-//   ---------- Leaderboard fetch ----------
-    const loadLeaderboard = async () => {
-      try {
-        setLbLoading(true);
-        setLbError(null);
+  //   ---------- Leaderboard fetch ----------
+  const loadLeaderboard = async () => {
+    try {
+      setLbLoading(true);
+      setLbError(null);
 
-        const accessToken = await getAccessToken();
-        if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
-
-                  return;
-        }
-
-          const res = await fetch(`${endpoints.leaderboard(challId)}?t=${Date.now()}`, {
-                  headers: {
-                    Authorization: `Bearer ${accessToken}`
-                  }
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
                 });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-
-          const text = await res.text();
-          const d: any = text ? JSON.parse(text) : null;
-
-          const rows = Array.isArray(d) ? d : d?.leaderboard ?? [];
-          setLeaderboard(rows);
-          setLbSince(d?.since ?? null);
-          setLbUntil(d?.until ?? null);
-
-          if (rows.length === 0) {
-            setTimeout(async () => {
-              try {
-                const res2 = await fetch(`${endpoints.leaderboard(challId)}?t=${Date.now()}`, {
-                  headers: {
-                    Authorization: `Bearer ${accessToken}`
-                  }
-                });
-                const txt2 = await res2.text();
-                const d2: any = txt2 ? JSON.parse(txt2) : null;
-                setLeaderboard(Array.isArray(d2) ? d2 : d2?.leaderboard ?? []);
-                setLbSince(d2?.since ?? null);
-                setLbUntil(d2?.until ?? null);
-              } catch {}
-            }, 500);
-          }
-
-      } catch (err) {
-        console.error(err);
-        setLbError('Failed to load leaderboard');
-      } finally {
-        setLbLoading(false);
+        return;
       }
-    };
 
+      const res = await fetch(`${endpoints.leaderboard(challId)}?t=${Date.now()}`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      });
 
+      const text = await res.text();
+      const d: any = text ? JSON.parse(text) : null;
 
-const loadPerformances = async () => {
-  try {
-    setPerfLoading(true);
-    setPerfError(null);
+      const rows = Array.isArray(d) ? d : d?.leaderboard ?? [];
+      setLeaderboard(rows);
+      setLbSince(d?.since ?? null);
+      setLbUntil(d?.until ?? null);
 
-    const accessToken = await getAccessToken();
-    if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+      if (rows.length === 0) {
+        setTimeout(async () => {
+          try {
+            const res2 = await fetch(`${endpoints.leaderboard(challId)}?t=${Date.now()}`, {
+              headers: {
+                Authorization: `Bearer ${accessToken}`
+              }
+            });
+            const txt2 = await res2.text();
+            const d2: any = txt2 ? JSON.parse(txt2) : null;
+            setLeaderboard(Array.isArray(d2) ? d2 : d2?.leaderboard ?? []);
+            setLbSince(d2?.since ?? null);
+            setLbUntil(d2?.until ?? null);
+          } catch { }
+        }, 500);
+      }
 
-                  return;
+    } catch (err) {
+      console.error(err);
+      setLbError('Failed to load leaderboard');
+    } finally {
+      setLbLoading(false);
     }
+  };
 
-    const res = await fetch(`${endpoints.getPerformances(challId)}?t=${Date.now()}`, {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`
-                }
-              });
+  const loadPerformances = async () => {
+    try {
+      setPerfLoading(true);
+      setPerfError(null);
 
-    if (!res.ok) throw new Error(`Failed to load performances (${res.status})`);
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-    const data = await res.json();
-    console.log(data)
+        return;
+      }
 
-    // Expect backend to return an array of objects like:
-    // [{ date: "2025-10-10", game: "Memory Match", score: 87 }, ...]
-    // Sort by date descending and keep last 5
-    // const recent = Array.isArray(data) ? data : [];
-
-    // setPerformances(recent);
-    const formatted = data.map((p: any) => ({
-      date: p.date,
-      game: p.game_name,  // rename here
-      score: p.score,
-    }));
-    setPerformances(formatted);
-
-  } catch (err: any) {
-    console.error(err);
-    setPerfError(err.message || "Failed to load performances");
-  } finally {
-    setPerfLoading(false);
-  }
-};
-
-
-
-    // run every time the screen gains focus
-    useFocusEffect(
-      useCallback(() => {
-
-
-        if (isPublicChallenge === null && groupIdVal === null) {
-          return () => {};
+      const res = await fetch(`${endpoints.getPerformances(challId)}?t=${Date.now()}`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
         }
-        if (isPublicChallenge === false && !groupIdVal) {
-          loadPerformances();
-          return () => {};
-        } else {
-          loadLeaderboard();
-          // Limited refresh burst to catch backend persistence slightly after navigation
-          const bursts = [1500, 3500, 6000];
-          const timeoutIds: number[] = [];
-          const refreshOnce = async () => {
-            try {
-              await loadLeaderboard();
+      });
 
-            } catch {}
-          };
+      if (!res.ok) throw new Error(`Failed to load performances (${res.status})`);
 
-        }
-      }, [challId, isPublicChallenge, groupIdVal])
-    );
+      const data = await res.json();
+      console.log(data)
+
+      const formatted = data.map((p: any) => ({
+        date: p.date,
+        game: p.game_name,  // rename here
+        score: p.score,
+      }));
+      setPerformances(formatted);
+
+    } catch (err: any) {
+      console.error(err);
+      setPerfError(err.message || "Failed to load performances");
+    } finally {
+      setPerfLoading(false);
+    }
+  };
+
+  // run every time the screen gains focus
+  useFocusEffect(
+    useCallback(() => {
 
 
+      if (isPublicChallenge === null && groupIdVal === null) {
+        return () => { };
+      }
+      if (isPublicChallenge === false && !groupIdVal) {
+        loadPerformances();
+        return () => { };
+      } else {
+        loadLeaderboard();
+        // Limited refresh burst to catch backend persistence slightly after navigation
+        const bursts = [1500, 3500, 6000];
+        const timeoutIds: number[] = [];
+        const refreshOnce = async () => {
+          try {
+            await loadLeaderboard();
+
+          } catch { }
+        };
+
+      }
+    }, [challId, isPublicChallenge, groupIdVal])
+  );
 
   useEffect(() => {
     // Animate progress bar
@@ -432,34 +370,33 @@ const loadPerformances = async () => {
     return `${rank}.`
   }
 
-
   const collectWinnings = async (amount: number) => {
     try {
       setIsCollecting(true);
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
+        return;
       }
 
-      const res = await fetch(endpoints.collectChallengeCoins(), {  
+      const res = await fetch(endpoints.collectChallengeCoins(), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -509,9 +446,9 @@ const loadPerformances = async () => {
     <ImageBackground source={require("../../images/cgpt.png")} style={styles.background} resizeMode="cover">
       <View style={styles.container}>
         {/* Header */}
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={28} color="#FFF" />
-          </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={28} color="#FFF" />
+        </TouchableOpacity>
         <View style={styles.header}>
 
           <Text style={styles.headerTitle}>{challName}</Text>
@@ -521,79 +458,78 @@ const loadPerformances = async () => {
           {/* Members Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Enrolled Members</Text>
-<ScrollView
-  horizontal
-  showsHorizontalScrollIndicator={false}
-  contentContainerStyle={styles.membersScrollContent}
->
-  {members.map((member) => {
-    const bgColor = member.avatar?.backgroundColor ?? getRandomPastelColor(member.id);
-    return (
-      <View key={member.id} style={styles.memberContainer}>
-        <View style={[styles.memberAvatar, { backgroundColor: bgColor }]}>
-          {member.avatar?.imageUrl ? (
-            <Image
-              source={{ uri: `${BASE_URL}${member.avatar.imageUrl}` }}
-              style={styles.memberAvatarImage}
-              resizeMode="contain"
-            />
-          ) : (
-            <Text style={styles.memberInitials}>{getInitials(member.name)}</Text>
-          )}
-        </View>
-        <Text style={styles.memberName}>{member.name}</Text>
-      </View>
-    );
-  })}
-</ScrollView>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.membersScrollContent}
+            >
+              {members.map((member) => {
+                const bgColor = member.avatar?.backgroundColor ?? getRandomPastelColor(member.id);
+                return (
+                  <View key={member.id} style={styles.memberContainer}>
+                    <View style={[styles.memberAvatar, { backgroundColor: bgColor }]}>
+                      {member.avatar?.imageUrl ? (
+                        <Image
+                          source={{ uri: `${BASE_URL}${member.avatar.imageUrl}` }}
+                          style={styles.memberAvatarImage}
+                          resizeMode="contain"
+                        />
+                      ) : (
+                        <Text style={styles.memberInitials}>{getInitials(member.name)}</Text>
+                      )}
+                    </View>
+                    <Text style={styles.memberName}>{member.name}</Text>
+                  </View>
+                );
+              })}
+            </ScrollView>
 
           </View>
 
-{rewardAmount > 0 && (
-  <Text style={[styles.winnerText, { textAlign: "center", marginBottom: 10 }]}>Reward Amount: {rewardAmount} 🪙</Text>
-)}
+          {rewardAmount > 0 && (
+            <Text style={[styles.winnerText, { textAlign: "center", marginBottom: 10 }]}>Reward Amount: {rewardAmount} 🪙</Text>
+          )}
 
-{/* {(whichChall === "Group" || whichChall === "Public") && winner && ( */}
-{isPersonal === null ? null : (
-  !isPersonal && winner && (
-    <>
-      <Text style={[styles.winnerText, { textAlign: "center", marginBottom: 10 }]}>
-        The winner is {winner.name}! 🏆
-      </Text>
+          {/* {(whichChall === "Group" || whichChall === "Public") && winner && ( */}
+          {isPersonal === null ? null : (
+            !isPersonal && winner && (
+              <>
+                <Text style={[styles.winnerText, { textAlign: "center", marginBottom: 10 }]}>
+                  The winner is {winner.name}! 🏆
+                </Text>
 
-      {winner?.id === user?.id && unlockedCoins > 0 && (
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            { backgroundColor: "#4CAF50", marginTop: 10, marginBottom: 20 }
-          ]}
-          onPress={() => collectWinnings(unlockedCoins)}
-          disabled={isCollecting}
-        >
-          <Text style={[styles.actionButtonText, { textAlign: "center" }]}>
-            {isCollecting
-              ? "Collecting..."
-              : `Collect Winnings: ${unlockedCoins} 🪙`}
-          </Text>
-        </TouchableOpacity>
-      )}
-    </>
-  )
-)}
+                {winner?.id === user?.id && unlockedCoins > 0 && (
+                  <TouchableOpacity
+                    style={[
+                      styles.actionButton,
+                      { backgroundColor: "#4CAF50", marginTop: 10, marginBottom: 20 }
+                    ]}
+                    onPress={() => collectWinnings(unlockedCoins)}
+                    disabled={isCollecting}
+                  >
+                    <Text style={[styles.actionButtonText, { textAlign: "center" }]}>
+                      {isCollecting
+                        ? "Collecting..."
+                        : `Collect Winnings: ${unlockedCoins} 🪙`}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )
+          )}
 
-
-{/* {whichChall === "Personal" && unlockedCoins > 0 && ( */}
-{isPersonal && unlockedCoins > 0 && (
-        <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: "#4CAF50", marginTop: 10, marginBottom: 20 }]}
-          onPress={() => collectWinnings(unlockedCoins)}
-          disabled={isCollecting}
-        >
-          <Text style={[styles.actionButtonText, { textAlign: "center" }]}>
-            {isCollecting ? "Collecting..." : `Collect participation coins: ${unlockedCoins} 🪙`}
-          </Text>
-        </TouchableOpacity>
-)}
+          {/* {whichChall === "Personal" && unlockedCoins > 0 && ( */}
+          {isPersonal && unlockedCoins > 0 && (
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: "#4CAF50", marginTop: 10, marginBottom: 20 }]}
+              onPress={() => collectWinnings(unlockedCoins)}
+              disabled={isCollecting}
+            >
+              <Text style={[styles.actionButtonText, { textAlign: "center" }]}>
+                {isCollecting ? "Collecting..." : `Collect participation coins: ${unlockedCoins} 🪙`}
+              </Text>
+            </TouchableOpacity>
+          )}
 
           {/* Challenge Days Section */}
           <View style={styles.challengeCard}>
@@ -635,129 +571,127 @@ const loadPerformances = async () => {
             </View>
           </View>
 
-{/* Leaderboard or Performance Section */}
-{(isPersonal === false) && (
-  <View style={styles.leaderboardCard}>
-    <View style={styles.leaderboardHeader}>
-      <Ionicons name="trophy" size={24} color="#FFD700" style={styles.trophyIcon} />
-      <Text style={styles.leaderboardTitle}>RANKING</Text>
-    </View>
+          {/* Leaderboard or Performance Section */}
+          {(isPersonal === false) && (
+            <View style={styles.leaderboardCard}>
+              <View style={styles.leaderboardHeader}>
+                <Ionicons name="trophy" size={24} color="#FFD700" style={styles.trophyIcon} />
+                <Text style={styles.leaderboardTitle}>RANKING</Text>
+              </View>
 
-    {lbSince && lbUntil && (
-      <Text style={{ color: "rgba(255,255,255,0.7)", textAlign: "center", marginBottom: 8, fontSize: 12 }}>
-        Window: {lbSince} – {lbUntil}
-      </Text>
-    )}
+              {lbSince && lbUntil && (
+                <Text style={{ color: "rgba(255,255,255,0.7)", textAlign: "center", marginBottom: 8, fontSize: 12 }}>
+                  Window: {lbSince} – {lbUntil}
+                </Text>
+              )}
 
-    {lbLoading && <Text style={{ color: "#FFF", textAlign: "center" }}>Loading…</Text>}
-    {lbError && <Text style={{ color: "#F88", textAlign: "center" }}>{lbError}</Text>}
+              {lbLoading && <Text style={{ color: "#FFF", textAlign: "center" }}>Loading…</Text>}
+              {lbError && <Text style={{ color: "#F88", textAlign: "center" }}>{lbError}</Text>}
 
-    {!lbLoading && !lbError && displayRows.length === 0 && (
-      <Text style={{ color: "rgba(255,255,255,0.8)", textAlign: "center" }}>No scores yet — be the first!</Text>
-    )}
+              {!lbLoading && !lbError && displayRows.length === 0 && (
+                <Text style={{ color: "rgba(255,255,255,0.8)", textAlign: "center" }}>No scores yet — be the first!</Text>
+              )}
 
-    {!lbLoading &&
-      !lbError &&
-      displayRows.map((row, index) => {
-        if ("ellipsis" in row) {
-          return (
-            <View key={`ellipsis-${index}`} style={styles.rankItem}>
-              <Text style={styles.ellipsisText}>…</Text>
+              {!lbLoading &&
+                !lbError &&
+                displayRows.map((row, index) => {
+                  if ("ellipsis" in row) {
+                    return (
+                      <View key={`ellipsis-${index}`} style={styles.rankItem}>
+                        <Text style={styles.ellipsisText}>…</Text>
+                      </View>
+                    );
+                  }
+
+                  return (
+                    <View key={`${row.name}-${index}`} style={styles.rankItem}>
+                      <View style={styles.rankPosition}>
+                        <Text style={styles.rankEmoji}>{getRankEmoji(row.rank)}</Text>
+                      </View>
+                      <Text style={[styles.rankName, row.name === myName && { color: "#FFD700" }]}>
+                        {row.name === myName ? "You" : row.name}
+                      </Text>
+                      <Text style={styles.rankPoints}>{row.points} pts</Text>
+                    </View>
+                  );
+                })}
+
+              <TouchableOpacity
+                style={styles.viewDetailsButton}
+                onPress={() =>
+                  navigation.navigate("LeaderboardDetails", {
+                    challId,
+                    myName,
+                  })
+                }
+              >
+                <LinearGradient
+                  colors={["#FFD700", "#FFA500"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.viewDetailsGradient}
+                >
+                  <Text style={styles.viewDetailsText}>View leaderboard details</Text>
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
-          );
-        }
+          )}
 
-        return (
-          <View key={`${row.name}-${index}`} style={styles.rankItem}>
-            <View style={styles.rankPosition}>
-              <Text style={styles.rankEmoji}>{getRankEmoji(row.rank)}</Text>
+          {(isPersonal === true) && (
+            <View style={styles.leaderboardCard}>
+              <View style={styles.leaderboardHeader}>
+                <Ionicons name="time-outline" size={24} color="#FFD700" style={styles.trophyIcon} />
+                <Text style={styles.leaderboardTitle}>Recent Performances</Text>
+              </View>
+
+              {perfLoading && <Text style={{ color: "#FFF", textAlign: "center" }}>Loading…</Text>}
+              {perfError && <Text style={{ color: "#F88", textAlign: "center" }}>{perfError}</Text>}
+
+              {!perfLoading && !perfError && performances.length === 0 && (
+                <Text style={{ color: "rgba(255,255,255,0.8)", textAlign: "center" }}>No games played yet.</Text>
+              )}
+
+              {!perfLoading &&
+                !perfError &&
+                performances.map((p, index) => (
+                  <View key={index} style={styles.performanceRow}>
+                    <Text style={styles.performanceDate}>{p.date}</Text>
+                    <Text
+                      style={styles.performanceGame}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {p.game}
+                    </Text>
+                    <Text style={styles.performanceScore}>{p.score}</Text>
+                  </View>
+                ))}
             </View>
-            <Text style={[styles.rankName, row.name === myName && { color: "#FFD700" }]}>
-              {row.name === myName ? "You" : row.name}
-            </Text>
-            <Text style={styles.rankPoints}>{row.points} pts</Text>
-          </View>
-        );
-      })}
-
-    <TouchableOpacity
-      style={styles.viewDetailsButton}
-      onPress={() =>
-        navigation.navigate("LeaderboardDetails", {
-          challId,
-          myName,
-        })
-      }
-    >
-      <LinearGradient
-        colors={["#FFD700", "#FFA500"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.viewDetailsGradient}
-      >
-        <Text style={styles.viewDetailsText}>View leaderboard details</Text>
-      </LinearGradient>
-    </TouchableOpacity>
-  </View>
-)}
-
-{(isPersonal === true) && (
-  <View style={styles.leaderboardCard}>
-    <View style={styles.leaderboardHeader}>
-      <Ionicons name="time-outline" size={24} color="#FFD700" style={styles.trophyIcon} />
-      <Text style={styles.leaderboardTitle}>Recent Performances</Text>
-    </View>
-
-    {perfLoading && <Text style={{ color: "#FFF", textAlign: "center" }}>Loading…</Text>}
-    {perfError && <Text style={{ color: "#F88", textAlign: "center" }}>{perfError}</Text>}
-
-    {!perfLoading && !perfError && performances.length === 0 && (
-      <Text style={{ color: "rgba(255,255,255,0.8)", textAlign: "center" }}>No games played yet.</Text>
-    )}
-
-    {!perfLoading &&
-      !perfError &&
-    performances.map((p, index) => (
-      <View key={index} style={styles.performanceRow}>
-        <Text style={styles.performanceDate}>{p.date}</Text>
-        <Text
-          style={styles.performanceGame}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-        >
-          {p.game}
-        </Text>
-        <Text style={styles.performanceScore}>{p.score}</Text>
-      </View>
-      ))}
-  </View>
-)}
+          )}
 
 
-{(isPersonal === false) && (
-    <TouchableOpacity
-      style={[styles.viewDetailsButtonBet]}
-      onPress={() =>
-        navigation.navigate("Bets", {
-          challId,
-          challName,
-          challengeMembers: members,
-          isCompleted,
-        })
-      }
-    >
-      <LinearGradient
-        colors={["#FFD700", "#FFA500"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.viewDetailsGradientBet}
-      >
-        <Text style={styles.viewDetailsText}>Challenge bets</Text>
-      </LinearGradient>
-    </TouchableOpacity>
-)}
-
-
+          {(isPersonal === false) && (
+            <TouchableOpacity
+              style={[styles.viewDetailsButtonBet]}
+              onPress={() =>
+                navigation.navigate("Bets", {
+                  challId,
+                  challName,
+                  challengeMembers: members,
+                  isCompleted,
+                })
+              }
+            >
+              <LinearGradient
+                colors={["#FFD700", "#FFA500"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.viewDetailsGradientBet}
+              >
+                <Text style={styles.viewDetailsText}>Challenge bets</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
 
           {/* Challenge Stats */}
           <View style={styles.statsCard}>
@@ -780,30 +714,6 @@ const loadPerformances = async () => {
               </View>
             </View>
           </View>
-
-        {/* <TouchableOpacity
-          style={[styles.scheduleButton, { marginTop: 14 }]}
-          onPress={() => navigation.navigate("Rewards", { challengeId: challId })}>
-          <LinearGradient
-            colors={["#00C853", "#64DD17"]}
-            style={styles.scheduleButtonGradient}>
-            <Ionicons name="wallet" size={18} color="#FFF" style={styles.scheduleIcon} />
-            <Text style={styles.scheduleButtonText}>Settle Up</Text>
-          </LinearGradient>
-        </TouchableOpacity> */}
-
-        {/* <TouchableOpacity
-          style={[styles.scheduleButton, { marginTop: 14 }]}
-          onPress={() => finalizeChallenge(challId)}>
-          <LinearGradient
-            colors={["#00C853", "#64DD17"]}
-            style={styles.scheduleButtonGradient}>
-            <Ionicons name="wallet" size={18} color="#FFF" style={styles.scheduleIcon} />
-            <Text style={styles.scheduleButtonText}>Finalize Challenge</Text>
-          </LinearGradient>
-        </TouchableOpacity> */}
-
-          {/* Bottom Spacing */}
           <View style={styles.bottomSpacing} />
         </ScrollView>
       </View>
@@ -990,7 +900,7 @@ const styles = StyleSheet.create({
   scheduleIcon: {
     marginRight: 8,
     color: "#333",
-    
+
   },
   scheduleButtonText: {
     color: "#333",
@@ -1136,7 +1046,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     width: "100%",
   },
-    performanceRow: {
+  performanceRow: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.1)",
@@ -1184,15 +1094,15 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-actionButton: {
-  paddingVertical: 8,
-  paddingHorizontal: 16,
-  borderRadius: 8,
-},
-actionButtonText: {
-  color: '#FFF',
-  fontWeight: '600',
-},
+  actionButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  actionButtonText: {
+    color: '#FFF',
+    fontWeight: '600',
+  },
 })
 
 export default ChallDetails

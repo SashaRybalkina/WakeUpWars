@@ -3,21 +3,6 @@
  * @description This file creates a page that displays the schedule for the given challenge (alarm days/times and the game for each day)
  */
 
-// import React, { useEffect, useState } from "react"
-// import {
-//   View,
-//   Text,
-//   ScrollView,
-//   TouchableOpacity,
-//   ImageBackground,
-//   Platform,
-// } from "react-native"
-// import { useRoute, NavigationProp } from "@react-navigation/native"
-// import DateTimePicker from "@react-native-community/datetimepicker"
-// import { Ionicons } from "@expo/vector-icons"
-// import axios from "axios"
-// import { endpoints } from "../../api"
-// // import styles from "./ChallSchedule.styles"
 import { useState, useEffect } from "react"
 import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View, Platform, Alert, Button, Image } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
@@ -31,7 +16,6 @@ import { useUser } from "../../context/UserContext"
 import { getAccessToken } from "../../auth"
 import { scheduleAlarmsForUser } from "../../alarmService"
 import { FA6Style } from "@expo/vector-icons/build/FontAwesome6"
-// import { DayOfWeek, DayOfWeekLabels } from "./DayOfWeek";
 
 type Alarm = { userName: string; alarmTime: string }
 type DaySchedule = {
@@ -45,12 +29,11 @@ type Member = {
   name: string;
   username: string;
   avatar?: {
-      id: number;
-      imageUrl: string;
-      backgroundColor: string;
+    id: number;
+    imageUrl: string;
+    backgroundColor: string;
   };
 };
-
 
 const DAYS = ["M", "T", "W", "TH", "F", "S", "SU"]
 const extendedDays = new Set(["T", "TH", "S"])
@@ -58,9 +41,9 @@ const DayOfWeekLabels: Record<number, string> = { 1: "M", 2: "T", 3: "W", 4: "TH
 
 const ChallSchedule = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const route = useRoute()
-  const { challId, challName, fromSearch, userAverageSkillLevel, isInitiator, fromInvite, whichChall } = route.params as { 
-    challId: number; 
-    challName: string, 
+  const { challId, challName, fromSearch, userAverageSkillLevel, isInitiator, fromInvite, whichChall } = route.params as {
+    challId: number;
+    challName: string,
     fromSearch: boolean,
     userAverageSkillLevel: number,
     isInitiator: boolean,
@@ -70,8 +53,6 @@ const ChallSchedule = ({ navigation }: { navigation: NavigationProp<any> }) => {
 
   const [startDate, setStartDate] = useState<string>()
   const [endDate, setEndDate] = useState<string>()
-  // const [selectedStartDate, setSelectedStartDate] = useState<Date>(new Date())
-  // const [selectedEndDate, setSelectedEndDate] = useState<Date>(new Date())
   const [showStartDatePicker, setShowStartDatePicker] = useState(false)
   const [showEndDatePicker, setShowEndDatePicker] = useState(false)
   const [hasSetAlarms, setHasSetAlarms] = useState<boolean>()
@@ -112,211 +93,188 @@ const ChallSchedule = ({ navigation }: { navigation: NavigationProp<any> }) => {
     return new Date(y, m - 1, d);
   };
 
+  useEffect(() => {
+    const fetchSchedule = async () => {
+      try {
+        const accessToken = await getAccessToken();
+        if (!accessToken) {
+          Alert.alert(
+            "Session expired",
+            "Your login session has expired. Please log in again.",
+            [
+              {
+                text: "OK",
+                onPress: async () => {
+                  await logout();
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Login" }],
+                  });
+                },
+              },
+            ],
+            { cancelable: false }
+          );
 
-
-useEffect(() => {
-  const fetchSchedule = async () => {
-    try {
-            const accessToken = await getAccessToken();
-            if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
-
-                  return;
-            }
-      const [scheduleRes, alarmsRes] = await Promise.all([
-        axios.get(endpoints.getChallengeSchedule(challId), {
-          headers: { Authorization: `Bearer ${accessToken}` }
-        }),
-        axios.get(endpoints.getHasSetAlarms(challId, Number(user?.id)), {
-          headers: { Authorization: `Bearer ${accessToken}` }
-        })
-      ]);
-
-      const data = scheduleRes.data;
-
-      // Set challenge dates
-      // const startDate = new Date(data.startDate)
-      if (data.startDate) {
-        // const startDateParts = data.startDate.split("-").map(Number)
-        // const startDate = new Date(startDateParts[0], startDateParts[1] - 1, startDateParts[2])
-        setStartDate(data.startDate)
-      }
-      if (data.endDate) {
-        setEndDate(data.endDate)
-      }
-
-      setMembers(data.members)
-      setIsPending(data.isPending)
-      setIsPublic(data.isPublic)
-      setGroupId(data.groupId)
-
-      const dedupedSchedule: DaySchedule[] = data.schedule.map((day: any) => {
-        const grouped: Record<string, string[]> = {};
-        (day.alarms || []).forEach((a: { alarmTime: string; userName: string }) => {
-          if (!grouped[a.alarmTime]) grouped[a.alarmTime] = [];
-          if (!grouped[a.alarmTime].includes(a.userName)) {
-            grouped[a.alarmTime].push(a.userName);
-          }
-        });
-      
-        const alarms = Object.entries(grouped).map(([alarmTime, userNames]) => ({
-          alarmTime,
-          userNames,
-        }));
-      
-        return {
-          dayOfWeek: day.dayOfWeek,
-          alarms,
-          games: day.games || [],
-        };
-      });
-      
-      setSchedule(dedupedSchedule);
-
-      // Auto-select first day + first alarm time
-      if (dedupedSchedule.length > 0) {
-        const firstDay = dedupedSchedule[0];
-
-        setSelectedDay(firstDay.dayOfWeek);
-        console.log("selected " + firstDay?.dayOfWeek)
-
-        // Select the first alarm for that day
-        if (firstDay.alarms && firstDay.alarms.length > 0) {
-          const firstAlarm = firstDay.alarms[0];
-          console.log("first alarm " + firstAlarm)
-
-          setSelectedAlarm({
-            dayOfWeek: firstDay.dayOfWeek,
-            time: firstAlarm.alarmTime,
-            usersCount: firstAlarm.userNames.length,
-          });
-          setOpenAlarmKey(`${firstDay.dayOfWeek}-${firstAlarm.alarmTime}`);
+          return;
         }
+        const [scheduleRes, alarmsRes] = await Promise.all([
+          axios.get(endpoints.getChallengeSchedule(challId), {
+            headers: { Authorization: `Bearer ${accessToken}` }
+          }),
+          axios.get(endpoints.getHasSetAlarms(challId, Number(user?.id)), {
+            headers: { Authorization: `Bearer ${accessToken}` }
+          })
+        ]);
+
+        const data = scheduleRes.data;
+
+        // Set challenge dates
+        if (data.startDate) {
+          setStartDate(data.startDate)
+        }
+        if (data.endDate) {
+          setEndDate(data.endDate)
+        }
+
+        setMembers(data.members)
+        setIsPending(data.isPending)
+        setIsPublic(data.isPublic)
+        setGroupId(data.groupId)
+
+        const dedupedSchedule: DaySchedule[] = data.schedule.map((day: any) => {
+          const grouped: Record<string, string[]> = {};
+          (day.alarms || []).forEach((a: { alarmTime: string; userName: string }) => {
+            if (!grouped[a.alarmTime]) grouped[a.alarmTime] = [];
+            if (!grouped[a.alarmTime].includes(a.userName)) {
+              grouped[a.alarmTime].push(a.userName);
+            }
+          });
+
+          const alarms = Object.entries(grouped).map(([alarmTime, userNames]) => ({
+            alarmTime,
+            userNames,
+          }));
+
+          return {
+            dayOfWeek: day.dayOfWeek,
+            alarms,
+            games: day.games || [],
+          };
+        });
+
+        setSchedule(dedupedSchedule);
+
+        // Auto-select first day + first alarm time
+        if (dedupedSchedule.length > 0) {
+          const firstDay = dedupedSchedule[0];
+
+          setSelectedDay(firstDay.dayOfWeek);
+          console.log("selected " + firstDay?.dayOfWeek)
+
+          // Select the first alarm for that day
+          if (firstDay.alarms && firstDay.alarms.length > 0) {
+            const firstAlarm = firstDay.alarms[0];
+            console.log("first alarm " + firstAlarm)
+
+            setSelectedAlarm({
+              dayOfWeek: firstDay.dayOfWeek,
+              time: firstAlarm.alarmTime,
+              usersCount: firstAlarm.userNames.length,
+            });
+            setOpenAlarmKey(`${firstDay.dayOfWeek}-${firstAlarm.alarmTime}`);
+          }
+        }
+
+        setHasSetAlarms(alarmsRes.data.hasSetAlarms);
+        setIsLoading(false)
+      } catch (err) {
+        console.error(err)
       }
-
-      setHasSetAlarms(alarmsRes.data.hasSetAlarms);
-      setIsLoading(false)
-    } catch (err) {
-      console.error(err)
     }
-  }
 
-  fetchSchedule()
-}, [])
+    fetchSchedule()
+  }, [])
 
   const getRandomPastelColor = (seed: number) => {
     const hue = (seed * 137.5) % 360
     return `hsl(${hue}, 70%, 80%)`
   }
 
+  const addGameToDay = async (game: { id: number; name: string }) => {
+    if (!selectedDay) return;
 
-  // const onStartDateChange = (event: any, date?: Date) => {
-  //   if (event?.type === "dismissed") return setShowStartDatePicker(false)
-  //   if (date) {
-  //     setSelectedStartDate(date)
-  //     if (Platform.OS === "android") setShowStartDatePicker(false)
-  //   }
-  // }
+    const gameOrder = (currentDay?.games.length || 0) + 1;
 
-  // const onEndDateChange = (event: any, date?: Date) => {
-  //   if (event?.type === "dismissed") return setShowEndDatePicker(false)
-  //   if (date) {
-  //     setSelectedEndDate(date)
-  //     if (Platform.OS === "android") setShowEndDatePicker(false)
-  //   }
-  // }
-
-
-const addGameToDay = async (game: { id: number; name: string }) => {
-  if (!selectedDay) return;
-
-  const gameOrder = (currentDay?.games.length || 0) + 1;
-
-  // 1. Update local state immediately for responsive UI
-  const newGame = { name: game.name, order: gameOrder };
-  setSchedule((prev) =>
-    prev.map((d) =>
-      d.dayOfWeek === selectedDay
-        ? { ...d, games: [...d.games, newGame] }
-        : d
-    )
-  );
-
-  try {
-
-        const payload = {
-          challengeId: challId,
-          dayOfWeek: selectedDay,
-          gameOrder: gameOrder
-        };
-
-        console.log("Payload sent to backend:", payload);
-
-              const accessToken = await getAccessToken();
-              if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
-
-                  return;
-              }
-        const res = await fetch(endpoints.addGameToSchedule(), {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              "Authorization": `Bearer ${accessToken}`,
-            },
-            body: JSON.stringify(payload),
-        });
-
-        if (!res.ok) {
-            const error = await res.json();
-            throw new Error(error.message || 'Failed to add game');
-        }
-
-  } catch (err) {
-    console.error("Failed to add game to backend:", err);
-
-    // 3. Optional: revert state if API fails
+    // 1. Update local state immediately for responsive UI
+    const newGame = { name: game.name, order: gameOrder };
     setSchedule((prev) =>
       prev.map((d) =>
         d.dayOfWeek === selectedDay
-          ? { ...d, games: d.games.filter((g) => g.order !== gameOrder) }
+          ? { ...d, games: [...d.games, newGame] }
           : d
       )
     );
-  }
-};
+
+    try {
+
+      const payload = {
+        challengeId: challId,
+        dayOfWeek: selectedDay,
+        gameOrder: gameOrder
+      };
+
+      console.log("Payload sent to backend:", payload);
+
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
+
+        return;
+      }
+      const res = await fetch(endpoints.addGameToSchedule(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to add game');
+      }
+
+    } catch (err) {
+      console.error("Failed to add game to backend:", err);
+
+      // 3. Optional: revert state if API fails
+      setSchedule((prev) =>
+        prev.map((d) =>
+          d.dayOfWeek === selectedDay
+            ? { ...d, games: d.games.filter((g) => g.order !== gameOrder) }
+            : d
+        )
+      );
+    }
+  };
 
 
   const removeGame = (index: number) => {
@@ -352,13 +310,6 @@ const addGameToDay = async (game: { id: number; name: string }) => {
 
 
   const handleGamePress = (game: { name: string; order: number; screen?: string }, index: number) => {
-    // Prefer backend-provided screen for dynamic navigation
-    // if (game.screen) {
-    //   navigation.navigate(game.screen, { challengeId: challId, challName: challName, whichChall: 'Public' });
-    //   return;
-    // }
-
-    // Fallback to name-based routing if screen is not provided
     const lowered = game.name.toLowerCase();
     if (lowered.includes("sudoku")) {
       goToSudoku();
@@ -373,177 +324,124 @@ const addGameToDay = async (game: { id: number; name: string }) => {
     }
   }
 
-    const handleJoinPublicChallenge = async () => {
-      if (joining) return;
-      setJoining(true);
-      setSettingAlarms(false);
-      try {
-        const payload = {
-          challenge_id: challId,
-          user_average_skill_level: userAverageSkillLevel,
-        };
+  const handleJoinPublicChallenge = async () => {
+    if (joining) return;
+    setJoining(true);
+    setSettingAlarms(false);
+    try {
+      const payload = {
+        challenge_id: challId,
+        user_average_skill_level: userAverageSkillLevel,
+      };
 
-        const accessToken = await getAccessToken();
-        if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
-        }
-        const res = await fetch(endpoints.joinPublicChallenge(Number(user?.id)), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            "Authorization": `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify(payload),
-        });
-
-        if (!res.ok) {
-          const error = await res.json();
-          throw new Error(error.message || 'Failed to join challenge');
-        }
-
-        // Prevent 'Set My Alarms' flicker by marking immediately
-        setHasSetAlarms(true);
-        setIsPending(false);
-
-            try {
-              await scheduleAlarmsForUser(challId, challName, Number(user?.id));
-            } catch (e) {
-              if ((e as Error).message === "AUTH_EXPIRED") {
-                Alert.alert(
-                  "Session expired",
-                  "Your login session has expired. Please log in again.",
-                  [
-                    {
-                      text: "OK",
-                      onPress: async () => {
-                        await logout();
-                        navigation.reset({
-                          index: 0,
-                          routes: [{ name: "Login" }],
-                        });
-                      },
-                    },
-                  ],
-                  { cancelable: false }
-                );
-                return;
-              }
-
-              console.warn("Failed to fetch schedule for user", e);
-            }
-
-        Alert.alert('Success', 'Joined Challenge', [
-          { text: 'OK', onPress: () => navigation.navigate('PublicChallenges') },
-        ]);
-      } catch (err: any) {
-        Alert.alert('Error', err.message);
-      } finally {
-        setJoining(false);
+        return;
       }
+      const res = await fetch(endpoints.joinPublicChallenge(Number(user?.id)), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to join challenge');
+      }
+
+      // Prevent 'Set My Alarms' flicker by marking immediately
+      setHasSetAlarms(true);
+      setIsPending(false);
+
+      try {
+        await scheduleAlarmsForUser(challId, challName, Number(user?.id));
+      } catch (e) {
+        if ((e as Error).message === "AUTH_EXPIRED") {
+          Alert.alert(
+            "Session expired",
+            "Your login session has expired. Please log in again.",
+            [
+              {
+                text: "OK",
+                onPress: async () => {
+                  await logout();
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Login" }],
+                  });
+                },
+              },
+            ],
+            { cancelable: false }
+          );
+          return;
+        }
+
+        console.warn("Failed to fetch schedule for user", e);
+      }
+
+      Alert.alert('Success', 'Joined Challenge', [
+        { text: 'OK', onPress: () => navigation.navigate('PublicChallenges') },
+      ]);
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
+    } finally {
+      setJoining(false);
     }
-
-
-      //   const handleFinalizePublicChallenge = async () => {
-
-      //     try {
-
-      //       const payload = {
-      //         challenge_id: challId,
-      //       }
-
-      //   const accessToken = await getAccessToken();
-      //   if (!accessToken) {
-      //     throw new Error("Not authenticated");
-      //   }
-
-          
-      //     const res = await fetch(endpoints.finalizePublicChallenge(), {
-      //         method: 'POST',
-      //         headers: {
-      //           'Content-Type': 'application/json',
-      //           "Authorization": `Bearer ${accessToken}`,
-      //         },
-      //         body: JSON.stringify(payload),
-      //     });
-
-      //     if (!res.ok) {
-      //         const error = await res.json();
-      //         throw new Error(error.message || 'Failed to finalize challenge');
-      //     }
-
-      //     const data = await res.json();
-      //     Alert.alert('Success', 'Finalized Challenge', [
-      //         { text: 'OK', onPress: () => navigation.navigate('PublicChallenges') },
-      //     ]);
-      //     } catch (err: any) {
-      //         Alert.alert('Error', err.message);
-      //     }
-
-      // }
-
-
-  // const formatDate = (date: Date) => {
-  //   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-  //   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-  //   return `${days[date.getDay()]} ${months[date.getMonth()]} ${date.getDate()} ${date.getFullYear()}`
-  // }
+  }
   const formatDate = (date: Date) => {
-    const options: Intl.DateTimeFormatOptions = { 
-      weekday: 'short', 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
     }
     return date.toLocaleDateString(undefined, options)
   }
 
-  // const allDaysHaveGames = schedule.every(day => {
-  //   if (day.alarms.length > 0) {
-  //     return day.games.length > 0
-  //   }
-  //   return true
-  // }
-
   const generatePastelColor = (name: string): string => {
-  // Simple hash function to generate a number from a string
-  const hash = name.split("").reduce((acc, char) => {
-    return char.charCodeAt(0) + ((acc << 5) - acc)
-  }, 0)
+    // Simple hash function to generate a number from a string
+    const hash = name.split("").reduce((acc, char) => {
+      return char.charCodeAt(0) + ((acc << 5) - acc)
+    }, 0)
 
-  // Generate pastel colors by keeping high lightness and medium saturation
-  const h = hash % 360 // Hue: 0-359
-  const s = 60 + (hash % 20) // Saturation: 60-79%
-  const l = 80 + (hash % 10) // Lightness: 80-89%
+    // Generate pastel colors by keeping high lightness and medium saturation
+    const h = hash % 360 // Hue: 0-359
+    const s = 60 + (hash % 20) // Saturation: 60-79%
+    const l = 80 + (hash % 10) // Lightness: 80-89%
 
-  return `hsl(${h}, ${s}%, ${l}%)`
-}
+    return `hsl(${h}, ${s}%, ${l}%)`
+  }
 
-// Function to get initials from name
-const getInitials = (name: string): string => {
-  return name
-    .split(" ")
-    .map((part) => part.charAt(0).toUpperCase())
-    .join("")
-    .substring(0, 2) // Limit to 2 characters
-}
+  // Function to get initials from name
+  const getInitials = (name: string): string => {
+    return name
+      .split(" ")
+      .map((part) => part.charAt(0).toUpperCase())
+      .join("")
+      .substring(0, 2) // Limit to 2 characters
+  }
 
   return (
     <ImageBackground source={require("../../images/cgpt4.png")} style={styles.background} resizeMode="cover">
@@ -574,83 +472,83 @@ const getInitials = (name: string): string => {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Enrolled Members</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.membersScroll}>
-  {members.map((member) => {
-    const bgColor = member.avatar?.backgroundColor ?? getRandomPastelColor(member.id);
-    return (
-      <View key={member.id} style={styles.memberContainer}>
-        <View style={[styles.memberAvatar, { backgroundColor: bgColor }]}>
-          {member.avatar?.imageUrl ? (
-            <Image
-              source={{ uri: `${BASE_URL}${member.avatar.imageUrl}` }}
-              style={styles.memberAvatarImage}
-              resizeMode="contain"
-            />
-          ) : (
-            <Text style={styles.memberInitials}>{getInitials(member.name)}</Text>
-          )}
-        </View>
-        <Text style={styles.memberName}>{member.name}</Text>
-      </View>
-    );
-  })}
+                {members.map((member) => {
+                  const bgColor = member.avatar?.backgroundColor ?? getRandomPastelColor(member.id);
+                  return (
+                    <View key={member.id} style={styles.memberContainer}>
+                      <View style={[styles.memberAvatar, { backgroundColor: bgColor }]}>
+                        {member.avatar?.imageUrl ? (
+                          <Image
+                            source={{ uri: `${BASE_URL}${member.avatar.imageUrl}` }}
+                            style={styles.memberAvatarImage}
+                            resizeMode="contain"
+                          />
+                        ) : (
+                          <Text style={styles.memberInitials}>{getInitials(member.name)}</Text>
+                        )}
+                      </View>
+                      <Text style={styles.memberName}>{member.name}</Text>
+                    </View>
+                  );
+                })}
               </ScrollView>
             </View>
           )}
 
 
 
-{/* Days + Alarms Section */}
-<View style={styles.alarmSection}>
-  <Text style={styles.sectionTitle}>Challenge Days</Text>
-  <ScrollView horizontal contentContainerStyle={{ flexDirection: "row", paddingVertical: 8 }}>
-  {DAYS.map((dayLabel, idx) => {
-const dayData = schedule.find((d) => DayOfWeekLabels[d.dayOfWeek] === dayLabel);
-const isActive = dayData?.dayOfWeek === selectedDay;
+          {/* Days + Alarms Section */}
+          <View style={styles.alarmSection}>
+            <Text style={styles.sectionTitle}>Challenge Days</Text>
+            <ScrollView horizontal contentContainerStyle={{ flexDirection: "row", paddingVertical: 8 }}>
+              {DAYS.map((dayLabel, idx) => {
+                const dayData = schedule.find((d) => DayOfWeekLabels[d.dayOfWeek] === dayLabel);
+                const isActive = dayData?.dayOfWeek === selectedDay;
 
-// If there are no alarms for this day, render nothing for the stack
-return (
-  <View key={idx} style={{ alignItems: "center", marginHorizontal: 6 }}>
-    <TouchableOpacity
-      style={[styles.dayCircle, isActive && styles.activeDayCircle]}
-      onPress={() => dayData && setSelectedDay(dayData.dayOfWeek)}
-    >
-      <Text style={[styles.dayText, isActive && styles.activeDayText]}>{dayLabel}</Text>
-    </TouchableOpacity>
+                // If there are no alarms for this day, render nothing for the stack
+                return (
+                  <View key={idx} style={{ alignItems: "center", marginHorizontal: 6 }}>
+                    <TouchableOpacity
+                      style={[styles.dayCircle, isActive && styles.activeDayCircle]}
+                      onPress={() => dayData && setSelectedDay(dayData.dayOfWeek)}
+                    >
+                      <Text style={[styles.dayText, isActive && styles.activeDayText]}>{dayLabel}</Text>
+                    </TouchableOpacity>
 
-    <View style={{ flexDirection: "column", marginTop: 8, alignItems: "center" }}>
-      {(dayData?.alarms || []).map((alarm: any, i: number) => {
-        const users = alarm.userNames as string[];
+                    <View style={{ flexDirection: "column", marginTop: 8, alignItems: "center" }}>
+                      {(dayData?.alarms || []).map((alarm: any, i: number) => {
+                        const users = alarm.userNames as string[];
 
-        // If the alarm includes all currently enrolled challenge members -> "All"
-        const isAll = users.length > 0 && members.length > 0 && users.length === members.length;
-        const label = isAll ? "All" : users.map((u) => getInitials(u)).join(", ");
-        console.log("label", label)
-        console.log("is all?", isAll)
+                        // If the alarm includes all currently enrolled challenge members -> "All"
+                        const isAll = users.length > 0 && members.length > 0 && users.length === members.length;
+                        const label = isAll ? "All" : users.map((u) => getInitials(u)).join(", ");
+                        console.log("label", label)
+                        console.log("is all?", isAll)
 
-        return (
-          <View key={i} style={{ alignItems: "center", marginVertical: 6 }}>
-            <View
-              style={{
-                backgroundColor: "rgba(0, 0, 0, 0.2)",
-                borderRadius: 8,
-                paddingHorizontal: 6,
-                paddingVertical: 2,
-                marginBottom: 3,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 12,
-                  color: "#FFF",
-                  textAlign: "center",
-                  fontWeight: "600",
-                }}
-              >
-                {label}
-              </Text>
-            </View>
+                        return (
+                          <View key={i} style={{ alignItems: "center", marginVertical: 6 }}>
+                            <View
+                              style={{
+                                backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                borderRadius: 8,
+                                paddingHorizontal: 6,
+                                paddingVertical: 2,
+                                marginBottom: 3,
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  fontSize: 12,
+                                  color: "#FFF",
+                                  textAlign: "center",
+                                  fontWeight: "600",
+                                }}
+                              >
+                                {label}
+                              </Text>
+                            </View>
 
                             {/* Alarm circle */}
                             <TouchableOpacity
@@ -709,10 +607,10 @@ return (
                   {visibleGames.map((game, index) => {
                     // const name = (game[0] || "").trim();
                     const lower = game.name.toLowerCase();
-                    const isSudoku = lower.includes("sudoku");   
+                    const isSudoku = lower.includes("sudoku");
                     const isWordle = lower.includes("wordle");
                     const isPattern = lower.includes("pattern");
-                    const isTypingRace = lower.includes("typing"); 
+                    const isTypingRace = lower.includes("typing");
 
                     return (
                       <TouchableOpacity
@@ -738,30 +636,30 @@ return (
                               resizeMode="cover"
                             />
                           </View>
-                        ) : 
-                        isWordle ? (
-                          <View style={styles.gameImageWrap}>
-                            <ImageBackground
-                              source={require("../../images/wordle.png")}
-                              style={styles.gameImage}
-                              resizeMode="cover"
-                            />
-                          </View>
-                        ) : 
-                        isTypingRace ? (
-                          <View style={styles.gameImageWrap}>
-                            <ImageBackground
-                              source={require("../../images/typingrace.png")}
-                              style={styles.gameImage}
-                              resizeMode="cover"
-                            />
-                          </View>
-                        ) : (
-                          <View>
-                            <Text style={styles.gameDetail}>Repeats: -</Text>
-                            <Text style={styles.gameDetail}>Minutes: -</Text>
-                          </View>
-                        )}
+                        ) :
+                          isWordle ? (
+                            <View style={styles.gameImageWrap}>
+                              <ImageBackground
+                                source={require("../../images/wordle.png")}
+                                style={styles.gameImage}
+                                resizeMode="cover"
+                              />
+                            </View>
+                          ) :
+                            isTypingRace ? (
+                              <View style={styles.gameImageWrap}>
+                                <ImageBackground
+                                  source={require("../../images/typingrace.png")}
+                                  style={styles.gameImage}
+                                  resizeMode="cover"
+                                />
+                              </View>
+                            ) : (
+                              <View>
+                                <Text style={styles.gameDetail}>Repeats: -</Text>
+                                <Text style={styles.gameDetail}>Minutes: -</Text>
+                              </View>
+                            )}
                       </TouchableOpacity>
                     );
                   })}
@@ -770,125 +668,114 @@ return (
             </View>
           </View>
 
-{fromSearch === true && (
-  <TouchableOpacity
-    style={[styles.createButton, joining && { opacity: 0.6 }]}
-    onPress={handleJoinPublicChallenge}
-    disabled={joining}
-  >
-    <LinearGradient
-      colors={['#FFD700', '#FFC107']}
-      style={styles.createButtonGradient}
-    >
-      <Text style={styles.createButtonText}>{joining ? 'Joining...' : 'Join Challenge'}</Text>
-    </LinearGradient>
-  </TouchableOpacity>
-)}
+          {fromSearch === true && (
+            <TouchableOpacity
+              style={[styles.createButton, joining && { opacity: 0.6 }]}
+              onPress={handleJoinPublicChallenge}
+              disabled={joining}
+            >
+              <LinearGradient
+                colors={['#FFD700', '#FFC107']}
+                style={styles.createButtonGradient}
+              >
+                <Text style={styles.createButtonText}>{joining ? 'Joining...' : 'Join Challenge'}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
 
-{/* {isInitiator === true && (
-  <TouchableOpacity style={styles.createButton} onPress={handleFinalizePublicChallenge}>
-    <LinearGradient
-      colors={['#FFD700', '#FFC107']}
-      style={styles.createButtonGradient}
-    >
-      <Text style={styles.createButtonText}>Finalize Challenge</Text>
-    </LinearGradient>
-  </TouchableOpacity>
-)} */}
-
-{!isLoading && !isPending && !hasSetAlarms && !fromInvite && (
-  <TouchableOpacity
-    style={[styles.createButton, (settingAlarms || joining) && { opacity: 0.6 }]}
-    onPress={async () => {
-      if (settingAlarms || joining) return;
-      setSettingAlarms(true);
+          {!isLoading && !isPending && !hasSetAlarms && !fromInvite && (
+            <TouchableOpacity
+              style={[styles.createButton, (settingAlarms || joining) && { opacity: 0.6 }]}
+              onPress={async () => {
+                if (settingAlarms || joining) return;
+                setSettingAlarms(true);
 
 
-            try {
-              await scheduleAlarmsForUser(challId, challName, Number(user?.id));
-            } catch (e) {
-              if ((e as Error).message === "AUTH_EXPIRED") {
-                Alert.alert(
-                  "Session expired",
-                  "Your login session has expired. Please log in again.",
-                  [
-                    {
-                      text: "OK",
-                      onPress: async () => {
-                        await logout();
-                        navigation.reset({
-                          index: 0,
-                          routes: [{ name: "Login" }],
-                        });
-                      },
-                    },
-                  ],
-                  { cancelable: false }
-                );
-                return;
-              }
-
-              console.warn("Failed to fetch schedule for user", e);
-            }
-
-
-      try {
-              const accessToken = await getAccessToken();
-              if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
+                try {
+                  await scheduleAlarmsForUser(challId, challName, Number(user?.id));
+                } catch (e) {
+                  if ((e as Error).message === "AUTH_EXPIRED") {
+                    Alert.alert(
+                      "Session expired",
+                      "Your login session has expired. Please log in again.",
+                      [
+                        {
+                          text: "OK",
+                          onPress: async () => {
+                            await logout();
+                            navigation.reset({
+                              index: 0,
+                              routes: [{ name: "Login" }],
+                            });
+                          },
                         },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+                      ],
+                      { cancelable: false }
+                    );
+                    return;
+                  }
 
-                  return;
-              }
-        // 2. Mark in backend that user has set their alarms
-        const res = await fetch(
-          endpoints.setUserHasSetAlarms(challId, Number(user?.id)),
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
-        );
-        setHasSetAlarms(true);
-        console.log("Alarms set and API updated");
-      } catch (e) {
-        Alert.alert("Failed", "Failed to update backend", [
-          { text: "OK" },
-        ]);
-      } finally {
-        setSettingAlarms(false);
-      }
-    }}
-    disabled={settingAlarms || joining}
-  >
-    <LinearGradient
-      colors={["#FFD700", "#FFA500"]}
-      start={{ x: 0, y: 0.5 }}
-      end={{ x: 0.5, y: 1 }}
-      style={[styles.createButtonGradient, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }]}
-    >
-      <Ionicons name="alarm-outline" size={18} color="#333" style={{ marginRight: 8 }} />
-      <Text style={styles.createButtonText}>{settingAlarms ? 'Setting...' : 'Set My Alarms'}</Text>
-    </LinearGradient>
-  </TouchableOpacity>
-)}
+                  console.warn("Failed to fetch schedule for user", e);
+                }
+
+
+                try {
+                  const accessToken = await getAccessToken();
+                  if (!accessToken) {
+                    Alert.alert(
+                      "Session expired",
+                      "Your login session has expired. Please log in again.",
+                      [
+                        {
+                          text: "OK",
+                          onPress: async () => {
+                            await logout();
+                            navigation.reset({
+                              index: 0,
+                              routes: [{ name: "Login" }],
+                            });
+                          },
+                        },
+                      ],
+                      { cancelable: false }
+                    );
+
+                    return;
+                  }
+                  // 2. Mark in backend that user has set their alarms
+                  const res = await fetch(
+                    endpoints.setUserHasSetAlarms(challId, Number(user?.id)),
+                    {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${accessToken}`,
+                      },
+                    }
+                  );
+                  setHasSetAlarms(true);
+                  console.log("Alarms set and API updated");
+                } catch (e) {
+                  Alert.alert("Failed", "Failed to update backend", [
+                    { text: "OK" },
+                  ]);
+                } finally {
+                  setSettingAlarms(false);
+                }
+              }}
+              disabled={settingAlarms || joining}
+            >
+              <LinearGradient
+                colors={["#FFD700", "#FFA500"]}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 0.5, y: 1 }}
+                style={[styles.createButtonGradient, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }]}
+              >
+                <Ionicons name="alarm-outline" size={18} color="#333" style={{ marginRight: 8 }} />
+                <Text style={styles.createButtonText}>{settingAlarms ? 'Setting...' : 'Set My Alarms'}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
 
 
         </ScrollView>
@@ -1238,7 +1125,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontWeight: "600",
   },
-    createButton: {
+  createButton: {
     borderRadius: 14,
     overflow: 'hidden',
     marginTop: 10,
@@ -1253,10 +1140,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
   },
-    section: {
+  section: {
     marginBottom: 20,
   },
-    membersScroll: {
+  membersScroll: {
     flexDirection: "row",
     marginBottom: 10,
   },

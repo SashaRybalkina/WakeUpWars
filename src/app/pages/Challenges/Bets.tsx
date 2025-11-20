@@ -44,21 +44,20 @@ type Member = {
   username: string;
   numCoins: number;
   avatar?: {
-      id: number;
-      imageUrl: string;
-      backgroundColor: string;
+    id: number;
+    imageUrl: string;
+    backgroundColor: string;
   };
 };
 
-
-
 const Bets: React.FC<Props> = ({ navigation }) => {
   const route = useRoute()
-  const { challId, challName, challengeMembers, isCompleted } = route.params as { 
-    challId: number, 
+  const { challId, challName, challengeMembers, isCompleted } = route.params as {
+    challId: number,
     challName: string,
     challengeMembers: Member[],
-    isCompleted: boolean }
+    isCompleted: boolean
+  }
 
   const { user, logout } = useUser()
 
@@ -74,36 +73,36 @@ const Bets: React.FC<Props> = ({ navigation }) => {
     if (!user?.id) return;
     setIsLoading(true);
     try {
-        const accessToken = await getAccessToken();
+      const accessToken = await getAccessToken();
 
-        if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+      if (!accessToken) {
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
-        }
+        return;
+      }
 
-        const response = await fetch(endpoints.getChallengeBets(challId, Number(user.id)), {
+      const response = await fetch(endpoints.getChallengeBets(challId, Number(user.id)), {
         headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        const data = await response.json();
+      });
+      const data = await response.json();
 
-        const formattedData: Bet[] = data.map((item: any) => ({
+      const formattedData: Bet[] = data.map((item: any) => ({
         id: item.id,
         initiatorId: item.initiatorId,
         recipientId: item.recipientId,
@@ -118,152 +117,143 @@ const Bets: React.FC<Props> = ({ navigation }) => {
         isCollected: item.isCollected,
         initiatorRefunded: item.initiatorRefunded,
         recipientRefunded: item.recipientRefunded
-        }));
-        console.log(formattedData)
+      }));
+      console.log(formattedData)
 
-        const allNonPending = formattedData.filter(bet => !bet.isPending);
-        const myNonPending = formattedData.filter(
+      const allNonPending = formattedData.filter(bet => !bet.isPending);
+      const myNonPending = formattedData.filter(
         bet => !bet.isPending && (bet.initiatorId === user.id || bet.recipientId === user.id)
-        );
-        const myPending = formattedData.filter(
+      );
+      const myPending = formattedData.filter(
         bet => bet.isPending && (bet.initiatorId === user.id || bet.recipientId === user.id)
-        );
+      );
 
-        setBets(allNonPending);
-        setMyBets(myNonPending);
-        setPendingMyBets(myPending);
+      setBets(allNonPending);
+      setMyBets(myNonPending);
+      setPendingMyBets(myPending);
 
 
-        const myBets = formattedData.filter(
-          bet => bet.initiatorId === user.id || bet.recipientId === user.id
-        );
+      const myBets = formattedData.filter(
+        bet => bet.initiatorId === user.id || bet.recipientId === user.id
+      );
 
-        // Extract the other person's ID from each bet
-        const otherUserIds = myBets.map(bet =>
-          bet.initiatorId === user.id ? bet.recipientId : bet.initiatorId
-        );
+      // Extract the other person's ID from each bet
+      const otherUserIds = myBets.map(bet =>
+        bet.initiatorId === user.id ? bet.recipientId : bet.initiatorId
+      );
 
-        // Remove duplicates
-        const uniqueOtherUserIds = [...new Set(otherUserIds)];
-        setExistingOpponents(uniqueOtherUserIds)
+      // Remove duplicates
+      const uniqueOtherUserIds = [...new Set(otherUserIds)];
+      setExistingOpponents(uniqueOtherUserIds)
 
 
     } catch (error) {
-        console.error("Failed to fetch bets:", error);
+      console.error("Failed to fetch bets:", error);
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
-    };
+  };
 
 
-    useFocusEffect(
-        useCallback(() => {
-            if (!user?.id) {
-            console.error("userId is missing!");
-            return;
-            }
-
-            setIsLoading(true);
-            fetchData();
-        }, [user?.id])
-    );
-
-
-  
-
-
-  
-    const handleRespond = async (betId: number, accept: boolean) => {  
-      try {
-          const accessToken = await getAccessToken();
-          if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
-
-                  return;
-          }
-  
-  
-          const payload = {
-              bet_id: betId,
-              accept,
-          };
-          console.log(JSON.stringify(payload))
-  
-          const res = await fetch(endpoints.respondToBetInvite(), {
-              method: "POST",
-              headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${accessToken}`,
-              },
-              body: JSON.stringify(payload),
-          });
-  
-          if (!res.ok) {
-              const error = await res.json();
-              throw new Error(error.message || "Failed to respond to bet");
-          }
-  
-          const data = await res.json();
-          console.log('Responded to bet:', data);
-
-          // refresh bets
-          await fetchData();
-  
-          Alert.alert('Success', 'Responded to bet successfully')
-      
-      } catch (err: any) {
-        Alert.alert("Error", err.message);
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.id) {
+        console.error("userId is missing!");
+        return;
       }
-  
-    };
 
+      setIsLoading(true);
+      fetchData();
+    }, [user?.id])
+  );
 
+  const handleRespond = async (betId: number, accept: boolean) => {
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
+        return;
+      }
 
-return (
+      const payload = {
+        bet_id: betId,
+        accept,
+      };
+      console.log(JSON.stringify(payload))
+
+      const res = await fetch(endpoints.respondToBetInvite(), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to respond to bet");
+      }
+
+      const data = await res.json();
+      console.log('Responded to bet:', data);
+
+      // refresh bets
+      await fetchData();
+
+      Alert.alert('Success', 'Responded to bet successfully')
+
+    } catch (err: any) {
+      Alert.alert("Error", err.message);
+    }
+
+  };
+
+  return (
     <ImageBackground source={require("../../images/cgpt.png")} style={styles.background} resizeMode="cover">
       <View style={styles.container}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={28} color="#FFF" />
         </TouchableOpacity>
 
-<View style={styles.tabRow}>
-  <TouchableOpacity
-    style={[
-      styles.tabButton,
-      selectedTab === "mine" && styles.tabButtonActive,
-    ]}
-    onPress={() => setSelectedTab("mine")}
-  >
-    <Text style={styles.tabText}>My Bets</Text>
-  </TouchableOpacity>
+        <View style={styles.tabRow}>
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              selectedTab === "mine" && styles.tabButtonActive,
+            ]}
+            onPress={() => setSelectedTab("mine")}
+          >
+            <Text style={styles.tabText}>My Bets</Text>
+          </TouchableOpacity>
 
-  <TouchableOpacity
-    style={[
-      styles.tabButton,
-      selectedTab === "all" && styles.tabButtonActive,
-    ]}
-    onPress={() => setSelectedTab("all")}
-  >
-    <Text style={styles.tabText}>All Bets</Text>
-  </TouchableOpacity>
-</View>
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              selectedTab === "all" && styles.tabButtonActive,
+            ]}
+            onPress={() => setSelectedTab("all")}
+          >
+            <Text style={styles.tabText}>All Bets</Text>
+          </TouchableOpacity>
+        </View>
 
         {isLoading ? (
           <View style={styles.loadingContainer}>
@@ -272,158 +262,88 @@ return (
           </View>
         ) : (
 
-<ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
-  {selectedTab === "all" ? (
-    bets.length === 0 ? (
-      <Text style={styles.noBetsText}>No bets yet.</Text>
-    ) : (
-      bets.map((bet) => (
-        <BetCard key={bet.id} bet={bet} user={user} logout={logout} challengeMembers={challengeMembers} onRefresh={fetchData} navigation={navigation} />
-      )))
-  ) : (
-    <>
-    
-    {!isCompleted && (
-        <TouchableOpacity
-            style={styles.addNewButton}
-            onPress={() => {
-                navigation.navigate("MakeBet", {
-                challId,
-                challName,
-                challengeMembers,
-                existingOpponents,
-                isCompleted,
-                })
-            }}
-            >
-            <Text style={styles.addNewButtonText}>Make A Bet</Text>
-        </TouchableOpacity>
-    )}
+          <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
+            {selectedTab === "all" ? (
+              bets.length === 0 ? (
+                <Text style={styles.noBetsText}>No bets yet.</Text>
+              ) : (
+                bets.map((bet) => (
+                  <BetCard key={bet.id} bet={bet} user={user} logout={logout} challengeMembers={challengeMembers} onRefresh={fetchData} navigation={navigation} />
+                )))
+            ) : (
+              <>
+
+                {!isCompleted && (
+                  <TouchableOpacity
+                    style={styles.addNewButton}
+                    onPress={() => {
+                      navigation.navigate("MakeBet", {
+                        challId,
+                        challName,
+                        challengeMembers,
+                        existingOpponents,
+                        isCompleted,
+                      })
+                    }}
+                  >
+                    <Text style={styles.addNewButtonText}>Make A Bet</Text>
+                  </TouchableOpacity>
+                )}
 
 
-{myPendingBets.length > 0 && (
-  <>
-    {/* Bets waiting for MY response */}
-    <Text style={styles.sectionHeader}>Pending Invites</Text>
-    {myPendingBets
-      .filter(bet => bet.recipientId === user?.id)
-      .map(bet => (
-        <View key={bet.id} style={styles.pendingBetCard}>
-          <Text style={styles.pendingText}>
-            {bet.initiatorName} invited you to bet {bet.betAmount} 🪙
-          </Text>
-          <View style={styles.pendingActions}>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.acceptButton]}
-              onPress={() => handleRespond(bet.id, true)}
-            >
-              <Text style={styles.actionButtonText}>Accept</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.declineButton]}
-              onPress={() => handleRespond(bet.id, false)}
-            >
-              <Text style={styles.actionButtonText}>Decline</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      ))}
+                {myPendingBets.length > 0 && (
+                  <>
+                    {/* Bets waiting for MY response */}
+                    <Text style={styles.sectionHeader}>Pending Invites</Text>
+                    {myPendingBets
+                      .filter(bet => bet.recipientId === user?.id)
+                      .map(bet => (
+                        <View key={bet.id} style={styles.pendingBetCard}>
+                          <Text style={styles.pendingText}>
+                            {bet.initiatorName} invited you to bet {bet.betAmount} 🪙
+                          </Text>
+                          <View style={styles.pendingActions}>
+                            <TouchableOpacity
+                              style={[styles.actionButton, styles.acceptButton]}
+                              onPress={() => handleRespond(bet.id, true)}
+                            >
+                              <Text style={styles.actionButtonText}>Accept</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[styles.actionButton, styles.declineButton]}
+                              onPress={() => handleRespond(bet.id, false)}
+                            >
+                              <Text style={styles.actionButtonText}>Decline</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ))}
 
-    {/* Bets I initiated, waiting for others */}
-    <Text style={styles.sectionHeader}>Waiting for Others</Text>
-    {myPendingBets
-      .filter(bet => bet.initiatorId === user?.id)
-      .map(bet => (
-        <View key={bet.id} style={styles.pendingBetCard}>
-          <Text style={styles.pendingText}>
-            You challenged {bet.recipientName} for {bet.betAmount} 🪙 — waiting for response
-          </Text>
-        </View>
-      ))}
-  </>
-)}
+                    {/* Bets I initiated, waiting for others */}
+                    <Text style={styles.sectionHeader}>Waiting for Others</Text>
+                    {myPendingBets
+                      .filter(bet => bet.initiatorId === user?.id)
+                      .map(bet => (
+                        <View key={bet.id} style={styles.pendingBetCard}>
+                          <Text style={styles.pendingText}>
+                            You challenged {bet.recipientName} for {bet.betAmount} 🪙 — waiting for response
+                          </Text>
+                        </View>
+                      ))}
+                  </>
+                )}
 
-      {myBets.length === 0 && myPendingBets.length === 0 ? (
-        <Text style={styles.noBetsText}>No bets yet.</Text>
-      ) : (
-        myBets.map((bet) => (
-            <BetCard key={bet.id} bet={bet} user={user} logout={logout} challengeMembers={challengeMembers} onRefresh={fetchData} navigation={navigation} />
-        ))
-      )}
-    </>
-  )}
-</ScrollView>
+                {myBets.length === 0 && myPendingBets.length === 0 ? (
+                  <Text style={styles.noBetsText}>No bets yet.</Text>
+                ) : (
+                  myBets.map((bet) => (
+                    <BetCard key={bet.id} bet={bet} user={user} logout={logout} challengeMembers={challengeMembers} onRefresh={fetchData} navigation={navigation} />
+                  ))
+                )}
+              </>
+            )}
+          </ScrollView>
         )}
-
-
-
-
-
-
-
-
-
-
-
-        {/* <TouchableOpacity
-        style={styles.addNewButton}
-        onPress={() => {
-            navigation.navigate("MakeBet", {
-            challId,
-            challName,
-            challengeMembers,
-            })
-        }}
-        >
-        <Text style={styles.addNewButtonText}>Make A Bet</Text>
-        </TouchableOpacity>
-
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#FFD700" />
-            <Text style={styles.loadingText}>Loading bets...</Text>
-          </View>
-        ) : (
-        <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
-        {bets.length === 0 ? (
-            <Text style={styles.noBetsText}>No bets yet.</Text>
-        ) : (
-            bets.map((bet) => {
-            const initiatorWinning = bet.initiatorPoints > bet.recipientPoints;
-            const recipientWinning = bet.recipientPoints > bet.initiatorPoints;
-
-            return (
-                <View key={bet.id} style={styles.betCard}>
-                <View style={styles.betHeader}>
-                    <Text style={styles.betAmountText}>💰 {bet.betAmount} coins</Text>
-                </View>
-
-                <View style={styles.playerRow}>
-                    <Text style={styles.playerName}>
-                    {bet.initiatorName}{" "}
-                    {initiatorWinning && <Text style={styles.winnerIcon}>🏆</Text>}
-                    </Text>
-                    <Text style={styles.pointsText}>{bet.initiatorPoints} pts</Text>
-                </View>
-
-                <View style={styles.vsLine}>
-                    <Text style={styles.vsText}>vs</Text>
-                </View>
-
-                <View style={styles.playerRow}>
-                    <Text style={styles.playerName}>
-                    {bet.recipientName}{" "}
-                    {recipientWinning && <Text style={styles.winnerIcon}>🏆</Text>}
-                    </Text>
-                    <Text style={styles.pointsText}>{bet.recipientPoints} pts</Text>
-                </View>
-                </View>
-            );
-            })
-        )}
-        </ScrollView>
-
-        )} */}
       </View>
 
     </ImageBackground>
@@ -538,103 +458,88 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textAlign: "center",
   },
-tabRow: {
-  flexDirection: "row",
-  justifyContent: "center",
-  marginTop: 10,
-},
-tabButton: {
-  paddingVertical: 10,
-  paddingHorizontal: 20,
-  marginHorizontal: 5,
-  borderRadius: 20,
-  backgroundColor: "rgba(255,255,255,0.2)",
-},
-tabButtonActive: {
-  backgroundColor: "#FFD700",
-},
-tabText: {
-  fontWeight: "600",
-  color: "#000",
-},
-// pendingBetCard: {
-//   backgroundColor: "rgba(255,255,255,0.1)",
-//   borderRadius: 12,
-//   padding: 12,
-//   marginVertical: 6,
-//   width: "90%",
-//   alignItems: "center",
-// },
-// pendingText: {
-//   color: "#fff",
-//   fontSize: 16,
-//   fontWeight: "600",
-// },
-
-
-sectionHeader: {
-  color: '#FFD700',
-  fontSize: 18,
-  fontWeight: '700',
-  marginTop: 20,
-  marginBottom: 8,
-  textAlign: 'center',
-},
-pendingBetCard: {
-  backgroundColor: 'rgba(255,255,255,0.1)',
-  borderRadius: 12,
-  padding: 12,
-  marginVertical: 6,
-  width: '90%',
-  alignSelf: 'center',
-  alignItems: 'center',
-},
-pendingText: {
-  color: '#FFF',
-  fontSize: 15,
-  marginBottom: 8,
-  textAlign: 'center',
-},
-pendingActions: {
-  flexDirection: 'row',
-  justifyContent: 'space-around',
-  width: '100%',
-},
-actionButton: {
-  paddingVertical: 8,
-  paddingHorizontal: 16,
-  borderRadius: 8,
-},
-acceptButton: {
-  backgroundColor: '#4CAF50',
-},
-declineButton: {
-  backgroundColor: '#E53935',
-},
-actionButtonText: {
-  color: '#FFF',
-  fontWeight: '600',
-},
-avatarCircle: {
-  width: 50,
-  height: 50,
-  borderRadius: 25,
-  justifyContent: 'center',
-  alignItems: 'center',
-  overflow: 'hidden',
-  marginRight: 8,
-  borderWidth: 2,
-  borderColor: '#FFD700',
-},
-avatarImage: {
-  width: '100%',
-  height: '100%',
-},
-avatarInitials: {
-  color: 'white',
-  fontWeight: 'bold',
-  fontSize: 16,
-},
+  tabRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 10,
+  },
+  tabButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginHorizontal: 5,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  tabButtonActive: {
+    backgroundColor: "#FFD700",
+  },
+  tabText: {
+    fontWeight: "600",
+    color: "#000",
+  },
+  sectionHeader: {
+    color: '#FFD700',
+    fontSize: 18,
+    fontWeight: '700',
+    marginTop: 20,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  pendingBetCard: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12,
+    padding: 12,
+    marginVertical: 6,
+    width: '90%',
+    alignSelf: 'center',
+    alignItems: 'center',
+  },
+  pendingText: {
+    color: '#FFF',
+    fontSize: 15,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  pendingActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+  },
+  actionButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  acceptButton: {
+    backgroundColor: '#4CAF50',
+  },
+  declineButton: {
+    backgroundColor: '#E53935',
+  },
+  actionButtonText: {
+    color: '#FFF',
+    fontWeight: '600',
+  },
+  avatarCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    marginRight: 8,
+    borderWidth: 2,
+    borderColor: '#FFD700',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  avatarInitials: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
 
 
 })
@@ -642,10 +547,8 @@ avatarInitials: {
 export default Bets
 
 
-
-
 const BetCard: React.FC<{ bet: Bet; user: any; logout: () => Promise<void>; challengeMembers: Member[]; onRefresh: () => Promise<void>; navigation: NavigationProp<any>; }> = ({ bet, user, logout, challengeMembers, onRefresh, navigation }) => {
-  
+
   const initiator = challengeMembers.find((m) => m.id === bet.initiatorId);
   const recipient = challengeMembers.find((m) => m.id === bet.recipientId);
 
@@ -667,27 +570,27 @@ const BetCard: React.FC<{ bet: Bet; user: any; logout: () => Promise<void>; chal
       setIsCollecting(true);
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                Alert.alert(
-                  "Session expired",
-                  "Your login session has expired. Please log in again.",
-                  [
-                    {
-                      text: "OK",
-                      onPress: async () => {
-                        await logout();
-                        navigation.reset({
-                          index: 0,
-                          routes: [{ name: "Login" }],
-                        });
-                      },
-                    },
-                  ],
-                  { cancelable: false }
-                );
-                return;
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
+        return;
       }
 
-      const res = await fetch(endpoints.collectBetCoins(), {  
+      const res = await fetch(endpoints.collectBetCoins(), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -707,34 +610,33 @@ const BetCard: React.FC<{ bet: Bet; user: any; logout: () => Promise<void>; chal
     }
   };
 
-
   const collectRefund = async (amount: number, who: string) => {
     try {
       setIsCollecting(true);
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
+        return;
       }
 
-      const res = await fetch(endpoints.collectBetRefund(), {  
+      const res = await fetch(endpoints.collectBetRefund(), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -754,14 +656,14 @@ const BetCard: React.FC<{ bet: Bet; user: any; logout: () => Promise<void>; chal
     }
   };
 
-    const cardColor =
+  const cardColor =
     !isComplete || (isComplete && user.id !== bet.initiatorId && user.id !== bet.recipientId)
-        ? "rgba(255,255,255,0.1)" // grey for incomplete or not involved
-        : isTie
+      ? "rgba(255,255,255,0.1)" // grey for incomplete or not involved
+      : isTie
         ? "rgba(255, 215, 0, 0.2)" // gold/yellow for tie
         : isWinner
-            ? "rgba(94, 204, 114, 0.2)" // green for winner
-            : "rgba(255, 80, 80, 0.2)"; // red for loser
+          ? "rgba(94, 204, 114, 0.2)" // green for winner
+          : "rgba(255, 80, 80, 0.2)"; // red for loser
 
 
   return (
@@ -769,56 +671,56 @@ const BetCard: React.FC<{ bet: Bet; user: any; logout: () => Promise<void>; chal
       <View style={styles.betHeader}>
         <Text style={styles.betAmountText}>{bet.betAmount} 🪙</Text>
         {isComplete && (
-        <Text style={{ color: "#FFD700", fontWeight: "600", marginTop: 5 }}>
-        {bet.winnerId === null
-            ? `It's a tie!`
-            : bet.winnerId === user.id
-            ? "Winner: You 🏆"
-            : `Winner: ${bet.winnerId === bet.initiatorId ? bet.initiatorName : bet.recipientName} — You lose!`}
-        </Text>
+          <Text style={{ color: "#FFD700", fontWeight: "600", marginTop: 5 }}>
+            {bet.winnerId === null
+              ? `It's a tie!`
+              : bet.winnerId === user.id
+                ? "Winner: You 🏆"
+                : `Winner: ${bet.winnerId === bet.initiatorId ? bet.initiatorName : bet.recipientName} — You lose!`}
+          </Text>
         )}
       </View>
 
 
-<View style={styles.playerRow}>
-  <View style={[styles.avatarCircle, { backgroundColor: initiator?.avatar?.backgroundColor || '#ccc' }]}>
-    {initiator?.avatar?.imageUrl ? (
-      <Image
-        source={{ uri: `${BASE_URL}${initiator.avatar.imageUrl}` }}
-        style={styles.avatarImage}
-        resizeMode="contain"
-      />
-    ) : (
-      <Text style={styles.avatarInitials}>{getInitials(initiator?.name || '')}</Text>
-    )}
-  </View>
-  <Text style={styles.playerName}>
-    {initiator?.name} {bet.winnerId === bet.initiatorId && <Text style={styles.winnerIcon}>🏆</Text>}
-  </Text>
-  <Text style={styles.pointsText}>{bet.initiatorPoints} pts</Text>
-</View>
+      <View style={styles.playerRow}>
+        <View style={[styles.avatarCircle, { backgroundColor: initiator?.avatar?.backgroundColor || '#ccc' }]}>
+          {initiator?.avatar?.imageUrl ? (
+            <Image
+              source={{ uri: `${BASE_URL}${initiator.avatar.imageUrl}` }}
+              style={styles.avatarImage}
+              resizeMode="contain"
+            />
+          ) : (
+            <Text style={styles.avatarInitials}>{getInitials(initiator?.name || '')}</Text>
+          )}
+        </View>
+        <Text style={styles.playerName}>
+          {initiator?.name} {bet.winnerId === bet.initiatorId && <Text style={styles.winnerIcon}>🏆</Text>}
+        </Text>
+        <Text style={styles.pointsText}>{bet.initiatorPoints} pts</Text>
+      </View>
 
-<View style={styles.vsLine}>
-  <Text style={styles.vsText}>vs</Text>
-</View>
+      <View style={styles.vsLine}>
+        <Text style={styles.vsText}>vs</Text>
+      </View>
 
-<View style={styles.playerRow}>
-  <View style={[styles.avatarCircle, { backgroundColor: recipient?.avatar?.backgroundColor || '#ccc' }]}>
-    {recipient?.avatar?.imageUrl ? (
-      <Image
-        source={{ uri: `${BASE_URL}${recipient.avatar.imageUrl}` }}
-        style={styles.avatarImage}
-        resizeMode="contain"
-      />
-    ) : (
-      <Text style={styles.avatarInitials}>{getInitials(recipient?.name || '')}</Text>
-    )}
-  </View>
-  <Text style={styles.playerName}>
-    {recipient?.name} {bet.winnerId === bet.recipientId && <Text style={styles.winnerIcon}>🏆</Text>}
-  </Text>
-  <Text style={styles.pointsText}>{bet.recipientPoints} pts</Text>
-</View>
+      <View style={styles.playerRow}>
+        <View style={[styles.avatarCircle, { backgroundColor: recipient?.avatar?.backgroundColor || '#ccc' }]}>
+          {recipient?.avatar?.imageUrl ? (
+            <Image
+              source={{ uri: `${BASE_URL}${recipient.avatar.imageUrl}` }}
+              style={styles.avatarImage}
+              resizeMode="contain"
+            />
+          ) : (
+            <Text style={styles.avatarInitials}>{getInitials(recipient?.name || '')}</Text>
+          )}
+        </View>
+        <Text style={styles.playerName}>
+          {recipient?.name} {bet.winnerId === bet.recipientId && <Text style={styles.winnerIcon}>🏆</Text>}
+        </Text>
+        <Text style={styles.pointsText}>{bet.recipientPoints} pts</Text>
+      </View>
 
 
 
@@ -834,7 +736,7 @@ const BetCard: React.FC<{ bet: Bet; user: any; logout: () => Promise<void>; chal
         </TouchableOpacity>
       )}
 
-      {isTie && (bet.initiatorId === user.id) && !bet.initiatorRefunded && ( 
+      {isTie && (bet.initiatorId === user.id) && !bet.initiatorRefunded && (
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: "#4CAF50", marginTop: 10 }]}
           onPress={() => collectRefund(bet.betAmount, 'Initiator')}
@@ -846,7 +748,7 @@ const BetCard: React.FC<{ bet: Bet; user: any; logout: () => Promise<void>; chal
         </TouchableOpacity>
       )}
 
-      {isTie && (bet.recipientId === user.id) && !bet.recipientRefunded && ( 
+      {isTie && (bet.recipientId === user.id) && !bet.recipientRefunded && (
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: "#4CAF50", marginTop: 10 }]}
           onPress={() => collectRefund(bet.betAmount, 'Recipient')}

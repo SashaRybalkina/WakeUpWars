@@ -23,9 +23,9 @@ const ChallScheduleOrig = ({ navigation }: { navigation: NavigationProp<any> }) 
   const [showEndDatePicker, setShowEndDatePicker] = useState(false)
   const [selectedStartDate, setSelectedStartDate] = useState(new Date())
   const [selectedEndDate, setSelectedEndDate] = useState(new Date())
-  const [allGames, setAllGames] = useState<Record<string, string[][]>>({}) 
+  const [allGames, setAllGames] = useState<Record<string, string[][]>>({})
   const [visibleGames, setVisibleGames] = useState<string[][]>([])
-  const [activeDay, setActiveDay] = useState<string | null>(null) 
+  const [activeDay, setActiveDay] = useState<string | null>(null)
   const [alarmSchedule, setAlarmSchedule] = useState<{ dayOfWeek: number; alarmTime: string; userName: string }[]>([])
 
   useEffect(() => {
@@ -66,7 +66,7 @@ const ChallScheduleOrig = ({ navigation }: { navigation: NavigationProp<any> }) 
           const label = DayOfWeekLabels[day.dayOfWeek as DayOfWeek];
           if (label) {
             parsedDays[label] = true;
-  
+
             gamesByDay[label] = day.games.map((g: any) => [
               g.name,
               g.repeats || "-",
@@ -130,7 +130,7 @@ const ChallScheduleOrig = ({ navigation }: { navigation: NavigationProp<any> }) 
     }
   }
 
-  const onStartDateChange = (event: any, date: Date | undefined) => {    
+  const onStartDateChange = (event: any, date: Date | undefined) => {
     if (event?.type === "dismissed") {
       // Android Cancel
       setShowStartDatePicker(false)
@@ -366,12 +366,12 @@ const ChallScheduleOrig = ({ navigation }: { navigation: NavigationProp<any> }) 
               >
                 <View style={styles.gamesGrid}>
                   {visibleGames.map((game, index) => (
-                    <TouchableOpacity 
-                      key={index} 
+                    <TouchableOpacity
+                      key={index}
                       style={[
                         styles.gameCard,
                         game[0] === "Sudoku" && styles.sudokuGameCard
-                      ]} 
+                      ]}
                       onPress={() => handleGamePress(game, index)}
                     >
                       <Text style={styles.gameTitle}>{game[0]}</Text>

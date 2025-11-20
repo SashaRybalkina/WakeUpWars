@@ -38,39 +38,39 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
         try {
           const accessToken = await getAccessToken();
           if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+            Alert.alert(
+              "Session expired",
+              "Your login session has expired. Please log in again.",
+              [
+                {
+                  text: "OK",
+                  onPress: async () => {
+                    await logout();
+                    navigation.reset({
+                      index: 0,
+                      routes: [{ name: "Login" }],
+                    });
+                  },
+                },
+              ],
+              { cancelable: false }
+            );
 
-                  return;
+            return;
           }
           const response = await axios.get(
             endpoints.currentChallenges(Number(user.id), whichChall), {
-              headers: {
-                "Authorization": `Bearer ${accessToken}`,
-              },
-            }
+            headers: {
+              "Authorization": `Bearer ${accessToken}`,
+            },
+          }
           )
-        // fields = [
-        //     'id', 'name', 'startDate', 'endDate', 'totalDays',
-        //     'isGroupChallenge', 'daysOfWeek', 'daysCompleted',
-        //     'isCompleted',
-        // ]
-        console.log(response.data)
+          // fields = [
+          //     'id', 'name', 'startDate', 'endDate', 'totalDays',
+          //     'isGroupChallenge', 'daysOfWeek', 'daysCompleted',
+          //     'isCompleted',
+          // ]
+          console.log(response.data)
           const data = response.data.map((c: any) => ({
             id: c.id,
             name: c.name,
@@ -131,45 +131,45 @@ const Chall1: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.loadingText}>Loading challenges...</Text>
           </View>
         ) : challs.length === 0 ? (
-                <View style={styles.emptyStateContainer}>
-                  <Ionicons name="flag-outline" size={40} color="rgba(255,255,255,0.7)" />
-                  <Text style={styles.emptyStateText}>No active challenges</Text>
-                </View>
-              ) : (
+          <View style={styles.emptyStateContainer}>
+            <Ionicons name="flag-outline" size={40} color="rgba(255,255,255,0.7)" />
+            <Text style={styles.emptyStateText}>No active challenges</Text>
+          </View>
+        ) : (
           <ScrollView
             style={styles.scrollViewContainer}
             contentContainerStyle={styles.scrollViewContent}
             showsVerticalScrollIndicator={false}
           >
-                  {challs.map((c) => (
-                    <View key={c.id} style={styles.challengeRow}>
-                      <TouchableOpacity
-                        style={styles.challengeCardWrapper}
-                        onPress={() =>
-                          navigation.navigate("ChallDetails", {
-                            challId: c.id,
-                            challName: c.name,
-                            whichChall: whichChall,
-                          })
-                        }
-                      >
-                        <ChallengeCard
-                          title={c.name}
-                          icon={require("../../images/ytrophy.png")}
-                          startDate={c.startDate}
-                          endDate={c.endDate}
-                          daysCompleted={c.daysCompleted}
-                          totalDays={c.totalDays === null ? "?" : c.totalDays}
-                          daysOfWeek={c.daysOfWeek}
-                          isCompleted={c.isCompleted}
-                        />
-                      </TouchableOpacity>
+            {challs.map((c) => (
+              <View key={c.id} style={styles.challengeRow}>
+                <TouchableOpacity
+                  style={styles.challengeCardWrapper}
+                  onPress={() =>
+                    navigation.navigate("ChallDetails", {
+                      challId: c.id,
+                      challName: c.name,
+                      whichChall: whichChall,
+                    })
+                  }
+                >
+                  <ChallengeCard
+                    title={c.name}
+                    icon={require("../../images/ytrophy.png")}
+                    startDate={c.startDate}
+                    endDate={c.endDate}
+                    daysCompleted={c.daysCompleted}
+                    totalDays={c.totalDays === null ? "?" : c.totalDays}
+                    daysOfWeek={c.daysOfWeek}
+                    isCompleted={c.isCompleted}
+                  />
+                </TouchableOpacity>
 
-                    </View>
-                  ))}
-            </ScrollView>
+              </View>
+            ))}
+          </ScrollView>
 
-              )}
+        )}
       </ImageBackground>
 
       <NavBar
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontWeight: "600",
   },
-    addNewButton: {
+  addNewButton: {
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     borderRadius: 12,
     paddingVertical: 12,

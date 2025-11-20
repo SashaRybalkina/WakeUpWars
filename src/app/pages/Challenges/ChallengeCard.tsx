@@ -31,18 +31,18 @@ export const orderedDayLabels = (): string[] => [
   DayOfWeekLabels[7], // Sunday
 ];
 
-const ChallengeCard: React.FC<ChallengeCardProps> = ({ 
-  title, 
-  icon, 
+const ChallengeCard: React.FC<ChallengeCardProps> = ({
+  title,
+  icon,
   startDate,
   endDate,
-  daysCompleted, 
-  totalDays, 
+  daysCompleted,
+  totalDays,
   daysOfWeek,
   isCompleted,
   // alarmSchedule = [] // Default to empty array if not provided
 }) => {
-  
+
   const dayMap = orderedDayLabels();
   const progressPercentage = (daysCompleted / totalDays) * 100
 
@@ -59,25 +59,20 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
           <View style={styles.daysContainer}>
             {dayMap.map((day, index) => {
               const isActive = daysOfWeek.includes(day);
-              // const alarmItem = alarmSchedule.find(
-              //   (item) => DayOfWeekLabels[item.dayOfWeek as DayOfWeek] === day
-              // );
-              // const hasAlarm = isActive && alarmItem?.alarmTime;
-              
               return (
                 <View key={index} style={styles.dayWrapper}>
                   <View style={[
-                    styles.dayCircle, 
+                    styles.dayCircle,
                     isActive ? styles.activeDayCircle : {}
                   ]}>
                     <Text style={[
-                      styles.dayText, 
+                      styles.dayText,
                       isActive ? styles.activeDayText : {}
                     ]}>
                       {day}
                     </Text>
                   </View>
-                  
+
                   {/* Show alarm indicator if this day has an alarm */}
                   {isActive && (
                     <View style={styles.alarmIndicator}>

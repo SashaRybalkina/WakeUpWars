@@ -56,38 +56,6 @@ const CreatePublicChall: React.FC<Props> = ({ navigation }) => {
   const [singOrMult, setSingOrMult] = useState<"Singleplayer" | "Multiplayer" | null>(null);
   const [categories, setCategories] = useState<Category[]>(STATIC_CATEGORIES);
   const [selectedCategories, setSelectedCategories] = useState<Category[]>([]);
-  // const [categories, setCategories] = useState<{ id: number; categoryName: string }[]>([]);
-  // const [selectedCategories, setSelectedCategories] = useState<{ id: number; name: string }[]>([]);
-
-  // useEffect(() => {
-  //   if (singOrMult) {
-  //   const fetchCats = async () => {
-  //     try {
-  //             const accessToken = await getAccessToken();
-  //             if (!accessToken) {
-  //                     await logout();
-  //                     navigation.reset({
-  //                       index: 0,
-  //                       routes: [{ name: "Login" }],
-  //                     });
-  //             }
-  //       // TODO: fetch only the categories for multiplayer/singleplayer (whatever was selected)
-  //       const response = await fetch(endpoints.cats(), {
-  //               headers: {
-  //                 Authorization: `Bearer ${accessToken}`
-  //               }
-  //             });
-  //       const data = await response.json();
-  //       setCategories(data);
-  //       console.log("Data2: " + JSON.stringify(data));
-  //     } catch (error) {
-  //       console.error('Failed to fetch categories:', error);
-  //     }
-  //   };
-  
-  //   fetchCats();
-  //   }
-  // }, [singOrMult]);
 
   const handleNext = () => {
     if (!singOrMult) {
@@ -155,67 +123,45 @@ const CreatePublicChall: React.FC<Props> = ({ navigation }) => {
           {singOrMult && (
             <View style={styles.formSection}>
               <Text style={styles.sectionTitle}>Category</Text>
-              {/* <View style={styles.choiceRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.choiceButton,
-                    miscSelected && styles.choiceButtonSelected,
-                  ]}
-                  onPress={() => {
-                    setMiscSelected(true);
-                    setSelectedCategory(null);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.choiceText,
-                      miscSelected && styles.choiceTextSelected,
-                    ]}
-                  >
-                    Miscellaneous
-                  </Text>
-                </TouchableOpacity>
-              </View> */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoriesScroll}
+              >
+                {categories.map((cat) => {
+                  const isSelected = selectedCategories.some(c => c.id === cat.id);
 
-<ScrollView
-  horizontal
-  showsHorizontalScrollIndicator={false}
-  contentContainerStyle={styles.categoriesScroll}
->
-  {categories.map((cat) => {
-    const isSelected = selectedCategories.some(c => c.id === cat.id);
-
-    return (
-      <TouchableOpacity
-        key={cat.id}
-        style={[
-          styles.choiceButton,
-          isSelected && styles.choiceButtonSelected,
-        ]}
-        onPress={() => {
-          setSelectedCategories((prev) => {
-            if (isSelected) {
-              // remove if already selected
-              return prev.filter(c => c.id !== cat.id);
-            } else {
-              // add if not selected
-              return [...prev, { id: cat.id, categoryName: cat.categoryName }];
-            }
-          });
-        }}
-      >
-        <Text
-          style={[
-            styles.choiceText,
-            isSelected && styles.choiceTextSelected,
-          ]}
-        >
-          {cat.categoryName}
-        </Text>
-      </TouchableOpacity>
-    );
-  })}
-</ScrollView>
+                  return (
+                    <TouchableOpacity
+                      key={cat.id}
+                      style={[
+                        styles.choiceButton,
+                        isSelected && styles.choiceButtonSelected,
+                      ]}
+                      onPress={() => {
+                        setSelectedCategories((prev) => {
+                          if (isSelected) {
+                            // remove if already selected
+                            return prev.filter(c => c.id !== cat.id);
+                          } else {
+                            // add if not selected
+                            return [...prev, { id: cat.id, categoryName: cat.categoryName }];
+                          }
+                        });
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.choiceText,
+                          isSelected && styles.choiceTextSelected,
+                        ]}
+                      >
+                        {cat.categoryName}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
 
             </View>
           )}
