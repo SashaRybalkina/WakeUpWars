@@ -1,3 +1,9 @@
+/**
+ * @file Login.tsx
+ * @description Allows a user to log into the app, given that inputed username exists in
+ * the database and the given password is the correct password for that username.
+ */
+
 import React, { useEffect, useState } from 'react';
 import * as SecureStore from "expo-secure-store";
 import {
