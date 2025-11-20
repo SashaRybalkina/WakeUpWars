@@ -10,15 +10,16 @@
 
 import json
 import random
-from channels.generic.websocket import AsyncWebsocketConsumer
+
 from asgiref.sync import sync_to_async
-#from api.sudokuStuff.utils import validate_sudoku_move
-from api.models import SudokuGameState, SudokuGamePlayer, User, ChallengeMembership
+from asgiref.sync import sync_to_async
+from channels.generic.websocket import AsyncWebsocketConsumer
+from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
+
+from api.models import ChallengeMembership, SudokuGamePlayer, SudokuGameState, User
 from api.models import GamePerformance
-from asgiref.sync import sync_to_async
-from django.core.cache import cache
 from api.tasks import close_join_window
 
 ALL_COLORS = [
@@ -29,9 +30,6 @@ ALL_COLORS = [
 
 # Global cell lock state: { game_id: { cell_index: username } }
 CELL_LOCKS = {}
-
-# Global cell lock state: { game_id: { cell_index: username } }
-
 
 def _conns_key(game_state_id: int) -> str:
     return f"sdk_conns_{game_state_id}"
@@ -52,7 +50,7 @@ class SudokuConsumer(AsyncWebsocketConsumer):
             await self.close()
             return
 
-        # ─── Join-window gating ─────────────────────────────
+        # Join-window gating
         gs: SudokuGameState = await sync_to_async(
             SudokuGameState.objects.select_related("challenge", "game").get
         )(id=self.game_state_id)
@@ -61,10 +59,6 @@ class SudokuConsumer(AsyncWebsocketConsumer):
         if not gs.join_deadline_at:
             gs.join_deadline_at = (gs.created_at or now) + timezone.timedelta(seconds=20)
             await sync_to_async(gs.save)(update_fields=["join_deadline_at"])
-
-        # if gs.joins_closed or now > gs.join_deadline_at:
-        #     await self.close(code=4001)
-        #     return
 
         ended = await sync_to_async(
             GamePerformance.objects.filter(
@@ -76,7 +70,6 @@ class SudokuConsumer(AsyncWebsocketConsumer):
             await sync_to_async(gs.save)(update_fields=["joins_closed"])
             await self.close(code=4002)
             return
-        # ────────────────────────────────────────────────────
 
         await self.accept()
         await self.channel_layer.group_add(self.group_name, self.channel_name)
@@ -85,8 +78,6 @@ class SudokuConsumer(AsyncWebsocketConsumer):
         conns = set(cache.get(_conns_key(self.game_state_id)) or [])
         conns.add(self.user.id)
         cache.set(_conns_key(self.game_state_id), list(conns), timeout=3600)
-        # await self.channel_layer.group_add(self.group_name, self.channel_name)
-        # await self.accept()
 
         # Assign color and notify other players
         self.color = await self.assign_color()
@@ -174,12 +165,12 @@ class SudokuConsumer(AsyncWebsocketConsumer):
         game_id = self.game_state_id
         username = self.user.username
 
-        # 🧹 Release all locks held by this player
+        # Release all locks held by this player
         if game_id in CELL_LOCKS:
             locked_cells = [cell for cell, player in CELL_LOCKS[game_id].items() if player == username]
             for cell in locked_cells:
                 CELL_LOCKS[game_id].pop(cell, None)
-                # 📢 Broadcast to others that this cell is now unlocked
+                # Broadcast to others that this cell is now unlocked
                 await self.channel_layer.group_send(
                     self.group_name,
                     {
@@ -194,7 +185,7 @@ class SudokuConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         data = json.loads(text_data)
 
-        # ─── Lock cell ─────────────────────────────
+        # Lock cell
         if data['type'] == 'lock_cell':
             index = data['index']
             game_id = self.game_state_id
@@ -203,7 +194,7 @@ class SudokuConsumer(AsyncWebsocketConsumer):
             if game_id not in CELL_LOCKS:
                 CELL_LOCKS[game_id] = {}
 
-            # ⚠️ Already locked by someone else
+            # Already locked by someone else
             if index in CELL_LOCKS[game_id] and CELL_LOCKS[game_id][index] != username:
                 await self.send(text_data=json.dumps({
                     'type': 'lock_failed',
@@ -211,10 +202,10 @@ class SudokuConsumer(AsyncWebsocketConsumer):
                 }))
                 return
 
-            # 🔐 Lock this cell
+            # Lock this cell
             CELL_LOCKS[game_id][index] = username
 
-            # 📢 Broadcast lock to everyone
+            # Broadcast lock to everyone
             await self.channel_layer.group_send(
                 self.group_name,
                 {
@@ -225,7 +216,7 @@ class SudokuConsumer(AsyncWebsocketConsumer):
                 }
             )
 
-        # ─── Unlock cell ─────────────────────────────
+        # Unlock cell
         if data['type'] == 'unlock_cell':
             index = data['index']
             game_id = self.game_state_id
@@ -235,7 +226,7 @@ class SudokuConsumer(AsyncWebsocketConsumer):
                 CELL_LOCKS[game_id].get(index) == username):
                 CELL_LOCKS[game_id].pop(index, None)
 
-                # 📢 Broadcast unlock to everyone
+                # Broadcast unlock to everyone
                 await self.channel_layer.group_send(
                     self.group_name,
                     {
@@ -243,97 +234,6 @@ class SudokuConsumer(AsyncWebsocketConsumer):
                         'cell': index
                     }
                 )
-
-        # ─── Handle Sudoku move ─────────────────────────────
-        # if data['type'] == 'make_move':
-        #     index = data['index']
-        #     value = data['value']
-
-        #     game_id = self.game_state_id
-        #     username = self.user.username
-
-        #     # If the cell is locked by someone else → deny move
-        #     if (game_id in CELL_LOCKS and
-        #         CELL_LOCKS[game_id].get(index) not in (None, username)):
-        #         await self.send(text_data=json.dumps({
-        #             'type': 'lock_failed',
-        #             'cell': index
-        #         }))
-        #         return
-
-        #     result = await validate_sudoku_move(self.game_state_id, self.user, index, value)
-        #     print("🧪 [DEBUG] validate_sudoku_move result =", result)
-        #     row, col = divmod(index, 9)
-
-        #     if result is None:
-        #         print("🧪 [DEBUG] result is None!!")
-        #         return
-
-        #     if result.get('type') == 'ignored':
-        #         await self.send(text_data=json.dumps({
-        #             'type': 'ignored'
-        #         }))
-        #         return
-
-        #     if result.get('is_correct'):
-        #         # ✅ Correct move
-        #         await self.channel_layer.group_send(
-        #             self.group_name,
-        #             {
-        #                 'type': 'broadcast_move',  
-        #                 'cell': index,
-        #                 'value': value,
-        #                 'color': self.color,
-        #                 'valid': result['is_correct'],
-        #             }
-        #         )
-
-        #         # If the game is complete, broadcast completion
-        #         if result.get('is_complete'):
-        #             # Persist scores immediately so signals can advance progress today
-        #             try:
-        #                 await self._persist_scores_now()
-        #             except Exception:
-        #                 pass
-        #             await self.channel_layer.group_send(
-        #                 self.group_name,
-        #                 {
-        #                     'type': 'game_complete',
-        #                     'scores': result['scores'],
-        #                 }
-        #             )
-        #             # Trigger backend reconciliation now so GamePerformance rows
-        #             # are persisted immediately and signals can advance progress.
-        #             try:
-        #                 # Fill zero scores for non-submitters and mark joins closed
-        #                 close_join_window.delay('SudokuGameState', self.game_state_id)
-        #                 # Compute and broadcast the finalized leaderboard right away
-        #                 broadcast_leaderboard.delay('SudokuGameState', self.game_state_id)
-        #             except Exception:
-        #                 # best-effort; do not break client flow
-        #                 pass
-        #     else:
-        #         # ❌ Incorrect move → only broadcast to myself
-        #         await self.send(text_data=json.dumps({
-        #             'type': 'broadcast_move',
-        #             'cell': index,
-        #             'value': value,
-        #             'color': self.color,
-        #             'valid': result.get('is_correct', False),
-        #         }))
-            
-        #     # 🧹 Always unlock cell after answering (correct or wrong)
-        #     if game_id in CELL_LOCKS and CELL_LOCKS[game_id].get(index) == username:
-        #         CELL_LOCKS[game_id].pop(index, None)
-        #         await self.channel_layer.group_send(
-        #             self.group_name,
-        #             {
-        #                 'type': 'cell_unlocked',
-        #                 'cell': index
-        #             }
-        #         )
-        #         print(f"[AUTO UNLOCK] after move by {username} on cell {index}")
-        #         print(f"[CURRENT CELL_LOCKS] {json.dumps(CELL_LOCKS, indent=2)}")
 
         if data['type'] == 'make_move':
             index = data.get('index')
@@ -343,7 +243,7 @@ class SudokuConsumer(AsyncWebsocketConsumer):
             username = self.user.username
             game_id = self.game_state_id
 
-            # If the cell is locked by someone else → deny move
+            # If the cell is locked by someone else deny move
             if (game_id in CELL_LOCKS and
                 CELL_LOCKS[game_id].get(index) not in (None, username)):
                 await self.send(text_data=json.dumps({
@@ -352,7 +252,7 @@ class SudokuConsumer(AsyncWebsocketConsumer):
                 }))
                 return
 
-            # ✅ update player record
+            # update player record
             player_record, _ = await sync_to_async(SudokuGamePlayer.objects.get_or_create)(
                 gameState_id=self.game_state_id,
                 player=self.user,
@@ -391,7 +291,7 @@ class SudokuConsumer(AsyncWebsocketConsumer):
                     }
                 )
 
-            # 🧹 unlock the cell
+            # unlock the cell
             if game_id in CELL_LOCKS and CELL_LOCKS[game_id].get(index) == username:
                 CELL_LOCKS[game_id].pop(index, None)
                 await self.channel_layer.group_send(
@@ -499,9 +399,6 @@ class SudokuConsumer(AsyncWebsocketConsumer):
         except Exception:
             pass
 
-
-
-
     @sync_to_async
     def _get_scores(self):
         """
@@ -524,8 +421,6 @@ class SudokuConsumer(AsyncWebsocketConsumer):
                 'score': score,
             })
         return scores
-
-
 
     # Color assignment (thread-safe)
     @sync_to_async
@@ -602,7 +497,6 @@ class SudokuConsumer(AsyncWebsocketConsumer):
         # broadcast to group
         from asgiref.sync import async_to_sync
         from api.tasks import close_join_window
-        #close_join_window.delay('SudokuGameState', self.game_state_id)
         async_to_sync(self.channel_layer.group_send)(
             self.group_name,
             {

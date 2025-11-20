@@ -8,16 +8,26 @@
  */
 """
 
-from api.models import SudokuGameState, Challenge, SudokuGamePlayer, GameSchedule, GameScheduleGameAssociation, User, Game
-from sudoku import Sudoku
-import time
+from datetime import timedelta
 import random
+import time
+
+from asgiref.sync import sync_to_async
+from django.conf import settings
 from django.db import transaction
 from django.db import IntegrityError
-from asgiref.sync import sync_to_async
-from datetime import timedelta
 from django.utils import timezone
-from django.conf import settings
+from sudoku import Sudoku
+
+from api.models import (
+    Challenge,
+    Game,
+    GameSchedule,
+    GameScheduleGameAssociation,
+    SudokuGamePlayer,
+    SudokuGameState,
+    User,
+)
 
 
 @transaction.atomic

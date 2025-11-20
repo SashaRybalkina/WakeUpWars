@@ -9,22 +9,23 @@
 
 
  # utils.py – core logic for Pattern Memorization
+from datetime import timedelta
 from math import remainder
+import random
+from typing import Any, Dict, List
+
+from asgiref.sync import sync_to_async
 from django.db import transaction
 from django.db import IntegrityError
-from asgiref.sync import sync_to_async
-from typing import List, Dict, Any
-import random
 from django.utils import timezone
-from datetime import timedelta
 
 from api.models import (
-    PatternMemorizationGameState,
-    PatternMemorizationGamePlayer,
     Challenge,
     Game,
     GameSchedule,
-    GameScheduleGameAssociation
+    GameScheduleGameAssociation,
+    PatternMemorizationGamePlayer,
+    PatternMemorizationGameState,
 )
 
 # Allowed elements for the pattern – keep it simple and frontend friendly

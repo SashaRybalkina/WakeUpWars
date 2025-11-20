@@ -7,16 +7,23 @@
  */
 """
 
-import json
 import asyncio
-from channels.generic.websocket import AsyncWebsocketConsumer
-from asgiref.sync import sync_to_async
-from django.core.cache import cache
-from django.conf import settings
-from django.utils import timezone
 from datetime import date, timedelta
+import json
 
-from api.models import PatternMemorizationGameState, PatternMemorizationGamePlayer, User, ChallengeMembership, GamePerformance
+from asgiref.sync import sync_to_async
+from channels.generic.websocket import AsyncWebsocketConsumer
+from django.conf import settings
+from django.core.cache import cache
+from django.utils import timezone
+
+from api.models import (
+    ChallengeMembership,
+    GamePerformance,
+    PatternMemorizationGamePlayer,
+    PatternMemorizationGameState,
+    User,
+)
 from api.patternMem.utils import validate_pattern_move
 from api.tasks import close_join_window
 
@@ -30,7 +37,7 @@ def _started_key(game_state_id: int) -> str:
 def _conns_key(game_state_id: int) -> str:
     return f"pm_conns_{game_state_id}"
 
-# NEW: global freeze key for 3-second countdown after a correct answer
+# global freeze key for 3-second countdown after a correct answer
 def _freeze_key(game_state_id: int) -> str:
     return f"pm_freeze_{game_state_id}"
 
@@ -58,7 +65,6 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
         self.group_name = f"pattern_{self.game_state_id}"
         self.user: User = self.scope["user"]
 
-        # ─── join-window gating ──────────────────────────────────
         now = timezone.now()
 
         gs: PatternMemorizationGameState = await sync_to_async(
@@ -70,14 +76,11 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
             gs.join_deadline_at = now + timedelta(seconds=window)
             await sync_to_async(gs.save)(update_fields=["join_deadline_at"])
             cache.delete(f"pm_deadline_scheduled_{self.game_state_id}")
-        # Scheduling is handled by open_join_window Celery task to avoid duplicates across processes.
 
-        # closed?
         if gs.joins_closed or now > gs.join_deadline_at:
-            await self.close(code=4001)  # JOINS_CLOSED
+            await self.close(code=4001)  # when joins_closed
             return
 
-        # scores already posted today?
         ended = await sync_to_async(
             GamePerformance.objects.filter(
                 challenge=gs.challenge, game=gs.game, date=timezone.localdate()
@@ -88,13 +91,11 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
             await sync_to_async(gs.save)(update_fields=["joins_closed"])
             await self.close(code=4002)  # GAME_ENDED
             return
-        # ─────────────────────────────────────────────────────────
 
-        # normal Channels handshake
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
 
-        # lobby bookkeeping (same as before)
+        # lobby bookkeeping
         conns = set(cache.get(_conns_key(self.game_state_id)) or [])
         conns.add(self.user.id)
         cache.set(_conns_key(self.game_state_id), list(conns), timeout=3600)
@@ -251,7 +252,7 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
             })
 
     async def _handle_player_answer(self, data):
-        # NEW: reject any answers during the freeze window (3-second global pause)
+        # reject any answers during the freeze window (3-second global pause)
         if cache.get(_freeze_key(self.game_state_id)):
             await self.send(text_data=json.dumps({
                 "type": "answer_result",
@@ -301,7 +302,7 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
         if result.get("is_correct") and not result.get("is_complete"):
             print(f"[DEBUG From Consumers] Player {getattr(self.user, 'username', 'anon')} triggered countdown for next round", flush=True)
 
-            # NEW: Only the first correct submission should trigger the countdown
+            # Only the first correct submission should trigger the countdown
             is_first = cache.add(_freeze_key(self.game_state_id), True, timeout=3)
             if is_first:
                 # Broadcast in-game countdown
@@ -399,10 +400,6 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
     async def game_start(self, event):
         # read current round and its sequence from DB
         print("[DEBUG] >>> enter game_start handler", flush=True)
-        # game_state = await sync_to_async(PatternMemorizationGameState.objects.get)(id=self.game_state_id)
-        # current_round = game_state.current_round
-        # sequence = game_state.pattern_sequence[current_round - 1]
-        # print(f"[DEBUG] send pattern_sequence round={current_round}, seq={sequence}", flush=True)
         game_state = await sync_to_async(PatternMemorizationGameState.objects.get)(id=self.game_state_id)
         current_round = game_state.current_round
         sequence = game_state.pattern_sequence[current_round - 1]
@@ -478,7 +475,7 @@ class PatternMemorizationConsumer(AsyncWebsocketConsumer):
             }))
             return
 
-        # IMPORTANT: send only to THIS player, NOT group_send
+        # send only to THIS player, NOT group_send
         await self.send(text_data=json.dumps({
             "type": "pattern_sequence",
             "round_number": self.last_round,
