@@ -9,85 +9,153 @@
  */
 """
 
-import pytz
-from rest_framework.permissions import AllowAny
-from django.conf import settings
-from datetime import timezone, datetime, date, timedelta
+from collections import defaultdict
+from datetime import date, datetime, timedelta, timezone
 from datetime import date as date_cls, timedelta
-import random
-from unittest import result
-from django.db.models import Sum, Count, Q, F, Prefetch, Exists, OuterRef, Subquery
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from django.views import View
-from rest_framework import status
-from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, IsAdminUser
-from rest_framework import generics, permissions
-from rest_framework import generics, permissions, status, viewsets, mixins
+from datetime import time
+from datetime import datetime, time
 from decimal import Decimal
+import logging
+import random
+import time
+import traceback
+from typing import Dict, List
+from unittest import result
+
+from asgiref.sync import async_to_sync
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from channels.layers import get_channel_layer
+from django.conf import settings
+from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth import login
+from django.core.cache import cache
+from django.db import transaction
+from django.db.models import Count, Exists, F, OuterRef, Prefetch, Q, Subquery, Sum
+from django.db.models import Q
+from django.db.models import Max, Min
+from django.http import HttpResponseNotAllowed, JsonResponse
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+from django.views import View
 from django.views.decorators.csrf import csrf_exempt
+import pytz
+import requests
+from rest_framework import status
+from rest_framework import generics, permissions
+from rest_framework import generics, mixins, permissions, status, viewsets
 from rest_framework.decorators import action
-from django.http import JsonResponse, HttpResponseNotAllowed
-from django.db import transaction
-from collections import defaultdict
-from datetime import time
-from django.db.models import Q
-from django.shortcuts import get_object_or_404
-from django.contrib.auth import authenticate, get_user_model
-from django.core.cache import cache
+from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import AllowAny
+from rest_framework.permissions import (
+    IsAdminUser,
+    IsAuthenticated,
+    IsAuthenticatedOrReadOnly,
+)
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from sudoku import Sudoku
 
 from api.chat_consumer import ACTIVE_CHAT_USERS
 from api.middleware import get_user_from_token
-from api.utils.notifications import send_fcm_notification
-from .serializers import (UserSerializer, RegisterSerializer, GroupSerializer, UserProfileSerializer, MessageSerializer, ChallengeSummarySerializer,
-                          CatSerializer, GameSerializer, FriendRequestSerializer, CreateGroupSerializer, SkillLevelSerializer,
-                          RewardSettingSerializer, ExternalHandleSerializer,ObligationSerializer, CashPaymentCreateSerializer,
-                          ExternalPaymentCreateSerializer, PaymentSerializer, PendingPublicChallengeSummarySerializer, PublicChallengeSummarySerializer,
-                          ChallengeBetSerializer)
-from .models import (FCMDevice, Group, GroupInvite, PatternMemorizationGamePlayer, UserNotification, PersonalChallengeInvite, PushToken, User, Message, Challenge, ChallengeMembership, GroupMembership, GameCategory, Game, GameSchedule,
-                     AlarmSchedule, ChallengeAlarmSchedule, GameScheduleGameAssociation, Friendship, GroupMembership, FriendRequest,
-                     SkillLevel, PendingGroupChallengeAvailability, GroupChallengeInvite, WordleMove, PublicChallengeConfiguration,
-                     UserAvailability, PublicChallengeCategoryAssociation, ChallengeBet, Badge, UserBadge, Memoji, UserMemoji)
-from django.http import JsonResponse
-from typing     import Dict, List
-from rest_framework.exceptions import ValidationError
-from django.db.models import Min, Max
-from datetime import datetime, time
-
-#### Sudoku Game Imports ####
-from .models import (SudokuGameState, WordleGameState, Challenge, SudokuGamePlayer, WordleGamePlayer, User, Game, GamePerformance, RewardSetting,
-                     ExternalHandle, Obligation, Payment, PaymentStatus, PaymentMethod, PaymentProvider, ObligationStatus, RewardType, TypingRaceGameState)
-from api.sudokuStuff.utils import validate_sudoku_move, get_or_create_game
-from api.wordleStuff.utils import validate_wordle_move, get_or_create_game_wordle
-from api.typingRaceStuff.utils import get_or_create_typing_race_game, finalize_single_result
-from .serializers import ChallengeSummarySerializer
-from sudoku import Sudoku
-import time
-from django.contrib.auth import login
-from asgiref.sync import async_to_sync
-import traceback
+from api.models import PatternMemorizationGameState
+from api.patternMem.utils import get_or_create_pattern_game, validate_pattern_move
 from api.services.skill import recompute_skill_for_user
 from api.services.skill_config import SKILL_CONFIG
+from api.sudokuStuff.utils import get_or_create_game, validate_sudoku_move
 from api.tasks import open_join_window
-from channels.layers import get_channel_layer
+from api.typingRaceStuff.utils import (
+    finalize_single_result,
+    get_or_create_typing_race_game,
+)
+from api.utils.notifications import send_fcm_notification
+from api.wordleStuff.utils import get_or_create_game_wordle, validate_wordle_move
 
-### Pattern Memorization###
-from api.patternMem.utils import get_or_create_pattern_game, validate_pattern_move
-from api.models import PatternMemorizationGameState
-
+from .models import (
+    AlarmSchedule,
+    Badge,
+    Challenge,
+    ChallengeAlarmSchedule,
+    ChallengeBet,
+    ChallengeMembership,
+    FCMDevice,
+    FriendRequest,
+    Friendship,
+    Game,
+    GameCategory,
+    GameSchedule,
+    GameScheduleGameAssociation,
+    Group,
+    GroupChallengeInvite,
+    GroupInvite,
+    GroupMembership,
+    GroupMembership,
+    Memoji,
+    Message,
+    PatternMemorizationGamePlayer,
+    PendingGroupChallengeAvailability,
+    PersonalChallengeInvite,
+    PublicChallengeCategoryAssociation,
+    PublicChallengeConfiguration,
+    PushToken,
+    SkillLevel,
+    User,
+    UserAvailability,
+    UserBadge,
+    UserMemoji,
+    UserNotification,
+    WordleMove,
+)
+from .models import (
+    Challenge,
+    ExternalHandle,
+    Game,
+    GamePerformance,
+    Obligation,
+    ObligationStatus,
+    Payment,
+    PaymentMethod,
+    PaymentProvider,
+    PaymentStatus,
+    RewardSetting,
+    RewardType,
+    SudokuGamePlayer,
+    SudokuGameState,
+    TypingRaceGameState,
+    User,
+    WordleGamePlayer,
+    WordleGameState,
+)
+from .serializers import (
+    CashPaymentCreateSerializer,
+    CatSerializer,
+    ChallengeBetSerializer,
+    ChallengeSummarySerializer,
+    CreateGroupSerializer,
+    ExternalHandleSerializer,
+    ExternalPaymentCreateSerializer,
+    FriendRequestSerializer,
+    GameSerializer,
+    GroupSerializer,
+    MessageSerializer,
+    ObligationSerializer,
+    PaymentSerializer,
+    PendingPublicChallengeSummarySerializer,
+    PublicChallengeSummarySerializer,
+    RegisterSerializer,
+    RewardSettingSerializer,
+    SkillLevelSerializer,
+    UserProfileSerializer,
+    UserSerializer,
+)
+from .serializers import ChallengeSummarySerializer
 from .words_array import words
-
-import logging
 logger = logging.getLogger(__name__)
-
-import requests
-
 User = get_user_model()
 WORD_LIST = words
 
-#Here
 class SetChallAvailabilityView(APIView):
     @transaction.atomic
     def post(self, request, user_id, chall_id):
@@ -191,18 +259,17 @@ class SetUserAvailabilityView(APIView):
         return Response({'status': 'availability toggled'})
 
     
-
 class GetChallengeInitiatorView(APIView):
     def get(self, request, chall_id):
         challenge = get_object_or_404(Challenge, id=chall_id)
         return Response({"initiator_id": challenge.initiator_id}, status=status.HTTP_200_OK)
-    
+
+
 class GetNumCoinsView(APIView):
     def get(self, request, user_id):
         user = User.objects.get(id=user_id)
         return Response({"numCoins": user.numCoins}, status=status.HTTP_200_OK)
 
-        
 
 class GetAvailabilitiesView(APIView):
     def get(self, request, chall_id, user_id):
@@ -272,8 +339,6 @@ class GetAvailabilitiesView(APIView):
         }, status=status.HTTP_200_OK)
 
         
-    
-
 class GetUserAvailabilityView(APIView):
     def get(self, request, user_id):
         availabilities = UserAvailability.objects.filter(
@@ -291,16 +356,11 @@ class GetUserAvailabilityView(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 
-
-# # class LoginView(APIView):
-# #     def post(self, request):
-# #         print("Request data:", request.data)
-# #         username = request.data.get('username')
-# #         password = request.data.get('password')
 class LoginView(APIView):
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response({'success': True, **serializer.data})
+
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
@@ -323,6 +383,7 @@ class RegisterView(APIView):
 class HelloWorldView(APIView):
     def get(self, request):
         return Response({'message': 'Hello from Django REST Framework!'})
+
 
 class UserProfileView(APIView):
     def get(self, request, user_id):
@@ -365,7 +426,7 @@ class MarkMessagesReadView(APIView):
 
 class UserRecentMessagesView(APIView):
     def get(self, request, user_id):
-        # 1️⃣ Direct (friend) messages
+        # Direct (friend) messages
         # We find the latest message id per friend conversation (user <-> other user)
         # Step 1: Get all friends involved in any conversation with this user
         friend_ids = Message.objects.filter(
@@ -404,13 +465,13 @@ class UserRecentMessagesView(APIView):
 
 class UserRecentGroupMessagesView(APIView):
     def get(self, request, user_id):
-        # 1️⃣ Get all groups the user belongs to
+        # Get all groups the user belongs to
         memberships = GroupMembership.objects.filter(uID_id=user_id)
         group_ids = memberships.values_list('groupID_id', flat=True)
 
         groups = Group.objects.filter(id__in=group_ids)
 
-        # 2️⃣ Fetch the latest message per group efficiently
+        # Fetch the latest message per group efficiently
         latest_messages = (
             Message.objects.filter(groupID_id__in=group_ids)
             .values('groupID_id')
@@ -419,7 +480,7 @@ class UserRecentGroupMessagesView(APIView):
         latest_message_ids = [item['latest_id'] for item in latest_messages]
         messages_dict = {m.groupID_id: m for m in Message.objects.filter(id__in=latest_message_ids)}
 
-        # 3️⃣ Prepare the response
+        # Prepare the response
         data = []
         for group in groups:
             last_message = messages_dict.get(group.id)
@@ -440,12 +501,6 @@ class UserMessagesView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-# class GroupListView(APIView):
-#     def get(self, request, user_id):
-#         groups = Group.objects.filter()
-#         serializer = GroupSerializer(groups, many=True)
-#         return Response(serializer.data)
-
 class GroupListView(APIView):
     def get(self, request, user_id):
         memberships = GroupMembership.objects.filter(uID=user_id)
@@ -453,6 +508,7 @@ class GroupListView(APIView):
         groups = Group.objects.filter(id__in=group_ids)
         serializer = GroupSerializer(groups, many=True)
         return Response(serializer.data)
+
 
 class FriendListView(APIView):
     def get(self, request, user_id):
@@ -469,28 +525,13 @@ class FriendListView(APIView):
         serializer = UserSerializer(friends, many=True)
         return Response(serializer.data)
 
+
 class CatListView(APIView):
     def get(self, request):
         cats = GameCategory.objects.all()
         serializer = CatSerializer(cats, many=True)
         return Response(serializer.data)
     
-
-# class SomeCatsListView(APIView):
-#     def get(self, request):
-#         ids_param = request.GET.get("ids")  # e.g., "1,2,3"
-#         if ids_param:
-#             try:
-#                 ids_list = [int(i) for i in ids_param.split(",")]
-#                 cats = GameCategory.objects.filter(id__in=ids_list)
-#             except ValueError:
-#                 return Response({"error": "Invalid ids"}, status=400)
-#         else:
-#             cats = GameCategory.objects.all()
-        
-#         serializer = CatSerializer(cats, many=True)
-#         return Response(serializer.data)
-
 
 class SomeCatsListView(APIView):
     def get(self, request):
@@ -618,8 +659,6 @@ class DeleteChallengeView(APIView):
     @transaction.atomic
     def post(self, request, chall_id):
         challenge = get_object_or_404(Challenge, id=chall_id)
-
-        # Delete the challenge (CASCADE will handle related objects)
         challenge.delete()
 
         return Response({'detail': 'Challenge deleted successfully.'}, status=status.HTTP_200_OK)
@@ -845,12 +884,6 @@ class JoinPublicChallengeView(APIView):
 
 class SendBetView(APIView):
     def post(self, request):
-        # const payload = {
-        #     chall_id
-        #     initiator_id
-        #     recipient_id
-        #     bet_amount
-        # };
         data = request.data
         challengeId = data['chall_id']
         initiatorId = data['initiator_id']
@@ -905,7 +938,6 @@ class SendBetView(APIView):
             )
         
 
-# should no longer be called
 class FinalizePublicChallengeView(APIView):
     def post(self, request):
         try:
@@ -966,8 +998,6 @@ class FinalizePublicChallengeView(APIView):
             challenge.startDate = start_date
             challenge.endDate = end_date
             challenge.save()
-            
-            # TODO
 
             return Response(
                 {
@@ -980,8 +1010,6 @@ class FinalizePublicChallengeView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 
 
 class AddGroupMemberView(APIView):
@@ -1041,7 +1069,6 @@ class GetHasSetAlarmsView(APIView):
         return Response({"hasSetAlarms": has_set_alarms}, status=status.HTTP_200_OK)
 
 
-
 class SetUserHasSetAlarmsView(APIView):
     def post(self, request, chall_id, user_id):
         membership = get_object_or_404(
@@ -1080,14 +1107,11 @@ class GetPendingPublicChallengesView(APIView):
         for challenge in challenges:
             serialized = PendingPublicChallengeSummarySerializer(challenge, context={'user': request.user}).data
             serialized["initiator_id"] = challenge.initiator_id
-            # serialized['daysOfWeek'] = day_labels
-            # serialized['totalDays'] = (challenge.endDate - challenge.startDate).days + 1
 
             response_data.append(serialized)
 
         return Response(response_data)
     
-
 
 class GetPublicChallengesView(APIView):
     def get(self, request, user_id):
@@ -1122,7 +1146,6 @@ class GetPersonalChallengesView(APIView):
             response_data.append(serialized)
 
         return Response(response_data)
-
 
 
 class GetMatchingChallengesView(APIView):
@@ -1161,8 +1184,6 @@ class GetMatchingChallengesView(APIView):
         if not is_multiplayer_flag:
             # Exclude singleplayer challenges that already started
             q = base_q.filter(challenge__startDate__gte=today)
-
-        # q = base_q
         
         if is_multiplayer_flag:
             # Annotate with member count for filtering
@@ -1189,8 +1210,6 @@ class GetMatchingChallengesView(APIView):
         # only include challenges the user can afford to join
         q = q.filter(challenge__participationFee__lte=user.numCoins)
 
-
-
         # Prefetch ChallengeAlarmSchedule with related AlarmSchedule and user
         q = q.prefetch_related(
             Prefetch(
@@ -1202,40 +1221,6 @@ class GetMatchingChallengesView(APIView):
         )
 
         candidates = list(q)
-
-        # for c in candidates:
-        #     alarms = []
-        #     if hasattr(c.challenge, "prefetched_cas"):
-        #         alarms = [
-        #             {
-        #                 "user": cas.alarm_schedule.uID.username,
-        #                 "day": cas.alarm_schedule.dayOfWeek,
-        #                 "time": cas.alarm_schedule.alarmTime.strftime("%H:%M"),
-        #             }
-        #             for cas in c.challenge.prefetched_cas
-        #         ]
-            
-        #     categories = GameCategory.objects.filter(
-        #         publicchallengecategoryassociation__challenge=c.challenge
-        #     )
-
-        #     print({
-        #         "challenge_id": c.challenge.id,
-        #         "challenge_name": c.challenge.name,
-        #         "categories": [cat.categoryName for cat in categories],
-        #         "isMultiplayer": c.isMultiplayer,
-        #         "averageSkillLevel": str(c.averageSkillLevel),
-        #         "alarms": alarms,
-        #     })
-
-
-        # totals = SkillLevel.objects.filter(user_id=user_id, category_id__in=category_ids).aggregate(
-        #     total_earned=Sum('totalEarned'),
-        #     total_possible=Sum('totalPossible')
-        # )
-        # total_earned = Decimal(totals['total_earned'] or 0)
-        # total_possible = Decimal(totals['total_possible'] or 0)
-        # user_skill_value = (total_earned / total_possible * Decimal(10)) if total_possible else Decimal('0.0')
 
         def time_in_user_window(challenge_time, user_times):
             """
@@ -1369,12 +1354,9 @@ class GetMatchingChallengesView(APIView):
 
         return Response({"matches": results}, status=status.HTTP_200_OK)
 
-
         
 class ChallengeListView(APIView):
     def get(self, request, user_id, which_chall):
-        # print("heeere")
-        # TODO: consider only fetching non-pending challenges
         if which_chall == 'Group':
             group_ids = GroupMembership.objects.filter(uID=user_id).values_list('groupID', flat=True)
             challenges = Challenge.objects.filter(groupID__in=group_ids, isPending=False)
@@ -1387,28 +1369,9 @@ class ChallengeListView(APIView):
             )
 
 
-        # numeric_to_label = {1: "M", 2: "T", 3: "W", 4: "TH", 5: "F", 6: "S", 7: "SU"}
-
         response_data = []
         for challenge in challenges:
-            # game_days = (
-            #     GameSchedule.objects.filter(challenge=challenge)
-            #     .values_list('dayOfWeek', flat=True)
-            #     .distinct()
-            # )
-            # day_labels = [numeric_to_label[d] for d in sorted(game_days)]
-
             serialized = ChallengeSummarySerializer(challenge, context={'user': request.user}).data
-            # serialized['daysOfWeek'] = day_labels
-            # TODO: fix this
-            # if challenge.startDate is not None and challenge.endDate is not None:
-            #     serialized["totalDays"] = (challenge.endDate - challenge.startDate).days + 1
-            # # elif challenge.startDate is None and challenge.endDate is None: # public pending
-            # #     serialized["totalDays"] = challenge.totalDays
-            # else:
-            #     serialized["totalDays"] = None # just end date is pending collab, update later
-
-
             response_data.append(serialized)
 
         return Response(response_data)
@@ -1417,7 +1380,6 @@ class ChallengeListView(APIView):
 class CurrentChallengesView(APIView):
     def get(self, request, user_id, which_chall):
         if which_chall == 'Group':
-            # TODO: only fetch group challeges you're a part of
             group_ids = GroupMembership.objects.filter(uID=user_id).values_list('groupID', flat=True)
             challenges = Challenge.objects.filter(
                 id__in=ChallengeMembership.objects.filter(uID=user_id).values_list('challengeID', flat=True),
@@ -1458,7 +1420,6 @@ class ChallengeDetailView(APIView):
             return Response({'error': 'Challenge not found'}, status=status.HTTP_404_NOT_FOUND)
 
         memberships = ChallengeMembership.objects.filter(challengeID=challenge)
-        # members = [{'id': m.uID.id, 'name': m.uID.name, 'username': m.uID.username, 'numCoins': m.uID.numCoins} for m in memberships]
         members = []
 
         for m in memberships:
@@ -1478,23 +1439,16 @@ class ChallengeDetailView(APIView):
 
         serializer = ChallengeSummarySerializer(challenge, context={'user': request.user})
         
-        # game_schedules = GameSchedule.objects.filter(challenge=challenge).values_list('dayOfWeek', flat=True).distinct()
         numeric_to_label = {1: "M", 2: "T", 3: "W", 4: "TH", 5: "F", 6: "S", 7: "SU"}
-        # days_of_week = [numeric_to_label[d] for d in sorted(game_schedules)]
         alarm_schedules = AlarmSchedule.objects.filter(
             challengealarmschedule__challenge=challenge
         ).values_list("dayOfWeek", flat=True).distinct()
 
         days_of_week = sorted([numeric_to_label[day] for day in alarm_schedules if day in numeric_to_label])
-        # if challenge.startDate and challenge.endDate:
-        #     totalDays = (challenge.endDate - challenge.startDate).days + 1
-        # else:
-        #     totalDays = 0
         initiator_id = challenge.initiator_id
         return Response({
             **serializer.data,
             'members': members,
-            # 'totalDays': (challenge.endDate - challenge.startDate).days + 1,
             'totalDays': challenge.totalDays,
             'daysOfWeek': days_of_week,
             'initiator_id': initiator_id,
@@ -1545,8 +1499,6 @@ class ChallengeGameScheduleView(APIView):
             })
 
         return Response(result, status=status.HTTP_200_OK)
-    
-
 
 
 class GetChallengeScheduleView(APIView):
@@ -1559,7 +1511,6 @@ class GetChallengeScheduleView(APIView):
 
         # Members
         memberships = ChallengeMembership.objects.filter(challengeID=challenge)
-        # members = [{'id': m.uID.id, 'name': m.uID.name} for m in memberships]
         members = []
 
         for m in memberships:
@@ -1641,11 +1592,6 @@ class GetChallengeScheduleView(APIView):
             ]
             })
 
-        # # TODO: fix this once update db
-        # if (challenge.startDate and challenge.endDate):
-        #     totDays = (challenge.endDate - challenge.startDate).days + 1
-        # else:
-        #     totDays = challenge.totalDays
         return Response({
             "id": challenge.id,
             "name": challenge.name,
@@ -1675,13 +1621,8 @@ class GetChallengeBetsView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-
-        
-    
-
 class GetChallengeUserScheduleView(APIView):
     def get(self, request, chall_id, user_id):
-        # print("DEBUG GetChallengeUserScheduleView:", chall_id, user_id)
         # Get the challenge
         try:
             challenge = Challenge.objects.get(id=chall_id)
@@ -1700,10 +1641,6 @@ class GetChallengeUserScheduleView(APIView):
         )
 
         days_list = sorted({s["dayOfWeek"] for s in alarm_schedules})
-
-        # alarm_schedules → [{"dayOfWeek": 1, "alarmTime": "07:30:00"}, ...]
-        # days_list → [1, 3, 5]
-
 
         # Collect games for the challenge, grouped by day
         games_by_day = {}
@@ -1757,7 +1694,6 @@ class GetChallengeUserScheduleView(APIView):
             "schedule": schedule
         }, status=status.HTTP_200_OK)
     
-
     
 class RespondToBetInviteView(APIView):
     @transaction.atomic
@@ -1905,7 +1841,6 @@ class RespondToBetInviteView(APIView):
 
 
 
-
 class AddGameToScheduleView(APIView):
     @transaction.atomic
     def post(self, request):
@@ -1939,29 +1874,11 @@ class AddGameToScheduleView(APIView):
 
 
 
-
-
 class CreateManualGroupChallengeView(APIView):
     @transaction.atomic
     def post(self, request):
         data = request.data
         try:
-            # Check for alarm conflicts
-            # conflicting = []
-            # for user_id in data['members']:
-            #     for sched in data['alarm_schedule']:
-            #         day = sched['dayOfWeek']
-            #         if AlarmSchedule.objects.filter(uID_id=user_id, dayOfWeek=day).exists():
-            #             user = User.objects.get(id=user_id)
-            #             conflicting.append((user.username, day))
-
-            # if conflicting:
-            #     return Response({
-            #         'error': 'Alarm conflict detected for group members.',
-            #         'conflicts': conflicting  # Return which users and days are in conflict
-            #     }, status=status.HTTP_400_BAD_REQUEST)
-
-            # if No conflicts, continue to create challenge
             challenge = Challenge.objects.create(
                 name=data['name'],
                 groupID_id=data['group_id'],
@@ -1973,7 +1890,6 @@ class CreateManualGroupChallengeView(APIView):
                 isPending=False
             )
 
-            # ─── Reward config ──────────────────────────────
             reward_data = data.get('reward')
             if reward_data:
                 serializer_rs = RewardSettingSerializer(data=reward_data)
@@ -2071,6 +1987,7 @@ class CreateManualGroupChallengeView(APIView):
             logger.exception("[ManualGroupChallenge] failed")
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)        
 
+
 class CreatePublicChallengeView(APIView):
     @transaction.atomic
     def post(self, request):
@@ -2089,17 +2006,6 @@ class CreatePublicChallengeView(APIView):
                 isPending=True,
                 participationFee=data['participation_fee'],
             )
-
-            # # ─── Reward config ──────────────────────────────
-            # reward_data = data.get('reward')
-            # if reward_data:
-            #     serializer_rs = RewardSettingSerializer(data=reward_data)
-            #     serializer_rs.is_valid(raise_exception=True)
-            #     RewardSetting.objects.create(
-            #         challenge=challenge,
-            #         **serializer_rs.validated_data,
-            #     )
-
             # Add membership
             ChallengeMembership.objects.create(
                 challengeID=challenge,
@@ -2180,23 +2086,6 @@ class CreatePendingCollaborativeGroupChallengeView(APIView):
     def post(self, request):
         data = request.data
         try:
-            # Check for alarm conflicts
-            # conflicting = []
-            # for user_id in data['members']:
-            #     for sched in data['alarm_schedule']:
-            #         day = sched['dayOfWeek']
-            #         if AlarmSchedule.objects.filter(uID_id=user_id, dayOfWeek=day).exists():
-            #             user = User.objects.get(id=user_id)
-            #             conflicting.append((user.username, day))
-
-            # if conflicting:
-            #     return Response({
-            #         'error': 'Alarm conflict detected for group members.',
-            #         'conflicts': conflicting  # Return which users and days are in conflict
-            #     }, status=status.HTTP_400_BAD_REQUEST)
-
-            # if No conflicts, continue to create challenge
-
             try:
                 # Normalize inputs: dates may arrive as strings, and total_days may be string/omitted
                 start_date_raw = data.get('start_date')
@@ -2242,15 +2131,11 @@ class CreatePendingCollaborativeGroupChallengeView(APIView):
                 print("Failed to create Challenge:", e)
                 raise
 
-
-
             # Add inititor membership
             ChallengeMembership.objects.create(
                 challengeID=challenge,
                 uID_id=data['initiator_id']
             )
-
-
 
             # Add availability entries for the initiator
             alarm_schedule = data.get('alarm_schedule', [])
@@ -2265,8 +2150,6 @@ class CreatePendingCollaborativeGroupChallengeView(APIView):
                 for entry in alarm_schedule
             ]
             PendingGroupChallengeAvailability.objects.bulk_create(availability_entries)
-            print("here2")
-
 
             # Game schedules
             for g_sched in data['game_schedules']:
@@ -2315,8 +2198,6 @@ class CreatePendingCollaborativeGroupChallengeView(APIView):
                             invite.uID
                         )
 
-            print("here3")
-
             return Response({"success": True, "challenge_id": challenge.id}, status=status.HTTP_201_CREATED)
 
         except Exception as e:
@@ -2348,10 +2229,6 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
         for avail in availabilities:
             by_day[avail.dayOfWeek].append((avail.uID, avail.alarmTime))
 
-        # Keep only days where every user has availability
-        # valid_days = {
-        #     day: times for day, times in by_day.items() if len(times) == num_users
-        # }
         valid_days = {
             day: times
             for day, times in by_day.items()
@@ -2573,9 +2450,6 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
-
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
 
 class SendFriendRequestView(APIView):
     def post(self, request):
@@ -2969,7 +2843,7 @@ class FinalizeSudokuResultView(APIView):
         is_multiplayer = bool(getattr(gs.game, 'isMultiplayer', False))
         play_date = timezone.localdate()
 
-        # 🧮 Compute score if not provided
+        # Compute score if not provided
         if score is None:
             total = max(accuracy + inaccuracy, 1)
             score = round((accuracy / total) * 100, 2)
@@ -3027,7 +2901,7 @@ class FinalizeSudokuResultView(APIView):
         session_player_ids = (scheduled_user_ids if has_game_today else set()) | joined_user_ids
         print(f'[Sudoku][Finalize] scheduled_user_ids={scheduled_user_ids}, joined_user_ids={joined_user_ids}, session_player_ids={session_player_ids}')
 
-        # 🏆 Build leaderboard
+        # Build leaderboard
         scores = []
         performances = GamePerformance.objects.filter(
             challenge=gs.challenge,
@@ -3077,27 +2951,7 @@ class CreatePersonalChallengeView(APIView):
                     total_days = 1
             if not user_id or not name or not end_date or not start_date or not total_days or not alarm_schedule or not game_schedules:
                 return Response({'error': 'Missing required fields.'}, status=status.HTTP_400_BAD_REQUEST)
-            
-            # def get_next_alarm_date(alarm_schedule):
-            #     if not alarm_schedule:
-            #         return None
 
-            #     today = date.today()
-
-            #     # convert all days to integers
-            #     alarm_days = [sched['dayOfWeek'] for sched in alarm_schedule]
-
-            #     for offset in range(0, 7):
-            #         candidate = today + timedelta(days=offset)
-            #         candidate_day = candidate.isoweekday()
-            #         if candidate_day in alarm_days:
-            #             return candidate
-
-            #     return None 
-
-            # start_date = get_next_alarm_date(alarm_schedule)
-            # end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
-            # total_days = (end_date - start_date).days + 1
             challenge = Challenge.objects.create(
                 name=name,
                 groupID=None,
@@ -3325,8 +3179,6 @@ class ValidatePatternMoveView(APIView):
 
         try:
             gs = PatternMemorizationGameState.objects.filter(challenge_id=challenge_id).order_by('-id').first()
-            # gs = PatternMemorizationGameState.objects.get(id=game_state_id)
-            # challenge_id = gs.challenge_id
             if gs:
                 today = timezone.localdate()
                 # If any GamePerformance exists for today for this challenge+game, consider it ended
@@ -3365,7 +3217,6 @@ class ValidatePatternMoveView(APIView):
         if "scores" in result and result["scores"] is not None:
             payload["scores"] = result["scores"]
 
-        # # ⭐⭐ GAME PERFORMANCE WRITE HERE ⭐⭐
         if result.get("is_complete"):   # only on final round
             today = timezone.localdate()
 
@@ -3374,7 +3225,7 @@ class ValidatePatternMoveView(APIView):
                 game_state=gs,
                 player=user,
             )
-            final_score = player_rec.score  # <-- correct (100)
+            final_score = player_rec.score
 
             GamePerformance.objects.update_or_create(
                 challenge=gs.challenge,
@@ -3406,7 +3257,7 @@ class CreateWordleGameView(APIView):
       - game_state_id: ID of the WordleGameState
       - puzzle: initial puzzle (underscores for hidden letters)
       - is_multiplayer: true if it's a multiplayer game
-      - answer: only for debugging (⚠️ must not be returned in production multiplayer)
+      - answer: only for debugging (must not be returned in production multiplayer)
     """
 
     def post(self, request):
@@ -3681,14 +3532,6 @@ class FinalizeWordleResultView(APIView):
         # Broadcast to all connected clients so they can dismiss the game screen
         try:
             channel_layer = get_channel_layer()
-            # async_to_sync(channel_layer.group_send)(
-            #     f'wordle_{game_state_id}',
-            #     {
-            #         'type': 'game.complete',  # handled by WordleConsumer.game_complete
-            #         'scores': scores,
-            #     },
-            # )
-            # Save computed scores into cache for later broadcasting
             cache_key = f"wordle_final_scores_{game_state_id}"
             cache.set(cache_key, scores, timeout=3600)
             logger.warning(f"[Wordle][Finalize] Scores in cache for game_state={game_state_id}: {scores}")
@@ -3739,13 +3582,7 @@ class ValidateSudokuMoveView(APIView):
                 'puzzle': game_state.puzzle
             }, status=200)
 
-
-
-
-
 # AI was used to help generate this class
-
-
 class ChallengeLeaderboardView(APIView):
     """
     GET /challenge-leaderboard/<chall_id>/
@@ -3756,7 +3593,6 @@ class ChallengeLeaderboardView(APIView):
     def get(self, request, chall_id):
         challenge = get_object_or_404(Challenge, id=chall_id)
 
-        # Window: challenge start .. min(challenge end, LOCAL today)
         since = challenge.startDate or timezone.localdate()
         until = min(challenge.endDate, timezone.localdate())
 
@@ -3792,7 +3628,6 @@ class ChallengeLeaderboardView(APIView):
             "leaderboard": overall,
         }
 
-        # -------- optional daily history --------
         try:
             n_days = int(request.GET.get("history", 0))
         except ValueError:
@@ -4828,9 +4663,6 @@ class ShareChallengeView(APIView):
                         isPending=True
                     )
 
-                    # # copy membership
-                    # ChallengeMembership.objects.create(challengeID=new_challenge, uID=friend)
-
                     # copy alarm schedules
                     for cas in ChallengeAlarmSchedule.objects.filter(challenge=original):
                         alarm = cas.alarm_schedule
@@ -4856,11 +4688,6 @@ class ShareChallengeView(APIView):
                     if not challenge_name:
                         return Response({"error": "Challenge name required"}, status=400)
                     
-                    # start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
-                    # end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
-
-                    # TODO: fix with new dates/total days
-                    print("here")
                     new_challenge = Challenge.objects.create(
                         name=challenge_name,
                         groupID=None,
@@ -4871,13 +4698,8 @@ class ShareChallengeView(APIView):
                         isPublic=False,
                         isPending=True
                     )
-
-                    # # membership
-                    # ChallengeMembership.objects.create(challengeID=new_challenge, uID=friend)
-
                     # schedule from payload
                     for s in schedule:
-                        # alarm_time_obj = datetime.strptime(s["time"], "%I:%M %p").time()
                         alarm_time_obj = datetime.strptime(s["time"], "%H:%M").time()
                         print(alarm_time_obj)
                         alarm = AlarmSchedule.objects.create(
@@ -4966,14 +4788,6 @@ class AcceptPersonalChallenge(APIView):
             uID_id=user_id,
             hasSetAlarms=True,
         )
-        # membership = get_object_or_404(
-        #     ChallengeMembership,
-        #     challengeID_id=chall_id,
-        #     uID_id=user_id
-        # )
-        # membership.hasSetAlarms = True
-        # membership.save()
-
         inv.status = 1  # accepted
         inv.save(update_fields=['status'])
 
@@ -5010,8 +4824,6 @@ class DeclinePersonalChallenge(APIView):
         inv.status = 0  # declined
         inv.save(update_fields=['status'])
 
-        # Delete the challenge (and cascades)
-        # NOTE THAT AlarmSchedules for the user will still persist, should probably delete these
         inv.chall.delete()
 
         sender = inv.sender
@@ -5093,26 +4905,6 @@ class SendMessageGroupView(APIView):
             timestamp=timezone.now(),
             is_read=0
         )
-
-        # channel_layer = get_channel_layer()
-        # room_name = f"chat_group_{group.id}"
-
-        # # Broadcast group message
-        # async_to_sync(channel_layer.group_send)(
-        #     room_name,
-        #     {
-        #         "type": "chat_message",
-        #         "message": message.message,
-        #         "sender": {
-        #             "id": sender.id,
-        #             "name": sender.name,
-        #             "username": sender.username,
-        #         },
-        #         "recipient_id": None,
-        #         "group_id": group.id,
-        #         "timestamp": message.timestamp.isoformat(),
-        #     },
-        # )
         
         member_ids = GroupMembership.objects.filter(groupID=group).values_list("uID_id", flat=True)
         recipients = User.objects.filter(id__in=member_ids).exclude(id=sender.id)
