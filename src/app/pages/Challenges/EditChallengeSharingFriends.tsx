@@ -41,10 +41,10 @@ function normalizeSchedule(raw: any): {
       alarms: Array.isArray(d.alarms) ? d.alarms : [],
       games: Array.isArray(d.games)
         ? d.games.map((g: any, idx: number) => ({
-            id: g.id ?? g.gameId,
-            name: g.name ?? String(g),
-            order: g.order ?? idx + 1,
-          }))
+          id: g.id ?? g.gameId,
+          name: g.name ?? String(g),
+          order: g.order ?? idx + 1,
+        }))
         : [],
     }));
   }
@@ -56,12 +56,12 @@ function normalizeSchedule(raw: any): {
       alarms: d.alarmTime ? [{ userName: "", alarmTime: d.alarmTime }] : [],
       games: Array.isArray(d.games)
         ? d.games.map((g: any, idx: number) => {
-            const name = typeof g === "object"
-              ? (g.name ?? g[0] ?? "")
-              : String(g);
-            const id = typeof g === "object" ? (g.id ?? g.gameId) : undefined;
-            return { id, name, order: idx + 1 };
-          })
+          const name = typeof g === "object"
+            ? (g.name ?? g[0] ?? "")
+            : String(g);
+          const id = typeof g === "object" ? (g.id ?? g.gameId) : undefined;
+          return { id, name, order: idx + 1 };
+        })
         : [],
     }));
   }
@@ -75,7 +75,6 @@ const EditChallengeSharingFriends: React.FC<Props> = ({ navigation, route }) => 
   console.log("[FRONTEND] Entering EditChallengeSharingFriends with challId:", challId, "challName:", challName);
 
   const [alarmSchedule, setAlarmSchedule] = useState<any[]>([])
-  // const [gameSchedule, setGameSchedule] = useState<any[]>([])
 
   // Challenge state
   const [challenge, setChallenge] = useState<any>(null);
@@ -92,8 +91,6 @@ const EditChallengeSharingFriends: React.FC<Props> = ({ navigation, route }) => 
   const [selectedFriends, setSelectedFriends] = useState<number[]>([]);
   const [loadingFriends, setLoadingFriends] = useState(true);
 
-  // const [members, setMembers] = useState<{ id: number; name: string }[]>([])
-
   function to24Hour(time12h: string) {
     const [time, modifier] = time12h.split(' '); // ["07:25", "PM"]
     let [hours, minutes] = time.split(':').map(Number);
@@ -103,7 +100,7 @@ const EditChallengeSharingFriends: React.FC<Props> = ({ navigation, route }) => 
 
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
   }
-  
+
   useEffect(() => {
     if (!challId) return;
 
@@ -112,29 +109,29 @@ const EditChallengeSharingFriends: React.FC<Props> = ({ navigation, route }) => 
     async function load() {
       try {
         setLoadingChallenge(true);
-        
-      const accessToken = await getAccessToken();
-      if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
 
-                  return;
-      }
+        const accessToken = await getAccessToken();
+        if (!accessToken) {
+          Alert.alert(
+            "Session expired",
+            "Your login session has expired. Please log in again.",
+            [
+              {
+                text: "OK",
+                onPress: async () => {
+                  await logout();
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Login" }],
+                  });
+                },
+              },
+            ],
+            { cancelable: false }
+          );
+
+          return;
+        }
         const detailReq = axios.get(endpoints.challengeDetail(challId), {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -144,19 +141,19 @@ const EditChallengeSharingFriends: React.FC<Props> = ({ navigation, route }) => 
         let scheduleData: any = null;
         try {
           const res = await axios.get(endpoints.getChallengeSchedule(challId), {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`
-                }
-              });
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
+          });
 
           scheduleData = res.data;
         } catch (e) {
           console.log("[FRONTEND] getChallengeSchedule failed, fallback to challengeSchedule");
           const resFallback = await axios.get(endpoints.challengeSchedule(challId), {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`
-                }
-              });
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
+          });
 
           scheduleData = resFallback.data;
         }
@@ -169,7 +166,7 @@ const EditChallengeSharingFriends: React.FC<Props> = ({ navigation, route }) => 
 
         const merged = {
           ...detail,
-          schedule, 
+          schedule,
           members: Array.isArray(scheduleData?.members) ? scheduleData.members : [],
         };
 
@@ -185,33 +182,7 @@ const EditChallengeSharingFriends: React.FC<Props> = ({ navigation, route }) => 
           }))
         );
 
-        // const gameSched = Object.values(
-        //   schedule.reduce((acc, dayItem) => {
-        //     if (dayItem.games?.length) {
-        //       acc[dayItem.dayOfWeek] = {
-        //         dayOfWeek: dayItem.dayOfWeek,
-        //         games: dayItem.games.map((game, index) => ({
-        //           id: game.id,
-        //           order: game.order ?? index + 1,
-        //         })),
-        //       }
-        //     }
-        //     return acc
-        //   }, {} as Record<number, { dayOfWeek: number; games: { id: number; order: number }[] }>)
-        // )
-
-
-        // console.log("alarmSchedule:", alarmSched);
-        // console.log("gameSchedules:", JSON.stringify(gameSched, null, 2));
-
         setAlarmSchedule(alarmSched)
-        // setGameSchedule(gameSched)
-
-
-        // const sd = detail.startDate ?? scheduleData?.startDate;
-        // const ed = detail.endDate ?? scheduleData?.endDate;
-        // if (sd) setStartDate(new Date(sd));
-        // if (ed) setEndDate(new Date(ed));
       } catch (err: any) {
         console.error("[FRONTEND] Failed to load challenge/schedule:", err.response?.data || err.message);
       } finally {
@@ -224,55 +195,55 @@ const EditChallengeSharingFriends: React.FC<Props> = ({ navigation, route }) => 
   }, [challId]);
 
 
-useEffect(() => {
-  const fetchFriends = async () => {
-    try {
-      const accessToken = await getAccessToken();
-      if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+  useEffect(() => {
+    const fetchFriends = async () => {
+      try {
+        const accessToken = await getAccessToken();
+        if (!accessToken) {
+          Alert.alert(
+            "Session expired",
+            "Your login session has expired. Please log in again.",
+            [
+              {
+                text: "OK",
+                onPress: async () => {
+                  await logout();
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Login" }],
+                  });
+                },
+              },
+            ],
+            { cancelable: false }
+          );
 
-                  return;
+          return;
+        }
+
+        if (!user?.id) return;
+        setLoadingFriends(true);
+
+        const res = await axios.get(endpoints.friends(Number(user.id)), {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+
+        console.log("[FRONTEND] Friends data:", res.data);
+        setFriends(res.data);
+      } catch (err: any) {
+        console.error(
+          "[FRONTEND] Failed to load friends:",
+          err.response?.data || err.message
+        );
+      } finally {
+        setLoadingFriends(false);
       }
+    };
 
-      if (!user?.id) return;
-      setLoadingFriends(true);
-
-      const res = await axios.get(endpoints.friends(Number(user.id)), {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      console.log("[FRONTEND] Friends data:", res.data);
-      setFriends(res.data);
-    } catch (err: any) {
-      console.error(
-        "[FRONTEND] Failed to load friends:",
-        err.response?.data || err.message
-      );
-    } finally {
-      setLoadingFriends(false);
-    }
-  };
-
-  fetchFriends();
-}, [user]);
+    fetchFriends();
+  }, [user]);
 
 
   const toggleFriend = (id: number) => {
@@ -322,48 +293,14 @@ useEffect(() => {
     console.log(toLocalYMD(nextAlarmDate));
 
     navigation.navigate('PersChall3', {
-                first_possible_start_date: toLocalYMD(nextAlarmDate),
-                name: challName,
-                alarm_schedule: alarmSchedule,
-                // game_schedule: gameSchedule,
-                chall_type: 'Share',
-                members: selectedFriends,
-                chall_id: challenge.id,
-            })
-
-    // try {
-
-    //   const accessToken = await getAccessToken();
-    //   if (!accessToken) {
-    //     throw new Error("Not authenticated");
-    //   }
-
-    //   const payload = {
-    //     startDate: startDate ? toLocalYMD(startDate) : undefined,
-    //     endDate: endDate ? toLocalYMD(endDate) : undefined,
-    //     members: selectedFriends, 
-    //   };
-
-    //   console.log("[FRONTEND] Share payload:", payload);
-
-    //   const response = await axios.post(
-    //     endpoints.shareChallenge(challenge.id),
-    //     payload, // <-- request body
-    //     {
-    //       headers: {
-    //         "Content-Type": "application/json",
-    //         Authorization: `Bearer ${accessToken}`,
-    //       },
-    //     }
-    //   );
-
-    //   console.log("[FRONTEND] Share response:", response.data);
-    //   Alert.alert("Saved", "Challenge shared successfully!");
-    //   navigation.goBack();
-    // } catch (error: any) {
-    //   console.error("[FRONTEND] Error sharing:", error.response?.data || error.message);
-    //   Alert.alert("Error", "Failed to share challenge.");
-    // }
+      first_possible_start_date: toLocalYMD(nextAlarmDate),
+      name: challName,
+      alarm_schedule: alarmSchedule,
+      // game_schedule: gameSchedule,
+      chall_type: 'Share',
+      members: selectedFriends,
+      chall_id: challenge.id,
+    })
   };
 
   // --- UI states ---
@@ -457,35 +394,6 @@ useEffect(() => {
               <Text style={styles.readonlyText}>No games</Text>
             )}
           </View>
-
-          {/* Start / End Dates */}
-          {/* <View style={styles.formSection}>
-            <Text style={styles.sectionTitle}>Start Date</Text>
-            <Text style={styles.dateDisplay}>{formatDate(startDate)}</Text>
-            <TouchableOpacity style={styles.actionButton} onPress={() => setShowStartPicker(true)}>
-              <LinearGradient colors={["rgba(255, 255, 255, 0.2)", "rgba(255, 255, 255, 0.1)"]} style={styles.buttonGradient}>
-                <Ionicons name="calendar-outline" size={20} color="#FFF" style={styles.buttonIcon} />
-                <Text style={styles.buttonText}>Select Start Date</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-            {showStartPicker && startDate && (
-              <DateTimePicker value={startDate} mode="date" display="spinner" onChange={(e, d) => onDateChange("start", e, d)} />
-            )}
-          </View>
-
-          <View style={styles.formSection}>
-            <Text style={styles.sectionTitle}>End Date</Text>
-            <Text style={styles.dateDisplay}>{formatDate(endDate)}</Text>
-            <TouchableOpacity style={styles.actionButton} onPress={() => setShowEndPicker(true)}>
-              <LinearGradient colors={["rgba(255, 255, 255, 0.2)", "rgba(255, 255, 255, 0.1)"]} style={styles.buttonGradient}>
-                <Ionicons name="calendar-outline" size={20} color="#FFF" style={styles.buttonIcon} />
-                <Text style={styles.buttonText}>Select End Date</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-            {showEndPicker && endDate && (
-              <DateTimePicker value={endDate} mode="date" display="spinner" onChange={(e, d) => onDateChange("end", e, d)} />
-            )}
-          </View> */}
 
           {/* Friends List */}
           <View style={styles.formSection}>

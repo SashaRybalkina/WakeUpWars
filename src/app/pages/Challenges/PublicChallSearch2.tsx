@@ -9,21 +9,15 @@ import PendingPublicChallengeCard from "./PendingPublicChallengeCard"
 import { Ionicons } from "@expo/vector-icons";
 import NavBar from "../Components/NavBar";
 
-type Props = { navigation: NavigationProp<any> } 
-
-// interface Participant {
-//   id: number;
-//   username: string;
-// }
+type Props = { navigation: NavigationProp<any> }
 
 interface ChallengeMatch {
   summary: {
     id: number;
     name: string;
     totalDays: number;
-    daysOfWeek: string[]; 
+    daysOfWeek: string[];
     numParticipants: number;
-    // participants: Participant[];
     categories: string[],
     averageSkillLevel: number;
   };
@@ -45,51 +39,44 @@ const PublicChallSearch2: React.FC<Props> = ({ navigation }) => {
           <Ionicons name="arrow-back" size={28} color="#FFF" />
         </TouchableOpacity>
 
-<ScrollView style={{ padding: 10 }} contentContainerStyle={styles.scrollViewContent}>
-  {matches.length === 0 ? (
-    <View style={styles.emptyStateContainer}>
-      <Ionicons name="search-outline" size={60} color="#FFD700" />
-      <Text style={styles.emptyStateText}>No Challenges Found</Text>
-      <Text style={styles.emptyStateSubText}>
-        Try adjusting your filters or check back later for new public challenges.
-      </Text>
-    </View>
-  ) : (
-    <>
-      {/* <View style={styles.skillLevelContainer}>
-        <Ionicons name="barbell-outline" size={22} color="#FFD700" />
-        <Text style={styles.skillLevelText}>
-          Your Skill Level: {matches[0]?.userAverageSkillLevel.toFixed(1)}
-        </Text>
-      </View> */}
-
-      {matches.map((m, idx) => (
-        <TouchableOpacity
-          key={idx}
-          onPress={() =>
-            navigation.navigate("ChallSchedule", {
-              challId: m.summary.id,
-              challName: m.summary.name,
-              fromSearch: true,
-              userAverageSkillLevel: m.userAverageSkillLevel,
-            })
-          }
-          style={styles.challengeContainer}
-        >
-          <PendingPublicChallengeCard
-            title={m.summary.name}
-            icon={require("../../images/ytrophy.png")}
-            numEnrolledMembers={m.summary.numParticipants}
-            totalDays={m.summary.totalDays}
-            daysOfWeek={m.summary.daysOfWeek}
-            categories={m.summary.categories}
-            averageSkillLevel={m.summary.averageSkillLevel}
-          />
-        </TouchableOpacity>
-      ))}
-    </>
-  )}
-</ScrollView>
+        <ScrollView style={{ padding: 10 }} contentContainerStyle={styles.scrollViewContent}>
+          {matches.length === 0 ? (
+            <View style={styles.emptyStateContainer}>
+              <Ionicons name="search-outline" size={60} color="#FFD700" />
+              <Text style={styles.emptyStateText}>No Challenges Found</Text>
+              <Text style={styles.emptyStateSubText}>
+                Try adjusting your filters or check back later for new public challenges.
+              </Text>
+            </View>
+          ) : (
+            <>
+              {matches.map((m, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  onPress={() =>
+                    navigation.navigate("ChallSchedule", {
+                      challId: m.summary.id,
+                      challName: m.summary.name,
+                      fromSearch: true,
+                      userAverageSkillLevel: m.userAverageSkillLevel,
+                    })
+                  }
+                  style={styles.challengeContainer}
+                >
+                  <PendingPublicChallengeCard
+                    title={m.summary.name}
+                    icon={require("../../images/ytrophy.png")}
+                    numEnrolledMembers={m.summary.numParticipants}
+                    totalDays={m.summary.totalDays}
+                    daysOfWeek={m.summary.daysOfWeek}
+                    categories={m.summary.categories}
+                    averageSkillLevel={m.summary.averageSkillLevel}
+                  />
+                </TouchableOpacity>
+              ))}
+            </>
+          )}
+        </ScrollView>
 
 
       </View>
@@ -109,7 +96,7 @@ const PublicChallSearch2: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 20, 
+    paddingTop: 20,
   },
   background: {
     flex: 1,
@@ -212,7 +199,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontWeight: "600",
   },
-    addNewButton: {
+  addNewButton: {
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     borderRadius: 12,
     paddingVertical: 12,
@@ -229,28 +216,28 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textAlign: "center",
   },
-skillLevelContainer: {
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "center",
-  marginBottom: 15,
-  backgroundColor: "rgba(255, 255, 255, 0.15)",
-  borderRadius: 12,
-  paddingVertical: 8,
-  paddingHorizontal: 15,
-  alignSelf: "center",
-  borderWidth: 1,
-  borderColor: "rgba(255, 255, 255, 0.2)",
-},
-skillLevelText: {
-  color: "#FFF",
-  fontSize: 16,
-  fontWeight: "600",
-  marginLeft: 8,
-  textShadowColor: "rgba(0, 0, 0, 0.2)",
-  textShadowOffset: { width: 1, height: 1 },
-  textShadowRadius: 2,
-},
+  skillLevelContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 15,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    alignSelf: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+  },
+  skillLevelText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
+    textShadowColor: "rgba(0, 0, 0, 0.2)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
 
 })
 

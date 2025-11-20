@@ -13,16 +13,16 @@ import { getAccessToken } from "../../auth"
 import ChallengeCard from "./ChallengeCard"
 import PublicChallengeCard from "./PublicChallengeCard"
 
- type Props = {
+type Props = {
   navigation: NavigationProp<any>
- }
+}
 
- type RouteParams = {
+type RouteParams = {
   type: 'Personal' | 'Group' | 'Public'
   groupId?: number
- }
+}
 
- const PastChallenges: React.FC<Props> = ({ navigation }) => {
+const PastChallenges: React.FC<Props> = ({ navigation }) => {
   const route = useRoute()
   const { type, groupId } = route.params as RouteParams
   const { user, logout } = useUser()
@@ -37,25 +37,25 @@ import PublicChallengeCard from "./PublicChallengeCard"
           setLoading(true)
           const accessToken = await getAccessToken();
           if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+            Alert.alert(
+              "Session expired",
+              "Your login session has expired. Please log in again.",
+              [
+                {
+                  text: "OK",
+                  onPress: async () => {
+                    await logout();
+                    navigation.reset({
+                      index: 0,
+                      routes: [{ name: "Login" }],
+                    });
+                  },
+                },
+              ],
+              { cancelable: false }
+            );
 
-                  return;
+            return;
           }
 
           if (type === 'Personal') {
@@ -170,9 +170,9 @@ import PublicChallengeCard from "./PublicChallengeCard"
       </View>
     </ImageBackground>
   )
- }
+}
 
- const styles = StyleSheet.create({
+const styles = StyleSheet.create({
   background: { flex: 1 },
   container: { flex: 1, paddingTop: 50 },
   backButton: {
@@ -202,7 +202,7 @@ import PublicChallengeCard from "./PublicChallengeCard"
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
-  },  
- })
+  },
+})
 
- export default PastChallenges
+export default PastChallenges

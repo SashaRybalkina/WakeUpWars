@@ -13,13 +13,13 @@ interface PendingChallengeCardProps {
   title: string
   icon: ImageSourcePropType
   showInvite?: boolean
-  isOwner?: boolean // new
-  onDelete?: () => void // new
+  isOwner?: boolean 
+  onDelete?: () => void 
 }
 
 
-const PendingChallengeCard: React.FC<PendingChallengeCardProps> = ({ 
-  title, 
+const PendingChallengeCard: React.FC<PendingChallengeCardProps> = ({
+  title,
   icon,
   showInvite = false,
   isOwner = false,
@@ -57,19 +57,17 @@ const PendingChallengeCard: React.FC<PendingChallengeCardProps> = ({
 }
 
 const styles = StyleSheet.create({
-container: {
-  borderRadius: 16,
-  overflow: "hidden",
-  padding: 14,
-  color: "#EDE7F6",
-},
-
-contentContainer: {
-  flexDirection: "row",
-  alignItems: "center",
-  position: "relative", // Required for absolute badge positioning
-},
-
+  container: {
+    borderRadius: 16,
+    overflow: "hidden",
+    padding: 14,
+    color: "#EDE7F6",
+  },
+  contentContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    position: "relative",
+  },
   iconContainer: {
     width: 85,
     height: 85,
@@ -86,56 +84,49 @@ contentContainer: {
     height: 80,
     resizeMode: "cover",
   },
-
-detailsContainer: {
-  flex: 1,
-},
-
-title: {
-  fontSize: 18,
-  fontWeight: "700",
-  color: "#333",
-},
-
-inviteBadge: {
-  position: "absolute",
-  right: 10,
-  top: "50%",
-  transform: [{ translateY: -9 }], // Centers vertically (badge is 18px high)
-  width: 18,
-  height: 18,
-  borderRadius: 9,
-  backgroundColor: "#FF3B30",
-  justifyContent: "center",
-  alignItems: "center",
-  borderWidth: 1,
-  borderColor: "#fff",
-},
-
-inviteBadgeText: {
-  color: "#fff",
-  fontSize: 11,
-  fontWeight: "700",
-},
-deleteButton: {
-  position: "absolute",
-  right: 10,
-  top: "50%",
-  transform: [{ translateY: -12 }],
-  width: 24,
-  height: 24,
-  justifyContent: "center",
-  alignItems: "center",
-  backgroundColor: "#FF3B30",
-  borderRadius: 12,
-},
-
-deleteButtonText: {
-  color: "#fff",
-  fontSize: 14,
-},
-
-
+  detailsContainer: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#333",
+  },
+  inviteBadge: {
+    position: "absolute",
+    right: 10,
+    top: "50%",
+    transform: [{ translateY: -9 }], 
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#FF3B30",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#fff",
+  },
+  inviteBadgeText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  deleteButton: {
+    position: "absolute",
+    right: 10,
+    top: "50%",
+    transform: [{ translateY: -12 }],
+    width: 24,
+    height: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FF3B30",
+    borderRadius: 12,
+  },
+  deleteButtonText: {
+    color: "#fff",
+    fontSize: 14,
+  },
 })
 
 export default PendingChallengeCard

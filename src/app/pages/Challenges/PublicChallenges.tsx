@@ -75,93 +75,70 @@ const PublicChallenges: React.FC<Props> = ({ navigation }) => {
         setIsLoading(true)
         try {
 
-                const accessToken = await getAccessToken();
-                if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+          const accessToken = await getAccessToken();
+          if (!accessToken) {
+            Alert.alert(
+              "Session expired",
+              "Your login session has expired. Please log in again.",
+              [
+                {
+                  text: "OK",
+                  onPress: async () => {
+                    await logout();
+                    navigation.reset({
+                      index: 0,
+                      routes: [{ name: "Login" }],
+                    });
+                  },
+                },
+              ],
+              { cancelable: false }
+            );
 
-                  return;
-                }
+            return;
+          }
           const response = await fetch(endpoints.getPendingPublicChallenges(Number(user.id)), {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`
-                }
-              });
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
+          });
           const data = await response.json()
-          console.log("hmm2")
-        //   fields = [
-        //     'id',
-        //     'name',
-        //     'totalDays',
-        //     'daysOfWeek',
-        //     'numParticipants',  
-        //     'categories',
-        //     'averageSkillLevel',
-        //     'initiator_id'
-        //   ]
-        console.log(data)
-        const formattedData = data.map(
+          console.log(data)
+          const formattedData = data.map(
             (item: PendingPublicChallenge) => ({
-                id: item.id,
-                name: item.name,
-                totalDays: item.totalDays,
-                numParticipants: item.numParticipants,
-                daysOfWeek: item.daysOfWeek,
-                categories: item.categories,
-                averageSkillLevel: item.averageSkillLevel,
-                initiator_id: item.initiator_id,
+              id: item.id,
+              name: item.name,
+              totalDays: item.totalDays,
+              numParticipants: item.numParticipants,
+              daysOfWeek: item.daysOfWeek,
+              categories: item.categories,
+              averageSkillLevel: item.averageSkillLevel,
+              initiator_id: item.initiator_id,
             })
-        )
-  
+          )
+
           setPendingChallenges(formattedData)
 
 
           const response2 = await fetch(endpoints.getPublicChallenges(Number(user.id)), {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`
-                }
-              });
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
+          });
           const data2 = await response2.json();
-// type PublicChallenge = {
-//   id: number
-//   name: string
-//   startDate: string
-//   endDate: string
-//   daysOfWeek: string[]
-//   daysCompleted: number
-//   totalDays: number
-//   isCompleted: boolean
-//   categories: string[]
-//   averageSkillLevel: number
-// }
 
           const formattedData2 = data2.map(
             (item: PublicChallenge) => ({
-                id: item.id,
-                name: item.name,
-                startDate: item.startDate,
-                endDate: item.endDate,
-                daysOfWeek: item.daysOfWeek,
-                daysCompleted: item.daysCompleted,
-                totalDays: item.totalDays,
-                isCompleted: item.isCompleted,
-                categories: item.categories,
-                averageSkillLevel: item.averageSkillLevel
+              id: item.id,
+              name: item.name,
+              startDate: item.startDate,
+              endDate: item.endDate,
+              daysOfWeek: item.daysOfWeek,
+              daysCompleted: item.daysCompleted,
+              totalDays: item.totalDays,
+              isCompleted: item.isCompleted,
+              categories: item.categories,
+              averageSkillLevel: item.averageSkillLevel
             })
           );
           setChallenges(formattedData2);
@@ -172,11 +149,11 @@ const PublicChallenges: React.FC<Props> = ({ navigation }) => {
           setIsLoading(false)
         }
       }
-  
+
       fetchData()
     }, [user?.id])
   );
-    
+
   const goToMessages = () => navigation.navigate("Messages")
   const goToGroups = () => navigation.navigate("Groups")
   const goToChallenges = () => navigation.navigate("Challenges")
@@ -307,12 +284,12 @@ const PublicChallenges: React.FC<Props> = ({ navigation }) => {
             style={styles.pastButtonContainer}
             onPress={() => navigation.navigate("PastChallenges", { type: "Public" })}
           >
-              <LinearGradient
-                colors={["#FFD700", "#fdb021ff"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.pastButtonGradient}
-              >
+            <LinearGradient
+              colors={["#FFD700", "#fdb021ff"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.pastButtonGradient}
+            >
               <View style={styles.pastButtonRow}>
                 <Ionicons name="time-outline" size={18} color="#333" style={{ marginRight: 8 }} />
                 <Text style={styles.pastButtonText}>View past challenges</Text>

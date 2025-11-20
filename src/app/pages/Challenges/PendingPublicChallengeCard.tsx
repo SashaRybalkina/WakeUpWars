@@ -17,7 +17,6 @@ interface PendingPublicChallengeCardProps {
   daysOfWeek: string[],
   categories: string[],
   averageSkillLevel: number,
-//   alarmSchedule?: { dayOfWeek: number; alarmTime: string; userName: string }[] // Add optional prop for alarm schedule
 }
 
 export const orderedDayLabels = (): string[] => [
@@ -30,11 +29,11 @@ export const orderedDayLabels = (): string[] => [
   DayOfWeekLabels[7], // Sunday
 ];
 
-const PendingPublicChallengeCard: React.FC<PendingPublicChallengeCardProps> = ({ 
-  title, 
-  icon, 
+const PendingPublicChallengeCard: React.FC<PendingPublicChallengeCardProps> = ({
+  title,
+  icon,
   numEnrolledMembers,
-  totalDays, 
+  totalDays,
   daysOfWeek,
   categories,
   averageSkillLevel,
@@ -199,27 +198,27 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   categoriesContainer: {
-  flexDirection: "row",
-  flexWrap: "wrap",
-  marginVertical: 4,
-},
-categoryBadge: {
-  backgroundColor: "#E0E0FF",
-  borderRadius: 8,
-  paddingHorizontal: 6,
-  paddingVertical: 2,
-  marginRight: 4,
-  marginBottom: 4,
-},
-categoryText: {
-  fontSize: 12,
-  color: "#333",
-},
-skillLevelText: {
-  fontSize: 14,
-  fontWeight: "500",
-  marginBottom: 6,
-},
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginVertical: 4,
+  },
+  categoryBadge: {
+    backgroundColor: "#E0E0FF",
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 4,
+    marginBottom: 4,
+  },
+  categoryText: {
+    fontSize: 12,
+    color: "#333",
+  },
+  skillLevelText: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 6,
+  },
 
 })
 

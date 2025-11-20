@@ -73,25 +73,25 @@ const GroupLeaderboardDetails: React.FC<Props> = ({ navigation }) => {
       try {
         const accessToken = await getAccessToken();
         if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+          Alert.alert(
+            "Session expired",
+            "Your login session has expired. Please log in again.",
+            [
+              {
+                text: "OK",
+                onPress: async () => {
+                  await logout();
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Login" }],
+                  });
+                },
+              },
+            ],
+            { cancelable: false }
+          );
 
-                  return;
+          return;
         }
         const res = await axios.get(endpoints.groupLeaderboard(groupId), {
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -119,25 +119,25 @@ const GroupLeaderboardDetails: React.FC<Props> = ({ navigation }) => {
       try {
         const accessToken = await getAccessToken();
         if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+          Alert.alert(
+            "Session expired",
+            "Your login session has expired. Please log in again.",
+            [
+              {
+                text: "OK",
+                onPress: async () => {
+                  await logout();
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Login" }],
+                  });
+                },
+              },
+            ],
+            { cancelable: false }
+          );
 
-                  return;
+          return;
         }
         const url = groupLeaderboardHistory(groupId, startDate ?? undefined, endDate ?? undefined);
         const res = await axios.get(url, { headers: { Authorization: `Bearer ${accessToken}` } });
@@ -283,24 +283,18 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
   h1: { flex: 1, textAlign: "center", color: "#fff", fontSize: 28, fontWeight: "700" },
   iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
-
-  toggleRow:  { flexDirection: 'row', alignSelf: 'center', marginBottom: 15 },
+  toggleRow: { flexDirection: 'row', alignSelf: 'center', marginBottom: 15 },
   togglePill: { paddingHorizontal: 28, paddingVertical: 10, borderRadius: 18, marginHorizontal: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)', backgroundColor: 'transparent' },
   toggleActive: { backgroundColor: 'rgba(255,255,255,0.25)' },
-  toggleTxt:  { color: '#fff', fontWeight: '600' },
+  toggleTxt: { color: '#fff', fontWeight: '600' },
   toggleTxtActive: { color: '#FFD700' },
-
   dateRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },
   dateBtn: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(50,50,60,0.30)", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, flex: 1, marginHorizontal: 4 },
   dateTxt: { marginLeft: 6, color: "#fff" },
-
   searchBox: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(50,50,60,0.30)", borderRadius: 15, paddingHorizontal: 14, marginBottom: 18 },
   searchInput: { flex: 1, height: 44, color: "#fff", marginLeft: 6 },
-
   error: { color: "#F88", textAlign: "center", marginTop: 20 },
-
   sectionHeader: { marginTop: 24, marginBottom: 8, fontSize: 18, fontWeight: "700", color: "#FFD700" },
-
   row: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(50,50,60,0.25)", borderRadius: 14, padding: 14, marginBottom: 10 },
   meRow: { backgroundColor: "rgba(255,215,0,0.20)" },
   rank: { width: 36, color: "#FFD700", fontWeight: "600" },

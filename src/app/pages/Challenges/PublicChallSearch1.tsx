@@ -29,7 +29,7 @@ import { BASE_URL, endpoints } from '../../api';
 import { getAccessToken } from '../../auth';
 import NavBar from '../Components/NavBar';
 
-type Props = { navigation: NavigationProp<any> } 
+type Props = { navigation: NavigationProp<any> }
 
 type Category = {
   id: number;
@@ -57,106 +57,70 @@ const STATIC_CATEGORIES: Category[] = [
 ];
 
 
-const PublicChallSearch1: React.FC<Props> = ({ navigation }) => { 
+const PublicChallSearch1: React.FC<Props> = ({ navigation }) => {
   const { user, logout } = useUser()
 
   const [singOrMult, setSingOrMult] = useState<"singleplayer" | "multiplayer" | null>(null);
   const [categories, setCategories] = useState<Category[]>(STATIC_CATEGORIES);
   const [selectedCategories, setSelectedCategories] = useState<Category[]>([]);
-  // const [categories, setCategories] = useState<{ id: number; categoryName: string }[]>([]);
-  // const [selectedCategories, setSelectedCategories] = useState<{ id: number; name: string }[]>([]);
   const [loading, setLoading] = useState(false);
 
-
-
-    // useEffect(() => {
-    //   if (singOrMult) {
-    //   const fetchCats = async () => {
-    //     try {
-    //             const accessToken = await getAccessToken();
-    //             if (!accessToken) {
-    //                   await logout();
-    //                   navigation.reset({
-    //                     index: 0,
-    //                     routes: [{ name: "Login" }],
-    //                   });
-    //             }
-    //       // TODO: fetch only the categories for multiplayer/singleplayer (whatever was selected)
-    //       const response = await fetch(endpoints.cats(), {
-    //             headers: {
-    //               Authorization: `Bearer ${accessToken}`
-    //             }
-    //           });
-    //       const data = await response.json();
-    //       setCategories(data);
-    //       console.log("Data2: " + JSON.stringify(data));
-    //     } catch (error) {
-    //       console.error('Failed to fetch categories:', error);
-    //     }
-    //   };
-    
-    //   fetchCats();
-    //   }
-    // }, [singOrMult]);
-
-
-
-    const handleSubmit = async() => {
-        if (!singOrMult) {
-            Alert.alert("Error", "Please choose singleplayer or multiplayer")
-            return
-        }
-
-        if (selectedCategories.length == 0) {
-          Alert.alert("Error", "Please choose at least one category");
-          return;
-        }
-
-        try {
-          setLoading(true)
-                const accessToken = await getAccessToken();
-                if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
-
-                  return;
-                }
-            console.log(selectedCategories)
-            console.log(singOrMult)
-        const res = await fetch(endpoints.getMatchingChallenges(Number(user?.id), selectedCategories.map(c => c.id), singOrMult === "singleplayer" ? "Singleplayer" : "Multiplayer"), {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`
-                }
-              });
-
-
-        const data = await res.json();
-        console.log("DATA MATCHES:", JSON.stringify(data, null, 2));
-
-        navigation.navigate("PublicChallSearch2", { matches: data.matches });
-
-        } catch (err: any) {
-            Alert.alert('Error', err.message);
-        } finally {
-          setLoading(false)
-        }
-
+  const handleSubmit = async () => {
+    if (!singOrMult) {
+      Alert.alert("Error", "Please choose singleplayer or multiplayer")
+      return
     }
+
+    if (selectedCategories.length == 0) {
+      Alert.alert("Error", "Please choose at least one category");
+      return;
+    }
+
+    try {
+      setLoading(true)
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
+
+        return;
+      }
+      console.log(selectedCategories)
+      console.log(singOrMult)
+      const res = await fetch(endpoints.getMatchingChallenges(Number(user?.id), selectedCategories.map(c => c.id), singOrMult === "singleplayer" ? "Singleplayer" : "Multiplayer"), {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      });
+
+
+      const data = await res.json();
+      console.log("DATA MATCHES:", JSON.stringify(data, null, 2));
+
+      navigation.navigate("PublicChallSearch2", { matches: data.matches });
+
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
+    } finally {
+      setLoading(false)
+    }
+
+  }
 
   return (
     <ImageBackground
@@ -169,14 +133,14 @@ const PublicChallSearch1: React.FC<Props> = ({ navigation }) => {
           <Ionicons name="arrow-back" size={28} color="#FFF" />
         </TouchableOpacity>
 
-          <ScrollView
-            contentContainerStyle={{ paddingBottom: 100 }}
-            showsVerticalScrollIndicator={false}
-          >
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 100 }}
+          showsVerticalScrollIndicator={false}
+        >
 
-        <Text style={styles.pageTitle}>Public Challenge Search</Text>
+          <Text style={styles.pageTitle}>Public Challenge Search</Text>
 
-        {/* Singleplayer / Multiplayer Choice */}
+          {/* Singleplayer / Multiplayer Choice */}
           <View style={styles.formSection}>
             <Text style={styles.sectionTitle}>Game Type</Text>
             <View style={styles.choiceRow}>
@@ -209,69 +173,69 @@ const PublicChallSearch1: React.FC<Props> = ({ navigation }) => {
             <View style={styles.formSection}>
               <Text style={styles.sectionTitle}>Category</Text>
 
-<ScrollView
-  horizontal
-  showsHorizontalScrollIndicator={false}
-  contentContainerStyle={styles.categoriesScroll}
->
-  {categories.map((cat) => {
-    const isSelected = selectedCategories.some(c => c.id === cat.id);
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoriesScroll}
+              >
+                {categories.map((cat) => {
+                  const isSelected = selectedCategories.some(c => c.id === cat.id);
 
-    return (
-        <TouchableOpacity
-          key={cat.id}
-          style={[
-            styles.choiceButton,
-            isSelected && styles.choiceButtonSelected,
-          ]}
-          onPress={() => {
-            setSelectedCategories((prev) => {
-              if (isSelected) {
-                // remove if already selected
-                return prev.filter(c => c.id !== cat.id);
-              } else {
-                // add if not selected
-                return [...prev, { id: cat.id, categoryName: cat.categoryName }];
-              }
-            });
-          }}
-        >
-        <Text
-          style={[
-            styles.choiceText,
-            isSelected && styles.choiceTextSelected,
-          ]}
-        >
-          {cat.categoryName}
-        </Text>
-      </TouchableOpacity>
-    );
-  })}
-</ScrollView>
-                          </View>
-                        )}
-
-
-<TouchableOpacity
-  style={styles.createButton}
-  onPress={handleSubmit}
-  disabled={loading} // 👈 prevent double-clicking while loading
->
-  <LinearGradient
-    colors={['#FFD700', '#FFC107']}
-    style={styles.createButtonGradient}
-  >
-    {loading ? (
-      <ActivityIndicator size="small" color="#000" />
-    ) : (
-      <Text style={styles.createButtonText}>Search for Challenge</Text>
-    )}
-  </LinearGradient>
-</TouchableOpacity>
+                  return (
+                    <TouchableOpacity
+                      key={cat.id}
+                      style={[
+                        styles.choiceButton,
+                        isSelected && styles.choiceButtonSelected,
+                      ]}
+                      onPress={() => {
+                        setSelectedCategories((prev) => {
+                          if (isSelected) {
+                            // remove if already selected
+                            return prev.filter(c => c.id !== cat.id);
+                          } else {
+                            // add if not selected
+                            return [...prev, { id: cat.id, categoryName: cat.categoryName }];
+                          }
+                        });
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.choiceText,
+                          isSelected && styles.choiceTextSelected,
+                        ]}
+                      >
+                        {cat.categoryName}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
 
 
+          <TouchableOpacity
+            style={styles.createButton}
+            onPress={handleSubmit}
+            disabled={loading}
+          >
+            <LinearGradient
+              colors={['#FFD700', '#FFC107']}
+              style={styles.createButtonGradient}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#000" />
+              ) : (
+                <Text style={styles.createButtonText}>Search for Challenge</Text>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
 
-      </ScrollView>
+
+
+        </ScrollView>
       </View>
 
       <NavBar
@@ -307,7 +271,7 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
   },
-    backButton: {
+  backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,

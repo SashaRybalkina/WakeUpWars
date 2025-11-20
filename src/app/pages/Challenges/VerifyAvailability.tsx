@@ -29,24 +29,8 @@ import { BASE_URL, endpoints } from '../../api';
 import { getAccessToken } from '../../auth';
 import NavBar from '../Components/NavBar';
 
-type Props = { navigation: NavigationProp<any> } 
-// Config 
+type Props = { navigation: NavigationProp<any> }
 const DAYS = ["M", "T", "W", "TH", "F", "S", "SU"]
-// const TIMES = Array.from({ length: 12 }, (_, i) => `${i + 6}:00`); // 6am - 5pm 
-
-// const START_MIN = 24 * 60; // 10:00 PM
-// const END_MIN = 25 * 60;   // 12:00 AM next day
-// const STEP_MIN = 1;
-
-// const TIMES = Array.from(
-//   { length: Math.floor((END_MIN - START_MIN) / STEP_MIN) + 1 }, // 121 entries (includes 12:00 AM)
-//   (_, i) => {
-//     const totalMinutes = START_MIN + i * STEP_MIN;
-//     const hours24 = Math.floor(totalMinutes / 60) % 24;
-//     const minutes = totalMinutes % 60;
-//     return `${String(hours24).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`; // "HH:MM"
-//   }
-// );
 
 const TIMES = Array.from({ length: 80 }, (_, i) => {
   const totalMinutes = 4 * 60 + i * 15; // start at 4:00
@@ -57,18 +41,14 @@ const TIMES = Array.from({ length: 80 }, (_, i) => {
 
 type SelectedCell = { day: number; time: number }; // day: 0-6, time: 0-11 
 
-const VerifyAvailability: React.FC<Props> = ({ navigation }) => { 
+const VerifyAvailability: React.FC<Props> = ({ navigation }) => {
   const { user, logout } = useUser()
-  console.log("in verify")
 
-  // const [selectedCells, setSelectedCells] = useState<SelectedCell[]>([]);
-
-    // state for current selections
+  // state for current selections
   const [selectedCells, setSelectedCells] = useState<SelectedCell[]>([]);
   // state for initial fetched availability
   const [initialCells, setInitialCells] = useState<SelectedCell[]>([]);
   const [infoVisible, setInfoVisible] = React.useState(false);
-
 
   const dayToInt: Record<string, number> = {
     M: 1,
@@ -79,8 +59,6 @@ const VerifyAvailability: React.FC<Props> = ({ navigation }) => {
     S: 6,
     SU: 7,
   }
-
-
 
   const toggleCell = (day: number, time: number) => {
     setSelectedCells(prev => {
@@ -95,90 +73,88 @@ const VerifyAvailability: React.FC<Props> = ({ navigation }) => {
   const isCellSelected = (day: number, time: number) =>
     selectedCells.some(cell => cell.day === day && cell.time === time);
 
+  const convertTo24Hour = (input: string) => {
+    // Accepts:
+    //  - "HH:MM" (24-hour)
+    //  - "h:MM AM/PM" (12-hour)
+    // Returns: "HH:MM" (24-hour)
+
+    // If already 24-hour format
+    if (/^\d{2}:\d{2}$/.test(input)) {
+      return input;
+    }
+
+    // Try to parse 12-hour format
+    const m = /^(\d{1,2}):(\d{2})\s?(AM|PM)$/i.exec(input);
+    if (m) {
+      const hStr = m[1]!;
+      const minStr = m[2]!;
+      const ampm = m[3]!.toUpperCase();
+      let hours = parseInt(hStr, 10);
+      const minutes = parseInt(minStr, 10);
+
+      if (ampm === "AM" && hours === 12) hours = 0;
+      if (ampm === "PM" && hours !== 12) hours += 12;
+
+      return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+    }
+
+    throw new Error(`Invalid time format: ${input}`);
+  };
 
 
-const convertTo24Hour = (input: string) => {
-  // Accepts:
-  //  - "HH:MM" (24-hour)
-  //  - "h:MM AM/PM" (12-hour)
-  // Returns: "HH:MM" (24-hour)
+  useFocusEffect(
+    useCallback(() => {
+      const fetchAvailability = async () => {
+        try {
+          console.log("getting")
+          const accessToken = await getAccessToken();
+          if (!accessToken) {
+            Alert.alert(
+              "Session expired",
+              "Your login session has expired. Please log in again.",
+              [
+                {
+                  text: "OK",
+                  onPress: async () => {
+                    await logout();
+                    navigation.reset({
+                      index: 0,
+                      routes: [{ name: "Login" }],
+                    });
+                  },
+                },
+              ],
+              { cancelable: false }
+            );
 
-  // If already 24-hour format
-  if (/^\d{2}:\d{2}$/.test(input)) {
-    return input;
-  }
+            return;
+          }
+          const res = await fetch(endpoints.getUserAvailability(Number(user?.id)), {
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
+          });
+          if (!res.ok) throw new Error("Failed to fetch availability");
+          const data: { dayOfWeek: number; alarmTime: string }[] = await res.json();
 
-  // Try to parse 12-hour format
-  const m = /^(\d{1,2}):(\d{2})\s?(AM|PM)$/i.exec(input);
-  if (m) {
-    const hStr = m[1]!;
-    const minStr = m[2]!;
-    const ampm = m[3]!.toUpperCase();
-    let hours = parseInt(hStr, 10);
-    const minutes = parseInt(minStr, 10);
+          // convert backend format to SelectedCell[]
+          const converted: SelectedCell[] = data.flatMap(({ dayOfWeek, alarmTime }) => {
+            const timeIdx = TIMES.findIndex(t => convertTo24Hour(t) === alarmTime);
+            if (timeIdx === -1) return [];
+            return [{ day: dayOfWeek - 1, time: timeIdx }]; // backend 1-7 → front 0-6
+          });
 
-    if (ampm === "AM" && hours === 12) hours = 0;
-    if (ampm === "PM" && hours !== 12) hours += 12;
+          setSelectedCells(converted);
+          setInitialCells(converted); // save initial state
+        } catch (err) {
+          console.error(err);
+        }
+      };
 
-    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-  }
-
-  throw new Error(`Invalid time format: ${input}`);
-};
-
-
-useFocusEffect(
-  useCallback(() => {
-    const fetchAvailability = async () => {
-      try {
-        console.log("getting")
-              const accessToken = await getAccessToken();
-              if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
-
-                  return;
-              }
-        const res = await fetch(endpoints.getUserAvailability(Number(user?.id)), {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`
-                }
-              });
-        if (!res.ok) throw new Error("Failed to fetch availability");
-        const data: { dayOfWeek: number; alarmTime: string }[] = await res.json();
-
-        // convert backend format to SelectedCell[]
-        const converted: SelectedCell[] = data.flatMap(({ dayOfWeek, alarmTime }) => {
-          const timeIdx = TIMES.findIndex(t => convertTo24Hour(t) === alarmTime);
-          if (timeIdx === -1) return [];
-          return [{ day: dayOfWeek - 1, time: timeIdx }]; // backend 1-7 → front 0-6
-        });
-
-        setSelectedCells(converted);
-        setInitialCells(converted); // save initial state
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    fetchAvailability();
-  }, [user?.id])
-);
+      fetchAvailability();
+    }, [user?.id])
+  );
 
 
   const formatTo12Hour = (time24: string) => {
@@ -190,7 +166,7 @@ useFocusEffect(
     const ampm = hours >= 12 ? "PM" : "AM";
     hours = hours % 12 || 12;
     return `${hours}:${mStr} ${ampm}`;
-};
+  };
 
   const handleSubmit = async () => {
     console.log("setting")
@@ -209,58 +185,58 @@ useFocusEffect(
       return { dayOfWeek: cell.day + 1, time: convertTo24Hour(timeStr) };
     });
 
-    const payload = { alarm_schedule: newlyToggledCells }; 
+    const payload = { alarm_schedule: newlyToggledCells };
     console.log("Payload sent to backend:", payload);
 
 
-        try {
+    try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
+        return;
       }
 
-        
-        const res = await fetch(endpoints.setUserAvailability(Number(user?.id)), {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              "Authorization": `Bearer ${accessToken}`,
-            },
-            body: JSON.stringify(payload),
-        });
 
-        if (!res.ok) {
-            const error = await res.json();
-            throw new Error(error.message || 'Failed to save schedule');
-        }
+      const res = await fetch(endpoints.setUserAvailability(Number(user?.id)), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
 
-        const data = await res.json();
-        Alert.alert('Success', 'Schedule verified', [
-            { text: 'OK', onPress: () => navigation.navigate('PublicChallSearch1') },
-        ]);
-        } catch (err: any) {
-            Alert.alert('Error', err.message);
-        }
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to save schedule');
+      }
 
+      const data = await res.json();
+      Alert.alert('Success', 'Schedule verified', [
+        { text: 'OK', onPress: () => navigation.navigate('PublicChallSearch1') },
+      ]);
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
     }
+
+  }
 
   return (
     <ImageBackground
@@ -274,90 +250,90 @@ useFocusEffect(
           <Ionicons name="arrow-back" size={28} color="#FFF" />
         </TouchableOpacity>
 
-          <ScrollView
-            contentContainerStyle={{ paddingBottom: 100 }}
-            showsVerticalScrollIndicator={false}
-          >
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 100 }}
+          showsVerticalScrollIndicator={false}
+        >
 
 
 
-<View style={styles.formSection}>
-  <View style={[styles.formSection2, { flexDirection: "row", alignItems: "center" }]}>
-    <Text style={styles.label}>Edit Availability</Text>
+          <View style={styles.formSection}>
+            <View style={[styles.formSection2, { flexDirection: "row", alignItems: "center" }]}>
+              <Text style={styles.label}>Edit Availability</Text>
 
-    <TouchableOpacity
-      onPress={() => setInfoVisible(true)}
-      style={{ marginLeft: 6, marginTop: -10 }}
-      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-    >
-      <Ionicons name="help-circle" size={22} color="rgba(255,255,255,0.85)" />
-    </TouchableOpacity>   
-  </View>
-
-
-  <View style={{ flexDirection: 'row', flex: 1 }}>
-    {/* Fixed left column (times) */}
-    <View>
-      {/* Empty corner cell to align with header row */}
-      <View style={styles.cell} />
-      {TIMES.map((time, timeIdx) => (
-        <View key={timeIdx} style={styles.cell}>
-          <Text style={styles.cellText}>{formatTo12Hour(time)}</Text>
-        </View>
-      ))}
-    </View>
-
-    {/* Scrollable section for days and grid */}
-    <ScrollView horizontal>
-      <View>
-        {/* Top row (days) */}
-        <View style={styles.row}>
-          {DAYS.map((day, idx) => (
-            <View key={idx} style={styles.cell}>
-              <Text style={styles.cellText}>{day}</Text>
+              <TouchableOpacity
+                onPress={() => setInfoVisible(true)}
+                style={{ marginLeft: 6, marginTop: -10 }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="help-circle" size={22} color="rgba(255,255,255,0.85)" />
+              </TouchableOpacity>
             </View>
-          ))}
-        </View>
 
-        {/* Scrollable grid below days */}
-        <ScrollView>
-          {TIMES.map((time, timeIdx) => (
-            <View key={timeIdx} style={styles.row}>
-              {DAYS.map((_, dayIdx) => (
-                <TouchableOpacity
-                  key={`${dayIdx}-${timeIdx}`}
-                  onPress={() => toggleCell(dayIdx, timeIdx)}
-                  style={[
-                    styles.cell,
-                    styles.interactiveCell,
-                    isCellSelected(dayIdx, timeIdx) && styles.selectedCell,
-                  ]}
-                />
-              ))}
+
+            <View style={{ flexDirection: 'row', flex: 1 }}>
+              {/* Fixed left column (times) */}
+              <View>
+                {/* Empty corner cell to align with header row */}
+                <View style={styles.cell} />
+                {TIMES.map((time, timeIdx) => (
+                  <View key={timeIdx} style={styles.cell}>
+                    <Text style={styles.cellText}>{formatTo12Hour(time)}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* Scrollable section for days and grid */}
+              <ScrollView horizontal>
+                <View>
+                  {/* Top row (days) */}
+                  <View style={styles.row}>
+                    {DAYS.map((day, idx) => (
+                      <View key={idx} style={styles.cell}>
+                        <Text style={styles.cellText}>{day}</Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  {/* Scrollable grid below days */}
+                  <ScrollView>
+                    {TIMES.map((time, timeIdx) => (
+                      <View key={timeIdx} style={styles.row}>
+                        {DAYS.map((_, dayIdx) => (
+                          <TouchableOpacity
+                            key={`${dayIdx}-${timeIdx}`}
+                            onPress={() => toggleCell(dayIdx, timeIdx)}
+                            style={[
+                              styles.cell,
+                              styles.interactiveCell,
+                              isCellSelected(dayIdx, timeIdx) && styles.selectedCell,
+                            ]}
+                          />
+                        ))}
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+              </ScrollView>
             </View>
-          ))}
-        </ScrollView>
-      </View>
-    </ScrollView>
-  </View>
-</View>
-
-      <Modal transparent visible={infoVisible} animationType="fade" onRequestClose={() => setInfoVisible(false)}>
-        <View style={styles.infoBackdrop}>
-          <View style={styles.infoCard}>
-            <Text style={styles.infoTitle}>How to set my availability?</Text>
-            <Text style={styles.infoText}>
-              Availability slots are in 15 mintute segments. Selecting, for example,
-              the 6 AM slot on Monday means that you are available from 6 AM to 6:14 AM
-              on Mondays. We will filter the public challenge results such that they
-              fit within your availability.
-            </Text>
-            <TouchableOpacity style={styles.infoClose} onPress={() => setInfoVisible(false)}>
-              <Text style={styles.infoCloseText}>Got it</Text>
-            </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
+
+          <Modal transparent visible={infoVisible} animationType="fade" onRequestClose={() => setInfoVisible(false)}>
+            <View style={styles.infoBackdrop}>
+              <View style={styles.infoCard}>
+                <Text style={styles.infoTitle}>How to set my availability?</Text>
+                <Text style={styles.infoText}>
+                  Availability slots are in 15 mintute segments. Selecting, for example,
+                  the 6 AM slot on Monday means that you are available from 6 AM to 6:14 AM
+                  on Mondays. We will filter the public challenge results such that they
+                  fit within your availability.
+                </Text>
+                <TouchableOpacity style={styles.infoClose} onPress={() => setInfoVisible(false)}>
+                  <Text style={styles.infoCloseText}>Got it</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
 
 
           <TouchableOpacity style={styles.createButton} onPress={handleSubmit}>
@@ -369,7 +345,7 @@ useFocusEffect(
             </LinearGradient>
           </TouchableOpacity>
 
-      </ScrollView>
+        </ScrollView>
       </View>
 
       <NavBar
@@ -392,10 +368,10 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingTop: 50, 
+    paddingTop: 50,
     paddingHorizontal: 20,
   },
-    backButton: {
+  backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -561,12 +537,12 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: '700',
   },
-formSection2: {
-  flexDirection: "row",
-  alignItems: "center",
-  paddingVertical: 4,
-  paddingHorizontal: 2,
-},
+  formSection2: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+  },
 })
 
 

@@ -23,7 +23,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRoute, type NavigationProp } from "@react-navigation/native";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import axios from "axios";
-import { endpoints, leaderboardHistory } from "../../api";   // <- helper added in api.ts
+import { endpoints, leaderboardHistory } from "../../api";
 import { getAccessToken } from "../../auth";
 import { useUser } from "../../context/UserContext";
 
@@ -59,19 +59,19 @@ const LeaderboardDetails: React.FC<Props> = ({ navigation }) => {
   const { logout } = useUser();
 
   /* ──────────────────────── state ─────────────────────────── */
-  const [rows, setRows]       = useState<LeaderRow[]>([]);
+  const [rows, setRows] = useState<LeaderRow[]>([]);
   const [history, setHistory] = useState<Record<string, LeaderRow[]>>({});
   const [loading, setLoading] = useState(true);
-  const [err, setErr]         = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
 
-  const [query, setQuery]     = useState("");
+  const [query, setQuery] = useState("");
   const [showHistory, setShowHistory] = useState(false);
 
   /* date-range picker */
   const [minDate, setMinDate] = useState<Date | null>(null);   // challenge start
   const [maxDate, setMaxDate] = useState<Date | null>(null);   // challenge end
   const [startDate, setStartDate] = useState<string | null>(null);
-  const [endDate,   setEndDate]   = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
 
   /* which picker is open? (null → none) */
   const [picker, setPicker] = useState<"start" | "end" | null>(null);
@@ -84,34 +84,34 @@ const LeaderboardDetails: React.FC<Props> = ({ navigation }) => {
       setErr(null);
 
       try {
-              const accessToken = await getAccessToken();
-              if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        const accessToken = await getAccessToken();
+        if (!accessToken) {
+          Alert.alert(
+            "Session expired",
+            "Your login session has expired. Please log in again.",
+            [
+              {
+                text: "OK",
+                onPress: async () => {
+                  await logout();
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Login" }],
+                  });
+                },
+              },
+            ],
+            { cancelable: false }
+          );
 
-                  return;
-              }
-              
+          return;
+        }
+
         const res = await axios.get(endpoints.leaderboard(challId), {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`
-                }
-              });
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        });
         if (ignore) return;
 
         const data = res.data;
@@ -127,53 +127,52 @@ const LeaderboardDetails: React.FC<Props> = ({ navigation }) => {
     return () => { ignore = true; };
   }, [challId]);
 
-    // fetch start/end dates from challenge details
-    useEffect(() => {
-      let cancelled = false;
+  // fetch start/end dates from challenge details
+  useEffect(() => {
+    let cancelled = false;
 
-      (async () => {
-        try {
-                const accessToken = await getAccessToken();
-                if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+    (async () => {
+      try {
+        const accessToken = await getAccessToken();
+        if (!accessToken) {
+          Alert.alert(
+            "Session expired",
+            "Your login session has expired. Please log in again.",
+            [
+              {
+                text: "OK",
+                onPress: async () => {
+                  await logout();
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Login" }],
+                  });
+                },
+              },
+            ],
+            { cancelable: false }
+          );
 
-                  return;
-                }
-          // GET /api/challenge-detail/<id>/  →  { startDate: "YYYY-MM-DD", endDate: "YYYY-MM-DD", ... }
-          const res = await axios.get(endpoints.challengeDetail(challId), {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`
-                }
-              });
-          if (cancelled) return;
-
-            setMinDate(parseLocalDate(res.data.startDate));   // 2025-09-02
-            setMaxDate(parseLocalDate(res.data.endDate));     // 2025-09-04
-        } catch {
-          // if this fails, the picker will simply stay disabled
+          return;
         }
-      })();
+        const res = await axios.get(endpoints.challengeDetail(challId), {
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        });
+        if (cancelled) return;
 
-      return () => {
-        cancelled = true;
-      };
-    }, [challId]);
+        setMinDate(parseLocalDate(res.data.startDate));   // 2025-09-02
+        setMaxDate(parseLocalDate(res.data.endDate));     // 2025-09-04
+      } catch {
+        // if this fails, the picker will simply stay disabled
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [challId]);
 
   useEffect(() => {
     let ignore = false;
@@ -186,28 +185,28 @@ const LeaderboardDetails: React.FC<Props> = ({ navigation }) => {
       setLoading(true);
       setErr(null);
       try {
-              const accessToken = await getAccessToken();
-              if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        const accessToken = await getAccessToken();
+        if (!accessToken) {
+          Alert.alert(
+            "Session expired",
+            "Your login session has expired. Please log in again.",
+            [
+              {
+                text: "OK",
+                onPress: async () => {
+                  await logout();
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Login" }],
+                  });
+                },
+              },
+            ],
+            { cancelable: false }
+          );
 
-                  return;
-              }
+          return;
+        }
         const url = leaderboardHistory(challId, startDate ?? undefined, endDate ?? undefined);
         const res = await axios.get(url, {
           headers: {
@@ -262,7 +261,7 @@ const LeaderboardDetails: React.FC<Props> = ({ navigation }) => {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
-            <Text style={styles.h1}>Leaderboard</Text>
+          <Text style={styles.h1}>Leaderboard</Text>
           <View style={{ width: 40 }} />
         </View>
 
@@ -342,7 +341,7 @@ const LeaderboardDetails: React.FC<Props> = ({ navigation }) => {
             value={
               picker === "start"
                 ? (startDate ? parseLocalDate(startDate) : (minDate ?? todayLocal()))
-                : (endDate   ? parseLocalDate(endDate)   : (maxDate ?? todayLocal()))
+                : (endDate ? parseLocalDate(endDate) : (maxDate ?? todayLocal()))
             }
             mode="date"
             display={Platform.OS === "ios" ? "inline" : "default"}
@@ -354,7 +353,7 @@ const LeaderboardDetails: React.FC<Props> = ({ navigation }) => {
               if (!d) return;
               const iso = toISODateLocal(d);
               if (picker === "start") setStartDate(iso);
-              else                     setEndDate(iso);
+              else setEndDate(iso);
             }}
           />
         )}
@@ -400,27 +399,23 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
   h1: { flex: 1, textAlign: "center", color: "#fff", fontSize: 28, fontWeight: "700" },
   iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
-
   /* ── styles ── */
-  toggleRow:  { flexDirection: 'row', alignSelf: 'center', marginBottom: 15 },
-  togglePill: { paddingHorizontal: 28, paddingVertical: 10, borderRadius: 18,
-              marginHorizontal: 4, borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.5)', backgroundColor: 'transparent' },
+  toggleRow: { flexDirection: 'row', alignSelf: 'center', marginBottom: 15 },
+  togglePill: {
+    paddingHorizontal: 28, paddingVertical: 10, borderRadius: 18,
+    marginHorizontal: 4, borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.5)', backgroundColor: 'transparent'
+  },
   toggleActive: { backgroundColor: 'rgba(255,255,255,0.25)' },
-  toggleTxt:  { color: '#fff', fontWeight: '600' },
+  toggleTxt: { color: '#fff', fontWeight: '600' },
   toggleTxtActive: { color: '#FFD700' },
-
   dateRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },
   dateBtn: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(50,50,60,0.30)", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, flex: 1, marginHorizontal: 4 },
   dateTxt: { marginLeft: 6, color: "#fff" },
-
   searchBox: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(50,50,60,0.30)", borderRadius: 15, paddingHorizontal: 14, marginBottom: 18 },
   searchInput: { flex: 1, height: 44, color: "#fff", marginLeft: 6 },
-
   error: { color: "#F88", textAlign: "center", marginTop: 20 },
-
   sectionHeader: { marginTop: 24, marginBottom: 8, fontSize: 18, fontWeight: "700", color: "#FFD700" },
-
   row: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(50,50,60,0.25)", borderRadius: 14, padding: 14, marginBottom: 10 },
   meRow: { backgroundColor: "rgba(255,215,0,0.20)" },
   rank: { width: 36, color: "#FFD700", fontWeight: "600" },

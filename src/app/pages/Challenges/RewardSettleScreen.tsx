@@ -52,41 +52,41 @@ const RewardSettleScreen: React.FC<Props> = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [toPay, setToPay] = useState<Obligation[]>([]);
   const [toReceive, setToReceive] = useState<Obligation[]>([]);
-    const route = useRoute<any>();
-    const challengeId = route.params?.challengeId as number | undefined;
+  const route = useRoute<any>();
+  const challengeId = route.params?.challengeId as number | undefined;
 
-    useFocusEffect(useCallback(() => { refresh(); }, [user?.id, challengeId]));
+  useFocusEffect(useCallback(() => { refresh(); }, [user?.id, challengeId]));
 
-    const refresh = async () => {
-      if (!user) return;
-      try {
-        setLoading(true);
-              const accessToken = await getAccessToken();
-              if (!accessToken) {
-                throw new Error("Not authenticated");
-              }
-        const res = await axios.get(endpoints.myObligations(), {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`
-                }
-              });
-        let tp = Array.isArray(res.data?.to_pay) ? res.data.to_pay : [];
-        let tr = Array.isArray(res.data?.to_receive) ? res.data.to_receive : [];
-
-        if (challengeId) {
-          tp = tp.filter((o: any) => o.challenge === challengeId);
-          tr = tr.filter((o: any) => o.challenge === challengeId);
-        }
-
-        setToPay(tp);
-        setToReceive(tr);
-      } catch (e) {
-        console.error("load obligations", e);
-        Alert.alert("Error", "Could not load obligations");
-      } finally {
-        setLoading(false);
+  const refresh = async () => {
+    if (!user) return;
+    try {
+      setLoading(true);
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        throw new Error("Not authenticated");
       }
-    };
+      const res = await axios.get(endpoints.myObligations(), {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      });
+      let tp = Array.isArray(res.data?.to_pay) ? res.data.to_pay : [];
+      let tr = Array.isArray(res.data?.to_receive) ? res.data.to_receive : [];
+
+      if (challengeId) {
+        tp = tp.filter((o: any) => o.challenge === challengeId);
+        tr = tr.filter((o: any) => o.challenge === challengeId);
+      }
+
+      setToPay(tp);
+      setToReceive(tr);
+    } catch (e) {
+      console.error("load obligations", e);
+      Alert.alert("Error", "Could not load obligations");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   /** ---------- helper actions ---------- */
   const nameOf = (name?: string, id?: number) =>
@@ -94,10 +94,10 @@ const RewardSettleScreen: React.FC<Props> = ({ navigation }) => {
 
   const post = async (url: string, onOk: () => void) => {
     try {
-            const accessToken = await getAccessToken();
-            if (!accessToken) {
-              throw new Error("Not authenticated");
-            }
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        throw new Error("Not authenticated");
+      }
       await axios.post(url, {}, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -110,155 +110,157 @@ const RewardSettleScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-    const handlePayExt = async (ob: Obligation) => {
-      try {
+  const handlePayExt = async (ob: Obligation) => {
+    try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
         throw new Error("Not authenticated");
       }
 
-        const payload = {
-          provider: "venmo",
-          amount: ob.remaining?.toString(),
-          note: `Reward for challenge ${ob.challenge ?? ""}`,
-        };
+      const payload = {
+        provider: "venmo",
+        amount: ob.remaining?.toString(),
+        note: `Reward for challenge ${ob.challenge ?? ""}`,
+      };
 
-        const res = await fetch(endpoints.payExternal(ob.id), {
-          method: "POST",
+      const res = await fetch(endpoints.payExternal(ob.id), {
+        method: "POST",
         headers: {
           'Content-Type': 'application/json',
           "Authorization": `Bearer ${accessToken}`,
         },
-          body: JSON.stringify(payload),
-        });
+        body: JSON.stringify(payload),
+      });
 
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.detail || err.message || "Failed to record external payment");
-        }
-
-        await refresh();
-      } catch (err: any) {
-        Alert.alert("Error", err.message);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || err.message || "Failed to record external payment");
       }
-    };
 
-    const handleCustomDone = async (ob: Obligation) => {
+      await refresh();
+    } catch (err: any) {
+      Alert.alert("Error", err.message);
+    }
+  };
+
+  const handleCustomDone = async (ob: Obligation) => {
     Alert.alert(
       'Confirm',
       'Have you already fulfilled the custom reward for the winner? Make sure you have completed it before confirming.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Yes, I did', onPress: async () => {
-          try {
-      const accessToken = await getAccessToken();
-      if (!accessToken) {
-        throw new Error("Not authenticated");
-      }
-            await fetch(endpoints.payCustom(ob.id), {
-              method:'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          "Authorization": `Bearer ${accessToken}`,
+        {
+          text: 'Yes, I did', onPress: async () => {
+            try {
+              const accessToken = await getAccessToken();
+              if (!accessToken) {
+                throw new Error("Not authenticated");
+              }
+              await fetch(endpoints.payCustom(ob.id), {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  "Authorization": `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify({ note: ob.reward_note || 'Custom reward fulfilled' })
+              });
+              await refresh();
+            } catch (e: any) { Alert.alert('Error', e.message) }
+          }
         },
-              body: JSON.stringify({ note: ob.reward_note || 'Custom reward fulfilled'})
-            });
-            await refresh();
-          } catch(e:any){ Alert.alert('Error', e.message) }
-        } },
       ]
     );
   };
 
   const handlePayCash = async (
-      ob: Obligation,
-      opts?: { amount?: number | string; note?: string }
-    ) => {
-      try {
+    ob: Obligation,
+    opts?: { amount?: number | string; note?: string }
+  ) => {
+    try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
         throw new Error("Not authenticated");
       }
 
-        //POST cash payment
-        const payload = {
-          amount: (opts?.amount ?? ob.remaining).toString(),
-          note: opts?.note ?? "Cash payment",
-        };
+      //POST cash payment
+      const payload = {
+        amount: (opts?.amount ?? ob.remaining).toString(),
+        note: opts?.note ?? "Cash payment",
+      };
 
-        const res = await fetch(endpoints.payCash(ob.id), {
-          method: "POST",
+      const res = await fetch(endpoints.payCash(ob.id), {
+        method: "POST",
         headers: {
           'Content-Type': 'application/json',
           "Authorization": `Bearer ${accessToken}`,
         },
-          body: JSON.stringify(payload),
-        });
+        body: JSON.stringify(payload),
+      });
 
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.message || "Failed to record cash payment");
-        }
-
-        await refresh();
-      } catch (err: any) {
-        Alert.alert("Error", err.message);
-      }
-    };
-
-    const handleConfirm = async (p: Payment) => {
-      try {
-      const accessToken = await getAccessToken();
-      if (!accessToken) {
-        throw new Error("Not authenticated");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to record cash payment");
       }
 
+      await refresh();
+    } catch (err: any) {
+      Alert.alert("Error", err.message);
+    }
+  };
 
-        const res = await fetch(endpoints.confirmPayment(p.id), {
-          method: "POST",
-        headers: {
-          'Content-Type': 'application/json',
-          "Authorization": `Bearer ${accessToken}`,
-        },
-        });
-
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.message || "Failed to confirm payment");
-        }
-
-        await refresh();
-      } catch (err: any) {
-        Alert.alert("Error", err.message);
-      }
-    };
-
-    const handleReject = async (p: Payment) => {
-      try {
+  const handleConfirm = async (p: Payment) => {
+    try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
         throw new Error("Not authenticated");
       }
 
 
-        const res = await fetch(endpoints.rejectPayment(p.id), {
-          method: "POST",
+      const res = await fetch(endpoints.confirmPayment(p.id), {
+        method: "POST",
         headers: {
           'Content-Type': 'application/json',
           "Authorization": `Bearer ${accessToken}`,
         },
-        });
+      });
 
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.message || "Failed to reject payment");
-        }
-
-        await refresh();
-      } catch (err: any) {
-        Alert.alert("Error", err.message);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to confirm payment");
       }
-    };
+
+      await refresh();
+    } catch (err: any) {
+      Alert.alert("Error", err.message);
+    }
+  };
+
+  const handleReject = async (p: Payment) => {
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        throw new Error("Not authenticated");
+      }
+
+
+      const res = await fetch(endpoints.rejectPayment(p.id), {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          "Authorization": `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to reject payment");
+      }
+
+      await refresh();
+    } catch (err: any) {
+      Alert.alert("Error", err.message);
+    }
+  };
 
   /** ---------- render ---------- */
   const renderOb = ({ item }: { item: Obligation }) => {
@@ -268,12 +270,12 @@ const RewardSettleScreen: React.FC<Props> = ({ navigation }) => {
     const payerObj = typeof item.payer === 'object' ? item.payer : null;
     const payeeObj = typeof item.payee === 'object' ? item.payee : null;
 
-    const payerId   = typeof item.payer === 'number' ? item.payer : item.payer.id;
-    const payeeId   = typeof item.payee === 'number' ? item.payee : item.payee.id;
+    const payerId = typeof item.payer === 'number' ? item.payer : item.payer.id;
+    const payeeId = typeof item.payee === 'number' ? item.payee : item.payee.id;
     const payerName = (item as any).payer_name ?? (payerObj?.username ?? `User #${payerId}`);
     const payeeName = (item as any).payee_name ?? (payeeObj?.username ?? `User #${payeeId}`);
 
-    const iamPayer  = payerId === user?.id;
+    const iamPayer = payerId === user?.id;
     const iamWinner = payeeId === user?.id;
 
     return (
@@ -292,7 +294,7 @@ const RewardSettleScreen: React.FC<Props> = ({ navigation }) => {
 
         {iamPayer && item.status === "unpaid" && (
           isCustom ? (
-            <TouchableOpacity style={[styles.btn,{marginTop:6}]} onPress={() => handleCustomDone(item)}>
+            <TouchableOpacity style={[styles.btn, { marginTop: 6 }]} onPress={() => handleCustomDone(item)}>
               <Ionicons name="checkmark" size={18} color="#000" />
               <Text style={styles.btnText}>Confirm custom reward done</Text>
             </TouchableOpacity>
@@ -326,7 +328,7 @@ const RewardSettleScreen: React.FC<Props> = ({ navigation }) => {
                   <Ionicons name="close-circle" size={26} color="#f44336" />
                 </TouchableOpacity>
               </View>
-        ))}
+            ))}
       </View>
     );
   };
@@ -340,23 +342,23 @@ const RewardSettleScreen: React.FC<Props> = ({ navigation }) => {
         <Ionicons name="arrow-back" size={24} color="#fff" />
       </TouchableOpacity>
 
-    <Text style={styles.header}>Rewards & Settlements</Text>
+      <Text style={styles.header}>Rewards & Settlements</Text>
 
-    <Text style={{ color:"#fff", fontWeight:"700", marginLeft:20, marginBottom:6 }}>You owe</Text>
-    <FlatList
-      data={toPay}
-      keyExtractor={(o) => o.id.toString()}
-      renderItem={renderOb}
-      ListEmptyComponent={<Text style={{ color:"#aaa", marginLeft:20 }}>Nothing to pay 🎉</Text>}
-    />
+      <Text style={{ color: "#fff", fontWeight: "700", marginLeft: 20, marginBottom: 6 }}>You owe</Text>
+      <FlatList
+        data={toPay}
+        keyExtractor={(o) => o.id.toString()}
+        renderItem={renderOb}
+        ListEmptyComponent={<Text style={{ color: "#aaa", marginLeft: 20 }}>Nothing to pay 🎉</Text>}
+      />
 
-    <Text style={{ color:"#fff", fontWeight:"700", marginLeft:20, marginTop:20, marginBottom:6 }}>You’ll receive</Text>
-    <FlatList
-      data={toReceive}
-      keyExtractor={(o) => o.id.toString()}
-      renderItem={renderOb}
-      ListEmptyComponent={<Text style={{ color:"#aaa", marginLeft:20 }}>No one owes you yet</Text>}
-    />
+      <Text style={{ color: "#fff", fontWeight: "700", marginLeft: 20, marginTop: 20, marginBottom: 6 }}>You’ll receive</Text>
+      <FlatList
+        data={toReceive}
+        keyExtractor={(o) => o.id.toString()}
+        renderItem={renderOb}
+        ListEmptyComponent={<Text style={{ color: "#aaa", marginLeft: 20 }}>No one owes you yet</Text>}
+      />
     </View>
   );
 };
@@ -379,7 +381,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   title: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  customTitle: { fontSize:18, color:'#ffd700', fontWeight:'600', marginBottom:4, marginTop:4 },
+  customTitle: { fontSize: 18, color: '#ffd700', fontWeight: '600', marginBottom: 4, marginTop: 4 },
   subtitle: { color: "#aaa", marginBottom: 8 },
   actionRow: { flexDirection: "row", alignItems: "center", marginTop: 6 },
   btn: {

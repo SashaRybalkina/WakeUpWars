@@ -1,18 +1,3 @@
-// import React, { useEffect, useState } from "react"
-// import {
-//   View,
-//   Text,
-//   ScrollView,
-//   TouchableOpacity,
-//   ImageBackground,
-//   Platform,
-// } from "react-native"
-// import { useRoute, NavigationProp } from "@react-navigation/native"
-// import DateTimePicker from "@react-native-community/datetimepicker"
-// import { Ionicons } from "@expo/vector-icons"
-// import axios from "axios"
-// import { endpoints } from "../../api"
-// // import styles from "./ChallSchedule.styles"
 import { useState, useEffect } from "react"
 import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View, Platform } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
@@ -20,7 +5,6 @@ import DateTimePicker from "@react-native-community/datetimepicker"
 import { type NavigationProp, useRoute } from "@react-navigation/native"
 import axios from "axios"
 import { endpoints } from "../../api"
-// import { DayOfWeek, DayOfWeekLabels } from "./DayOfWeek";
 
 
 const DAYS = ["M", "T", "W", "TH", "F", "S", "SU"]
@@ -36,7 +20,6 @@ const TempCp = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const [showStartDatePicker, setShowStartDatePicker] = useState(false)
   const [showEndDatePicker, setShowEndDatePicker] = useState(false)
 
-  // NEW: full schedule state from backend
   const [schedule, setSchedule] = useState<
     {
       dayOfWeek: number
@@ -47,7 +30,6 @@ const TempCp = ({ navigation }: { navigation: NavigationProp<any> }) => {
 
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
 
-  // For showing games of selected day
   const currentDay = schedule.find((d) => d.dayOfWeek === selectedDay)
 
   useEffect(() => {
@@ -63,20 +45,20 @@ const TempCp = ({ navigation }: { navigation: NavigationProp<any> }) => {
 
         // Parse dates
         const parseLocalDate = (dateStr: string): Date => {
-            if (!dateStr) return new Date() // handle undefined/null
+          if (!dateStr) return new Date() // handle undefined/null
 
-            const parts = dateStr.split("-")
-            const year = Number(parts[0])
-            const month = Number(parts[1])
-            const day = Number(parts[2])
+          const parts = dateStr.split("-")
+          const year = Number(parts[0])
+          const month = Number(parts[1])
+          const day = Number(parts[2])
 
-            // fallback if any part is invalid
-            if (isNaN(year) || isNaN(month) || isNaN(day)) {
-                console.warn("Invalid date string:", dateStr)
-                return new Date()
-            }
+          // fallback if any part is invalid
+          if (isNaN(year) || isNaN(month) || isNaN(day)) {
+            console.warn("Invalid date string:", dateStr)
+            return new Date()
+          }
 
-            return new Date(year, month - 1, day)
+          return new Date(year, month - 1, day)
         }
 
 

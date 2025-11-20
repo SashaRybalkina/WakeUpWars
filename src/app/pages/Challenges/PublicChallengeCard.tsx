@@ -32,9 +32,9 @@ export const orderedDayLabels = (): string[] => [
   DayOfWeekLabels[7], // Sunday
 ];
 
-const PublicChallengeCard: React.FC<PublicChallengeCardProps> = ({ 
-  title, 
-  icon, 
+const PublicChallengeCard: React.FC<PublicChallengeCardProps> = ({
+  title,
+  icon,
   startDate,
   endDate,
   daysOfWeek,
@@ -204,27 +204,27 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   categoriesContainer: {
-  flexDirection: "row",
-  flexWrap: "wrap",
-  marginVertical: 4,
-},
-categoryBadge: {
-  backgroundColor: "#E0E0FF",
-  borderRadius: 8,
-  paddingHorizontal: 6,
-  paddingVertical: 2,
-  marginRight: 4,
-  marginBottom: 4,
-},
-categoryText: {
-  fontSize: 12,
-  color: "#333",
-},
-skillLevelText: {
-  fontSize: 14,
-  fontWeight: "500",
-  marginBottom: 6,
-},
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginVertical: 4,
+  },
+  categoryBadge: {
+    backgroundColor: "#E0E0FF",
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 4,
+    marginBottom: 4,
+  },
+  categoryText: {
+    fontSize: 12,
+    color: "#333",
+  },
+  skillLevelText: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 6,
+  },
 
 })
 
