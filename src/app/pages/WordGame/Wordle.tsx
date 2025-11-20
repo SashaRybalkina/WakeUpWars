@@ -22,8 +22,6 @@ import { NavigationProp, useRoute } from '@react-navigation/native';
 import { BASE_URL, endpoints } from '../../api';
 import { useUser } from '../../context/UserContext';
 import { getAccessToken } from "../../auth";
-// import { NativeModules } from "react-native";
-// const { AlarmModule } = NativeModules;
 
 const GRID_SIZE = 5;
 const MAX_ATTEMPTS = 5;
@@ -40,36 +38,36 @@ export type GuessResult = {
 
 type ServerToClientMessage =
   | {
-      type: 'player_list';
-      players: string[];
-    }
+    type: 'player_list';
+    players: string[];
+  }
   | {
-      type: 'broadcast_move';
-      player: string;
-      row: number;
-      guess: string;
-      evaluation: GuessResult[];
-      attempt: number;
-    }
+    type: 'broadcast_move';
+    player: string;
+    row: number;
+    guess: string;
+    evaluation: GuessResult[];
+    attempt: number;
+  }
   | {
-      type: 'player_left';
-      player: string;
-    }
+    type: 'player_left';
+    player: string;
+  }
   | {
-      type: 'player_joined';
-      player: string;
-      color: string;
-    }
+    type: 'player_joined';
+    player: string;
+    color: string;
+  }
   | {
-      type: 'game_complete';
-      scores: {
-        username: string;
-        accuracy: number;
-        inaccuracy: number;
-        score: number;
-        final: boolean;
-      }[];
-    };
+    type: 'game_complete';
+    scores: {
+      username: string;
+      accuracy: number;
+      inaccuracy: number;
+      score: number;
+      final: boolean;
+    }[];
+  };
 
 // Waiting room/lobby messages (mirroring Sudoku)
 type LobbyStateMessage = {
@@ -123,10 +121,10 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
   const [playerColors, setPlayerColors] = useState<{ [key: string]: string }>({});
 
   const COLOR_POOL = [
-  'hotpink', 'coral', 'orange', 'lawngreen', 'aqua',
-  'deepskyblue', 'mediumorchid', 'mediumvioletred',
-  'magenta', 'thistle', 'powderblue', 'plum', 'peachpuff', 'palegreen'
-];
+    'hotpink', 'coral', 'orange', 'lawngreen', 'aqua',
+    'deepskyblue', 'mediumorchid', 'mediumvioletred',
+    'magenta', 'thistle', 'powderblue', 'plum', 'peachpuff', 'palegreen'
+  ];
 
   // Waiting room state (mirroring Sudoku)
   const [waitingActive, setWaitingActive] = useState<boolean>(false);
@@ -157,7 +155,7 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
   const evaluateGuess = (guess: string, answer: string): GuessResult[] => {
     const result: GuessResult[] = Array(guess.length).fill({ letter: '', result: 'absent' });
     const answerCounts: Record<string, number> = {};
-    
+
     // Count frequency of each letter in answer
     for (let ch of answer) {
       answerCounts[ch] = (answerCounts[ch] || 0) + 1;
@@ -225,29 +223,29 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
   const handleTimerExpired = async () => {
     if (timerExpiredSentRef.current || !gameStateId) return;
     timerExpiredSentRef.current = true;
-    
+
     try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
+        return;
       }
 
       const response = await fetch(endpoints.gameTimerExpired, {
@@ -261,10 +259,10 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
           game_state_id: gameStateId,
         }),
       });
-      
+
       const data = await response.json();
       console.log('[Wordle] Timer expired signal sent to backend', data);
-      
+
       // For single-player games (no WebSocket), handle the response directly
       if (!isMultiplayer) {
         if (gameTimerRef.current) clearInterval(gameTimerRef.current);
@@ -287,31 +285,6 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [gameTimeLeft, gameOver]);
 
-  // 🔄 Reset game
-  const resetGame = () => {
-    // Safely close any existing socket before re-initializing
-    try {
-      const ws = socketRef.current;
-      if (ws && ws.readyState !== WebSocket.CLOSING && ws.readyState !== WebSocket.CLOSED) {
-        ws.close();
-      }
-    } catch (e) {
-      console.log('[WebSocket] error closing during reset:', e);
-    }
-    setGrid(
-      Array.from({ length: MAX_ATTEMPTS }, () => Array(GRID_SIZE).fill('')),
-    );
-    setResults([]);
-    setSelectedRow(0);
-    setSelectedCol(0);
-    setGameOver(false);
-    setOpponentRows({});
-    hasShownResultRef.current = false;
-    finalizeSentRef.current = false;
-    initGame();
-  };
-
-  
   // Initialize game
   const initGame = async () => {
     try {
@@ -319,29 +292,27 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
 
       console.log(`[Wordle] initGame for challengeId=${challengeId}, user=${user.username}`);
 
-
-
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
+        return;
       }
 
       const res = await fetch(endpoints.createWordleGame, {
@@ -356,9 +327,9 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
       if (res.status === 403) {
         const data = await res.json();
         if (data.code === 'JOINS_CLOSED' || data.code === 'GAME_ENDED') {
-            Alert.alert('Join closed', 'This game can no longer be joined.');
-            navigation.goBack();
-            return;
+          Alert.alert('Join closed', 'This game can no longer be joined.');
+          navigation.goBack();
+          return;
         }
       }
 
@@ -375,7 +346,7 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
       const { game_state_id, is_multiplayer, join_deadline_at, answer: serverAnswer, word_length, max_attempts } = data as any;
       setGameStateId(game_state_id);
       setIsMultiplayer(is_multiplayer);
-      
+
       // Store answer for local validation
       if (serverAnswer) {
         setAnswer(serverAnswer.toUpperCase());
@@ -384,7 +355,6 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
       if (word_length) setWordLength(word_length);
       if (max_attempts) setMaxAttempts(max_attempts);
 
-      //console.log(`[Wordle] Challenge=${challengeId}, game_state_id=${game_state_id}, answer=${answer}`);
 
       if (is_multiplayer) {
         // If backend supplied a join deadline, start the local countdown immediately
@@ -404,11 +374,11 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
         } catch (e) {
           console.warn('[Wordle] Failed to load challenge members', e);
         }
-        // ✅ Added: include token in WebSocket connection URL
+        // Added: include token in WebSocket connection URL
         const wsUrl = `${BASE_URL.replace(/^http/, 'ws')}/ws/wordle/${game_state_id}/?token=${accessToken}`;
-        console.log("[WebSocket] Connecting to:", wsUrl); // ✅ Added: debug log
+        console.log("[WebSocket] Connecting to:", wsUrl); // Added: debug log
         const ws = new WebSocket(wsUrl);
-        
+
         ws.onopen = () => console.log('[WebSocket] connected');
         ws.onclose = (ev) => {
           console.log('[WebSocket] 🔌 disconnected', ev);
@@ -502,12 +472,12 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
             console.log("RAW:", msg);
             // ignore if not final
             if (msg.final !== true) {
-                console.log("[WS] Ignored intermediate leaderboard:", msg);
-                return;
+              console.log("[WS] Ignored intermediate leaderboard:", msg);
+              return;
             }
             console.log(`[WS ${new Date().toISOString()}] Received FINAL leaderboard:`, msg.scores);
             if (hasShownResultRef.current) return; // prevent multiple alerts
-            
+
             // `scores` can be either an array (from finalize endpoint) OR an object keyed by username (from consumer)
             let scoresArr: { username: string; score: number; attempts?: number }[] = [];
             if (Array.isArray(msg.scores)) {
@@ -531,12 +501,9 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
             }
             console.log("[DEBUG] Winner check", { user: user?.username, myScore: myScoreVal, isWinner });
             console.log('[WebSocket] Game complete:', scoresArr);
-            //setTimeout(() => navigation.navigate("ChallDetails", { challId: challengeId, challName, whichChall }), 2000);
             Alert.alert(
               isWinner ? '🏆 You Win!' : '❌ Game Over',
               scoresArr.map((s: { username: string; score: number }) => `${s.username}: ${s.score}`).join('\n'),
-              // 'Game Complete',
-              // 'Everyone has finished! Check the leaderboard for final scores.',
               [
                 {
                   text: 'OK', onPress: () => {
@@ -552,14 +519,14 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
         ws.onclose = () => console.log('[WebSocket] disconnected');
         socketRef.current = ws;
         setSocket(ws);
-      } 
-      else {  // ✅ Properly closes if(is_multiplayer) inside the outer try
-      console.log('[Wordle] Single-player mode - starting game timer');
-      startGameTimer();
+      }
+      else {  // Properly closes if(is_multiplayer) inside the outer try
+        console.log('[Wordle] Single-player mode - starting game timer');
+        startGameTimer();
+      }
     }
-    } 
     catch (err) {
-        console.error('[Wordle] WebSocket setup failed:', err);
+      console.error('[Wordle] WebSocket setup failed:', err);
     }
   };
 
@@ -569,11 +536,11 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
 
       players.forEach(p => {
         if (!updated[p]) {
-          
+
           const usedColors = Object.values(updated);
-          
+
           const availableColors = COLOR_POOL.filter(c => !usedColors.includes(c));
-          
+
           const newColor =
             availableColors.length > 0
               ? availableColors[Math.floor(Math.random() * availableColors.length)]
@@ -587,7 +554,6 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
     });
   }, [players]);
 
-  // 🧽 Cleanup socket on unmount
   useEffect(() => {
     console.log("why am i in worlde")
     if (first) {
@@ -663,7 +629,7 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
       console.log(`[Wordle] Row ${selectedRow} already submitted, skipping`);
       return;
     }
-    
+
     const rowArr = Array.isArray(grid[selectedRow]) ? grid[selectedRow] : [];
     const guess = rowArr.join('').toUpperCase();
     setSubmittedRows(prev => new Set(prev).add(selectedRow));
@@ -709,45 +675,40 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
         // Friendly early finisher alert
         if (!hasFinishedAlertShownRef.current) {
           hasFinishedAlertShownRef.current = true;
-
-          // Alert.alert(
-          //   "🎉 You finished!",
-          //   "Please wait for final results..."
-          // );
           ToastAndroid.show("🎉 You finished! Please wait for final results...", ToastAndroid.SHORT);
         }
       }
-      
+
       // Prevent duplicate finalize calls
       if (finalizeSentRef.current) {
         console.log('[Wordle] finalize already sent, skipping');
         return;
       }
       finalizeSentRef.current = true;
-      
+
       // Submit final results to backend
       try {
         const accessToken = await getAccessToken();
         if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+          Alert.alert(
+            "Session expired",
+            "Your login session has expired. Please log in again.",
+            [
+              {
+                text: "OK",
+                onPress: async () => {
+                  await logout();
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Login" }],
+                  });
+                },
+              },
+            ],
+            { cancelable: false }
+          );
 
-                  return;
+          return;
         }
 
         const finalGuesses = [...results, feedback].map((r, idx) => ({
@@ -779,43 +740,43 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
             try {
               const token2 = await getAccessToken();
               if (!token2) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
+                Alert.alert(
+                  "Session expired",
+                  "Your login session has expired. Please log in again.",
+                  [
+                    {
+                      text: "OK",
+                      onPress: async () => {
+                        await logout();
+                        navigation.reset({
+                          index: 0,
+                          routes: [{ name: "Login" }],
+                        });
                       },
-                    ],
-                    { cancelable: false }
-                  );
+                    },
+                  ],
+                  { cancelable: false }
+                );
 
-                  return;
+                return;
               }
 
-                await fetch(endpoints.gameTimerExpired, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token2}`,
-                  },
-                  body: JSON.stringify({
-                    model: 'WordleGameState',
-                    game_state_id: gameStateId,
-                  }),
-                });
+              await fetch(endpoints.gameTimerExpired, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token2}`,
+                },
+                body: JSON.stringify({
+                  model: 'WordleGameState',
+                  game_state_id: gameStateId,
+                }),
+              });
             } catch (e) {
               console.error('[Wordle] finalize on complete failed', e);
             }
           }
-          
+
           // Show result alert for single-player
           if (!isMultiplayer && !hasShownResultRef.current) {
             const leaderboard = data.scores
@@ -906,8 +867,8 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.waitingText}>
               {remainingSec != null
                 ? `Starts in ${Math.floor(Math.max(0, remainingSec) / 60)}:${(Math.max(0, remainingSec) % 60)
-                    .toString()
-                    .padStart(2, '0')}`
+                  .toString()
+                  .padStart(2, '0')}`
                 : 'Starts soon'}
             </Text>
             {canStartNow && socketRef.current && (
@@ -949,45 +910,45 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
             Game Timer: {formatTime(gameTimeLeft)}
           </Text>
         )}
-        
+
         {/* Player List */}
         {players.length > 0 && (
-          <View 
-            style={{ 
-              marginVertical: 10, 
-              width: '100%', 
-              alignItems: 'center',       
-              justifyContent: 'center'    
+          <View
+            style={{
+              marginVertical: 10,
+              width: '100%',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
-            <Text 
-              style={{ 
-                color: 'white', 
-                fontWeight: 'bold', 
-                fontSize: 18, 
-                marginBottom: 5, 
-                textAlign: 'center' 
+            <Text
+              style={{
+                color: 'white',
+                fontWeight: 'bold',
+                fontSize: 18,
+                marginBottom: 5,
+                textAlign: 'center'
               }}
             >
               👥 Players {/*({players.length})*/}
             </Text>
 
-            <View 
-              style={{ 
-                flexDirection: 'row', 
-                flexWrap: 'wrap',          
-                justifyContent: 'center',  
-                alignItems: 'center' 
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+                alignItems: 'center'
               }}
             >
               {players.map((p, idx) => (
-                <View 
-                  key={idx} 
-                  style={{ 
-                    flexDirection: 'row', 
-                    alignItems: 'center', 
-                    marginHorizontal: 8,    
-                    marginBottom: 8         
+                <View
+                  key={idx}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginHorizontal: 8,
+                    marginBottom: 8
                   }}
                 >
                   <View
@@ -995,17 +956,17 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
                       backgroundColor: playerColors[p] || '#81C784',
                       width: 14,
                       height: 14,
-                      borderRadius: 7,            
-                      marginRight: 6,             
+                      borderRadius: 7,
+                      marginRight: 6,
                       borderWidth: 1,
                       borderColor: '#fff',
                     }}
                   />
-                  <Text 
-                    style={{ 
-                      color: 'white', 
-                      fontWeight: 'bold', 
-                      fontSize: 14 
+                  <Text
+                    style={{
+                      color: 'white',
+                      fontWeight: 'bold',
+                      fontSize: 14
                     }}
                   >
                     {p}
@@ -1046,8 +1007,8 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
                       cell.result === 'correct'
                         ? styles.correctCell
                         : cell.result === 'present'
-                        ? styles.presentCell
-                        : styles.absentCell,
+                          ? styles.presentCell
+                          : styles.absentCell,
                     ]}
                   />
                 ))}
@@ -1070,13 +1031,13 @@ const WordleScreen: React.FC<Props> = ({ navigation }) => {
                       status === 'correct'
                         ? styles.correctCell
                         : status === 'present'
-                        ? styles.presentCell
-                        : status === 'absent'
-                        ? styles.absentCell
-                        : {},
+                          ? styles.presentCell
+                          : status === 'absent'
+                            ? styles.absentCell
+                            : {},
                       selectedRow === rIndex &&
-                      selectedCol === cIndex &&
-                      !gameOver
+                        selectedCol === cIndex &&
+                        !gameOver
                         ? styles.selectedCell
                         : {},
                     ]}
@@ -1169,15 +1130,14 @@ const styles = StyleSheet.create({
     height: CELL_SIZE / 2.2,
     borderRadius: 4,
     marginHorizontal: 1,
-    backgroundColor: 'white',  
+    backgroundColor: 'white',
   },
-  // Waiting room styles (mirroring Sudoku)
   waitingOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    bottom: 0,              // full-screen
+    bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.85)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -1188,10 +1148,10 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     paddingHorizontal: 16,
     borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.1)',  // glass-like
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderColor: 'rgba(255,255,255,0.25)',
     borderWidth: 1,
-  }, 
+  },
   countdownText: {
     fontSize: 72,
     color: '#FFD700',

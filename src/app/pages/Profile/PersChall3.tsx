@@ -302,7 +302,6 @@ function countAlarmDaysBetween(startDate: Date, endDate: Date, alarmDays: number
             console.log('Challenge created for friend:', data);
 
             Alert.alert('Success', 'Challenge created for friend successfully', [
-                // { text: 'OK', onPress: () => navigation.navigate('PersChall1') }
                 { text: 'OK', onPress: () => navigation.dispatch(StackActions.pop(2)) }
             ]);
         }
@@ -445,9 +444,6 @@ function countAlarmDaysBetween(startDate: Date, endDate: Date, alarmDays: number
     }
 
   };
-
-
-
 
 
   const renderCalendar = (
@@ -838,8 +834,6 @@ const styles = StyleSheet.create({
   choiceButtonSelected: { backgroundColor: 'rgba(255,215,0,0.3)', borderColor: '#FFD700' },
   choiceText: { color: '#FFF', fontSize: 14, fontWeight: '600' },
   choiceTextSelected: { color: '#FFD700' },
-  //rewardHeader:{flexDirection:'row',alignItems:'center',marginBottom:12},
-
   activeNavText: {
     color: "#FFD700",
     fontSize: 12,

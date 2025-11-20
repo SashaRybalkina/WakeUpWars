@@ -56,25 +56,25 @@ const FriendsSearch: React.FC<Props> = ({ navigation }) => {
         setLoading(true)
         const accessToken = await getAccessToken();
         if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+          Alert.alert(
+            "Session expired",
+            "Your login session has expired. Please log in again.",
+            [
+              {
+                text: "OK",
+                onPress: async () => {
+                  await logout();
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Login" }],
+                  });
+                },
+              },
+            ],
+            { cancelable: false }
+          );
 
-                  return;
+          return;
         }
         // Fetch all users (robust JSON parsing)
         const response = await fetch(endpoints.allUsers(), {
@@ -85,7 +85,7 @@ const FriendsSearch: React.FC<Props> = ({ navigation }) => {
         let allUsersData: any = []
         try {
           allUsersData = allUsersText ? JSON.parse(allUsersText) : []
-        } catch {}
+        } catch { }
         const allUsersList: UserType[] = Array.isArray(allUsersData)
           ? allUsersData
           : (Array.isArray((allUsersData as any)?.results) ? (allUsersData as any).results : [])
@@ -98,7 +98,7 @@ const FriendsSearch: React.FC<Props> = ({ navigation }) => {
         let friendsData: any = []
         try {
           friendsData = friendsText ? JSON.parse(friendsText) : []
-        } catch {}
+        } catch { }
         const friendsList: UserType[] = Array.isArray(friendsData)
           ? friendsData
           : (Array.isArray((friendsData as any)?.friends) ? (friendsData as any).friends : [])
@@ -111,7 +111,7 @@ const FriendsSearch: React.FC<Props> = ({ navigation }) => {
         let requestsData: any = []
         try {
           requestsData = requestsText ? JSON.parse(requestsText) : []
-        } catch {}
+        } catch { }
         const requestsList: any[] = Array.isArray(requestsData)
           ? requestsData
           : (Array.isArray((requestsData as any)?.results) ? (requestsData as any).results : [])
@@ -152,45 +152,45 @@ const FriendsSearch: React.FC<Props> = ({ navigation }) => {
 
   const cancelFriendRequest = async (recipientId: number) => {
     if (!user?.id) return;
-  
+
     try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
+        return;
       }
-      
+
       const res = await fetch(endpoints.sentFriendRequests(Number(user.id)), {
         headers: {
           Authorization: `Bearer ${accessToken}`
         }
       });
       const data = await res.json();
-  
+
       const matchingRequest = data.find((r: any) => (r.recipient?.id ?? r.recipient_id) === recipientId);
 
       if (!matchingRequest) {
         Alert.alert("Error", "No friend request found to cancel.");
         return;
       }
-  
+
 
       const response = await fetch(endpoints.cancelFriendRequest(matchingRequest.id), {
         method: "DELETE",
@@ -198,7 +198,7 @@ const FriendsSearch: React.FC<Props> = ({ navigation }) => {
           Authorization: `Bearer ${accessToken}`
         }
       });
-  
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to cancel request");
@@ -212,7 +212,7 @@ const FriendsSearch: React.FC<Props> = ({ navigation }) => {
       let updatedRequests: any = [];
       try {
         updatedRequests = updatedRequestsText ? JSON.parse(updatedRequestsText) : [];
-      } catch {}
+      } catch { }
       const updatedList: any[] = Array.isArray(updatedRequests)
         ? updatedRequests
         : (Array.isArray((updatedRequests as any)?.results) ? (updatedRequests as any).results : []);
@@ -222,13 +222,13 @@ const FriendsSearch: React.FC<Props> = ({ navigation }) => {
         ...u,
         requestSent: updatedIds.includes(u.id),
       })));
-  
+
       Alert.alert("Cancelled", "Friend request cancelled successfully.");
     } catch (error: any) {
       Alert.alert("Error", error.message || "Something went wrong.");
     }
-  };  
-  
+  };
+
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -262,25 +262,25 @@ const FriendsSearch: React.FC<Props> = ({ navigation }) => {
 
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
+        return;
       }
       const response = await fetch(endpoints.sendFriendRequest(), {
         method: "POST",
@@ -368,14 +368,14 @@ const FriendsSearch: React.FC<Props> = ({ navigation }) => {
                         <Text style={styles.friendText}>Friend</Text>
                       </View>
                     ) : user.requestSent ? (
-                        <TouchableOpacity
+                      <TouchableOpacity
                         style={styles.requestSentBadge}
                         onPress={() => cancelFriendRequest(user.id)}
                         disabled={sendingRequest === user.id}
-                        >
+                      >
                         <Ionicons name="close-circle" size={18} color="#FFD700" />
                         <Text style={styles.requestSentText}>Cancel</Text>
-                        </TouchableOpacity>
+                      </TouchableOpacity>
                     ) : (
                       <TouchableOpacity
                         style={styles.addButton}

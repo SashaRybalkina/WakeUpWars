@@ -28,25 +28,25 @@ const NotificationsPage: React.FC<Props> = ({ navigation }) => {
       setLoading(true)
       const accessToken = await getAccessToken()
       if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
+        return;
       }
       const res = await fetch(endpoints.notifications(Number(user.id)), {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -88,7 +88,7 @@ const NotificationsPage: React.FC<Props> = ({ navigation }) => {
         challName: n.challName,
         whichChall: n.whichChall,
       })
-    } 
+    }
     else if (n.screen === "Profile") {
       navigation.navigate(n.screen as string, {
         changeTab: true,
@@ -102,16 +102,16 @@ const NotificationsPage: React.FC<Props> = ({ navigation }) => {
     else if (n.screen === "EditAvailability") {
       navigation.navigate(n.screen as string, {
         groupId: n.groupId,
-        pendingChallengeId: n.challengeId, 
-        pendingChallengeName: n.challName, 
+        pendingChallengeId: n.challengeId,
+        pendingChallengeName: n.challName,
         pendingChallengeStartDate: n.startDate,
         pendingChallengeEndDate: n.endDate,
-        accepted:1,
+        accepted: 1,
       })
     }
     else if (n.screen === "Bets") {
       navigation.navigate(n.screen as string, {
-        challId: n.challengeId, 
+        challId: n.challengeId,
         challName: n.challName,
         challengeMembers: n.members,
         isCompleted: n.isCompleted,
@@ -125,25 +125,25 @@ const NotificationsPage: React.FC<Props> = ({ navigation }) => {
   const deleteNotification = async (id: number) => {
     const token = await getAccessToken()
     if (!token) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+      Alert.alert(
+        "Session expired",
+        "Your login session has expired. Please log in again.",
+        [
+          {
+            text: "OK",
+            onPress: async () => {
+              await logout();
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "Login" }],
+              });
+            },
+          },
+        ],
+        { cancelable: false }
+      );
 
-                  return;
+      return;
     }
     await fetch(`${BASE_URL}/api/notifications/${id}/delete/`, {
       method: "DELETE",
@@ -162,39 +162,39 @@ const NotificationsPage: React.FC<Props> = ({ navigation }) => {
   return (
     <ImageBackground source={require("../../images/cgpt.png")} style={styles.bg}>
       <View style={styles.container}>
-                  <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                    <Ionicons name="arrow-back" size={24} color="#FFF" />
-                  </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color="#FFF" />
+        </TouchableOpacity>
         <Text style={styles.title}>Notifications</Text>
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size={100} color="#FFF" />
           </View>
         ) : (
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {notifications.length > 0 ? (
-            notifications.map((n, i) => (
-              <TouchableOpacity key={i} style={styles.card} onPress={() => handlePress(n)}>
-                <Ionicons name="notifications" size={28} color="#FFD700" style={{ marginRight: 10 }} />
-                <View style={{ flex: 1 }}>
-                  <View style={styles.header}>
-                    <Text style={styles.name}>{n.title}</Text>
-                    <Text style={styles.time}>{getTimeAgo(n.timestamp)}</Text>
-                    <TouchableOpacity onPress={() => confirmDelete(n.id)}>
-                      <Ionicons name="close" size={18} color="#FFD700" />
-                    </TouchableOpacity>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {notifications.length > 0 ? (
+              notifications.map((n, i) => (
+                <TouchableOpacity key={i} style={styles.card} onPress={() => handlePress(n)}>
+                  <Ionicons name="notifications" size={28} color="#FFD700" style={{ marginRight: 10 }} />
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.header}>
+                      <Text style={styles.name}>{n.title}</Text>
+                      <Text style={styles.time}>{getTimeAgo(n.timestamp)}</Text>
+                      <TouchableOpacity onPress={() => confirmDelete(n.id)}>
+                        <Ionicons name="close" size={18} color="#FFD700" />
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={styles.body}>{n.body}</Text>
                   </View>
-                  <Text style={styles.body}>{n.body}</Text>
-                </View>
-              </TouchableOpacity>
-            ))
-          ) : (
-            <View style={styles.empty}>
-              <Ionicons name="notifications-off-outline" size={60} color="#FFF" />
-              <Text style={styles.emptyText}>No notifications yet</Text>
-            </View>
-          )}
-        </ScrollView>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <View style={styles.empty}>
+                <Ionicons name="notifications-off-outline" size={60} color="#FFF" />
+                <Text style={styles.emptyText}>No notifications yet</Text>
+              </View>
+            )}
+          </ScrollView>
         )}
       </View>
     </ImageBackground>
@@ -204,7 +204,7 @@ const NotificationsPage: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   bg: { flex: 1 },
   container: { flex: 1, paddingTop: 60, paddingHorizontal: 20 },
-    backButton: {
+  backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -212,9 +212,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  title: { color: "#fff", fontSize: 38, fontWeight: "800", marginBottom: 20,     textShadowColor: "rgba(0, 0, 0, 0.2)",
+  title: {
+    color: "#fff", fontSize: 38, fontWeight: "800", marginBottom: 20, textShadowColor: "rgba(0, 0, 0, 0.2)",
     textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3, textAlign: "center" },
+    textShadowRadius: 3, textAlign: "center"
+  },
   card: {
     flexDirection: "row",
     backgroundColor: "rgba(50,50,60,0.3)",

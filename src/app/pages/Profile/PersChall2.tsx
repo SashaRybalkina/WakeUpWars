@@ -75,17 +75,17 @@ const PersChall2: React.FC<Props> = ({ navigation }) => {
       setShowTimePicker(false)
       return
     }
-  
+
     if (time) {
       if (Platform.OS === "android") {
         let formattedTime = formatTime(time)
         formattedTime = cleanTime(formattedTime)
-  
+
         const updatedMapping = { ...dayTimeMapping }
         selectedDays.forEach((day) => {
           updatedMapping[day] = formattedTime
         })
-  
+
         setDayTimeMapping(updatedMapping)
         setSelectedDays([])
         setShowTimePicker(false)
@@ -225,7 +225,7 @@ const PersChall2: React.FC<Props> = ({ navigation }) => {
         candidate.setDate(today.getDate() + offset);
         const candidateDay = candidate.getDay(); // 0=Sun,1=Mon,...6=Sat
         // convert to your mapping
-        const candidateDayInt = candidateDay === 0 ? 7 : candidateDay; 
+        const candidateDayInt = candidateDay === 0 ? 7 : candidateDay;
         if (alarmDays.includes(candidateDayInt)) {
           return candidate;
         }
@@ -278,25 +278,25 @@ const PersChall2: React.FC<Props> = ({ navigation }) => {
       setSubmitting(true);
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
+        return;
       }
 
       // Step 2: Send the POST request
@@ -400,9 +400,6 @@ const PersChall2: React.FC<Props> = ({ navigation }) => {
                   onChange={onTimeChange}
                   textColor="#FFF"
                 />
-                {/* <TouchableOpacity style={styles.doneButton} onPress={handleSetTime}>
-                  <Text style={styles.doneButtonText}>Done</Text>
-                </TouchableOpacity> */}
                 {Platform.OS !== "android" && (
                   <TouchableOpacity style={styles.doneButton} onPress={handleSetTime}>
                     <Text style={styles.doneButtonText}>Done</Text>
@@ -421,31 +418,31 @@ const PersChall2: React.FC<Props> = ({ navigation }) => {
                     <Text style={styles.dayTitle}>{day}</Text>
                     <View style={styles.gamesList}>
                       {(gamesByDay[day] || []).map((game, index) => {
-                          const { image } = getMetaFromTuple(game);
+                        const { image } = getMetaFromTuple(game);
 
-                          return (
-                            <TouchableOpacity
-                              key={index}
-                              style={styles.gameCard}
-                              onPress={() => handleGameRemove(day, index)}
-                            >
-                              <View style={styles.gameContent}>
-                                <Text style={styles.gameTitle}>{game[1]}</Text>
-                                <Ionicons
-                                  name="close-circle"
-                                  size={20}
-                                  color="rgba(255,255,255,0.7)"
-                                  style={styles.removeIcon}
-                                />
-                              </View>
-                              <ImageBackground
-                                source={image}
-                                style={styles.gameImage}
-                                resizeMode="contain"
+                        return (
+                          <TouchableOpacity
+                            key={index}
+                            style={styles.gameCard}
+                            onPress={() => handleGameRemove(day, index)}
+                          >
+                            <View style={styles.gameContent}>
+                              <Text style={styles.gameTitle}>{game[1]}</Text>
+                              <Ionicons
+                                name="close-circle"
+                                size={20}
+                                color="rgba(255,255,255,0.7)"
+                                style={styles.removeIcon}
                               />
-                            </TouchableOpacity>
-                          );
-                        })}
+                            </View>
+                            <ImageBackground
+                              source={image}
+                              style={styles.gameImage}
+                              resizeMode="contain"
+                            />
+                          </TouchableOpacity>
+                        );
+                      })}
                     </View>
                   </View>
                 ))}
@@ -497,9 +494,6 @@ const PersChall2: React.FC<Props> = ({ navigation }) => {
                   onChange={onDateChange}
                   textColor="#FFF"
                 />
-                {/* <TouchableOpacity style={styles.doneButton} onPress={() => setShowDatePicker(false)}>
-                  <Text style={styles.doneButtonText}>Done</Text>
-                </TouchableOpacity> */}
                 {Platform.OS !== "android" && (
                   <TouchableOpacity
                     style={styles.doneButton}

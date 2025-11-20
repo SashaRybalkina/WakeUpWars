@@ -39,7 +39,7 @@ const DAYS = ["M", "T", "W", "TH", "F", "S", "SU"]
 
 const PersChall2Copy: React.FC<Props> = ({ navigation }) => {
   const { user } = useUser()
-    
+
   const [name, setName] = useState("")
 
   const [tempTime, setTempTime] = useState<Date | null>(null)
@@ -79,38 +79,38 @@ const PersChall2Copy: React.FC<Props> = ({ navigation }) => {
   //   }
   // }
 
-const toggleDay = (day: string) => {
-  setSelectedDays((prev) =>
-    prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
-  )
-}
+  const toggleDay = (day: string) => {
+    setSelectedDays((prev) =>
+      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+    )
+  }
 
 
 
   const onTimeChange = (event: any, time?: Date) => {
 
-  if (Platform.OS === "android") {
-    if (event?.type === "dismissed") {
+    if (Platform.OS === "android") {
+      if (event?.type === "dismissed") {
+        setShowTimePicker(false);
+        return;
+      }
       setShowTimePicker(false);
-      return;
+
+      if (event?.type === "set" && time) {
+        let formattedTime = formatTime(time);
+        formattedTime = cleanTime(formattedTime);
+
+        const updatedMapping = { ...dayTimeMapping };
+        selectedDays.forEach((day) => {
+          updatedMapping[day] = formattedTime;
+        });
+
+        setDayTimeMapping(updatedMapping);
+        setSelectedDays([]);
+        // setShowTimePicker(false);
+      }
     }
-    setShowTimePicker(false);
-
-    if (event?.type === "set" && time) {
-      let formattedTime = formatTime(time);
-      formattedTime = cleanTime(formattedTime);
-
-      const updatedMapping = { ...dayTimeMapping };
-      selectedDays.forEach((day) => {
-        updatedMapping[day] = formattedTime;
-      });
-
-      setDayTimeMapping(updatedMapping);
-      setSelectedDays([]);
-      // setShowTimePicker(false);
-    }
-  }
-};
+  };
 
 
   const formatTime = (date: Date) => {
@@ -121,16 +121,16 @@ const toggleDay = (day: string) => {
     })
   }
 
-const toAmPm = (time24: string) => {
-  // Split into hours and minutes
-  const [hoursStr, minutes] = time24.split(":");
-  let hours = parseInt(hoursStr, 10);
-  const ampm = hours >= 12 ? "PM" : "AM";
-  
-  hours = hours % 12 || 12; // convert 0 -> 12 for midnight, 13 -> 1, etc.
-  
-  return `${hours}:${minutes} ${ampm}`;
-};
+  const toAmPm = (time24: string) => {
+    // Split into hours and minutes
+    const [hoursStr, minutes] = time24.split(":");
+    let hours = parseInt(hoursStr, 10);
+    const ampm = hours >= 12 ? "PM" : "AM";
+
+    hours = hours % 12 || 12; // convert 0 -> 12 for midnight, 13 -> 1, etc.
+
+    return `${hours}:${minutes} ${ampm}`;
+  };
 
   const cleanTime = (time: string) => {
     return time.replace(/\u202f/g, "").trim()
@@ -161,14 +161,14 @@ const toAmPm = (time24: string) => {
   //   setGamesByDay(updated)
   // }
 
-const handleGameAdd = (game: { id: number; name: string }) => {
-  if (!selectedGameDay) return;
+  const handleGameAdd = (game: { id: number; name: string }) => {
+    if (!selectedGameDay) return;
 
-  const updated = { ...gamesByDay };
-  if (!updated[selectedGameDay]) updated[selectedGameDay] = [];
-  updated[selectedGameDay].push([game.id.toString(), game.name]);
-  setGamesByDay(updated);
-};
+    const updated = { ...gamesByDay };
+    if (!updated[selectedGameDay]) updated[selectedGameDay] = [];
+    updated[selectedGameDay].push([game.id.toString(), game.name]);
+    setGamesByDay(updated);
+  };
 
 
 
@@ -183,7 +183,7 @@ const handleGameAdd = (game: { id: number; name: string }) => {
     setGamesByDay(updated)
   }
 
-    const toLocalYMD = (d: Date) => {
+  const toLocalYMD = (d: Date) => {
     const y = d.getFullYear()
     const m = String(d.getMonth() + 1).padStart(2, '0')
     const day = String(d.getDate()).padStart(2, '0')
@@ -191,7 +191,7 @@ const handleGameAdd = (game: { id: number; name: string }) => {
   }
 
 
-  const handleNext = async() => {
+  const handleNext = async () => {
     if (!name.trim()) {
       Alert.alert("Error", "Please enter a challenge name")
       return
@@ -249,19 +249,19 @@ const handleGameAdd = (game: { id: number; name: string }) => {
 
 
 
-      const alarmDays = alarmSchedule.map(a => a.dayOfWeek);
-      const gameDays = gameSchedules.map(g => g.dayOfWeek);
+    const alarmDays = alarmSchedule.map(a => a.dayOfWeek);
+    const gameDays = gameSchedules.map(g => g.dayOfWeek);
 
-      // find alarm days missing games
-      const missingGames = alarmDays.filter(day => !gameDays.includes(day));
+    // find alarm days missing games
+    const missingGames = alarmDays.filter(day => !gameDays.includes(day));
 
-      if (missingGames.length > 0) {
-        Alert.alert(
-          "Error",
-          "Please select at least one game for each day that has an alarm."
-        );
-        return;
-      }
+    if (missingGames.length > 0) {
+      Alert.alert(
+        "Error",
+        "Please select at least one game for each day that has an alarm."
+      );
+      return;
+    }
 
 
 
@@ -276,13 +276,13 @@ const handleGameAdd = (game: { id: number; name: string }) => {
     // const startDate = toLocalYMD(nextAlarmDate);
 
     navigation.navigate('PersChall3', {
-                first_possible_start_date: toLocalYMD(nextAlarmDate),
-                name,
-                alarm_schedule: alarmSchedule,
-                game_schedule: gameSchedules,
-                chall_type: 'Personal'
-            })
-  
+      first_possible_start_date: toLocalYMD(nextAlarmDate),
+      name,
+      alarm_schedule: alarmSchedule,
+      game_schedule: gameSchedules,
+      chall_type: 'Personal'
+    })
+
   }
 
 
@@ -314,49 +314,49 @@ const handleGameAdd = (game: { id: number; name: string }) => {
           </View>
 
           <View style={styles.formSection}>
-          <Text style={styles.sectionTitle}>Select Days</Text>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.daysScrollContent}
-          >
-            {DAYS.map((day, index) => {
-              const isSelected = selectedDays.includes(day)
-              const hasTime = dayTimeMapping[day]
-              
-              return (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.dayButton,
-                    isSelected && styles.dayButtonSelected,
-                    hasTime && styles.dayButtonWithTime
-                  ]}
-                  onPress={() => toggleDay(day)}
-                >
-                  <Text style={[styles.dayText, isSelected && styles.dayTextSelected]}>
-                    {day}
-                  </Text>
-                  {hasTime && (
-                    <Text style={styles.timeText}>{toAmPm(dayTimeMapping[day])}</Text>
-                  )}
-                </TouchableOpacity>
-              )
-            })}
-          </ScrollView>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => setShowTimePicker(true)}
-          >
-            <LinearGradient
-              colors={["rgba(255, 255, 255, 0.2)", "rgba(255, 255, 255, 0.1)"]}
-              style={styles.buttonGradient}
+            <Text style={styles.sectionTitle}>Select Days</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.daysScrollContent}
             >
-              <Ionicons name="alarm-outline" size={20} color="#FFF" style={styles.buttonIcon} />
-              <Text style={styles.buttonText}>Set Alarm Time</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+              {DAYS.map((day, index) => {
+                const isSelected = selectedDays.includes(day)
+                const hasTime = dayTimeMapping[day]
+
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.dayButton,
+                      isSelected && styles.dayButtonSelected,
+                      hasTime && styles.dayButtonWithTime
+                    ]}
+                    onPress={() => toggleDay(day)}
+                  >
+                    <Text style={[styles.dayText, isSelected && styles.dayTextSelected]}>
+                      {day}
+                    </Text>
+                    {hasTime && (
+                      <Text style={styles.timeText}>{toAmPm(dayTimeMapping[day])}</Text>
+                    )}
+                  </TouchableOpacity>
+                )
+              })}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => setShowTimePicker(true)}
+            >
+              <LinearGradient
+                colors={["rgba(255, 255, 255, 0.2)", "rgba(255, 255, 255, 0.1)"]}
+                style={styles.buttonGradient}
+              >
+                <Ionicons name="alarm-outline" size={20} color="#FFF" style={styles.buttonIcon} />
+                <Text style={styles.buttonText}>Set Alarm Time</Text>
+              </LinearGradient>
+            </TouchableOpacity>
 
             {showTimePicker && (
               <View style={styles.pickerContainer}>
@@ -367,107 +367,104 @@ const handleGameAdd = (game: { id: number; name: string }) => {
                   onChange={onTimeChange}
                   textColor="#FFF"
                 />
-                {/* <TouchableOpacity style={styles.doneButton} onPress={handleSetTime}>
-                  <Text style={styles.doneButtonText}>Done</Text>
-                </TouchableOpacity> */}
                 {Platform.OS !== "android" && (
                   <TouchableOpacity style={styles.doneButton} onPress={handleSetTime}>
                     <Text style={styles.doneButtonText}>Done</Text>
                   </TouchableOpacity>
-                )}      
+                )}
               </View>
             )}
           </View>
 
-{Object.keys(dayTimeMapping).length > 0 && (
-  <View style={styles.formSection}>
-    <Text style={styles.sectionTitle}>Select Day to Add Games</Text>
-    
-    {/* Day buttons, sorted in weekday order */}
-    <ScrollView 
-    horizontal 
-    showsHorizontalScrollIndicator={false} 
-    contentContainerStyle={styles.daysScrollContent}
-    >
-      {Object.keys(dayTimeMapping)
-        .sort((a, b) => dayToInt[a] - dayToInt[b])
-        .map((day) => {
-          const isSelected = selectedGameDay === day;
+          {Object.keys(dayTimeMapping).length > 0 && (
+            <View style={styles.formSection}>
+              <Text style={styles.sectionTitle}>Select Day to Add Games</Text>
 
-          return (
-            <TouchableOpacity
-              key={day}
-              style={[styles.dayButton, isSelected && styles.dayButtonSelected]}
-              onPress={() => setSelectedGameDay(day)}
-            >
-              <Text style={[styles.dayText, isSelected && styles.dayTextSelected]}>
-                {day}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-    </ScrollView>
+              {/* Day buttons, sorted in weekday order */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.daysScrollContent}
+              >
+                {Object.keys(dayTimeMapping)
+                  .sort((a, b) => dayToInt[a] - dayToInt[b])
+                  .map((day) => {
+                    const isSelected = selectedGameDay === day;
 
-    {/* Games for the selected day */}
-    {selectedGameDay && gamesByDay[selectedGameDay]?.length > 0 && (
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 4, alignItems: 'flex-start' }}
-      >
-        {gamesByDay[selectedGameDay].map((game, index) => {
-          const { image } = getMetaFromTuple(game);
-          return (
-            <TouchableOpacity
-              key={index}
-              style={[styles.gameCard, { width: 160, marginRight: 8 }]}
-              onPress={() => handleGameRemove(selectedGameDay, index)}
-            >
-              <View style={styles.gameContent}>
-                <Text style={styles.gameTitle}>{game[1]}</Text>
-                <Ionicons
-                  name="close-circle"
-                  size={20}
-                  color="rgba(255,255,255,0.7)"
-                  style={styles.removeIcon}
-                />
-              </View>
+                    return (
+                      <TouchableOpacity
+                        key={day}
+                        style={[styles.dayButton, isSelected && styles.dayButtonSelected]}
+                        onPress={() => setSelectedGameDay(day)}
+                      >
+                        <Text style={[styles.dayText, isSelected && styles.dayTextSelected]}>
+                          {day}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+              </ScrollView>
 
-              <ImageBackground
-                source={image}
-                style={styles.gameImage}
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-    )}
+              {/* Games for the selected day */}
+              {selectedGameDay && gamesByDay[selectedGameDay]?.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingHorizontal: 4, alignItems: 'flex-start' }}
+                >
+                  {gamesByDay[selectedGameDay].map((game, index) => {
+                    const { image } = getMetaFromTuple(game);
+                    return (
+                      <TouchableOpacity
+                        key={index}
+                        style={[styles.gameCard, { width: 160, marginRight: 8 }]}
+                        onPress={() => handleGameRemove(selectedGameDay, index)}
+                      >
+                        <View style={styles.gameContent}>
+                          <Text style={styles.gameTitle}>{game[1]}</Text>
+                          <Ionicons
+                            name="close-circle"
+                            size={20}
+                            color="rgba(255,255,255,0.7)"
+                            style={styles.removeIcon}
+                          />
+                        </View>
 
-    {/* Add Game button (only if no games yet for selected day) */}
-    {selectedGameDay && (!gamesByDay[selectedGameDay] || gamesByDay[selectedGameDay].length === 0) && (
-      <TouchableOpacity
-        style={[styles.addGameButton, { width: 120, marginLeft: 8 }]}
-        onPress={() => {
-          navigation.navigate("GameSelection", {
-            singOrMult: "Singleplayer",
-            onGameSelected: (game: { id: number; name: string }) => {
-              handleGameAdd(game);
-            },
-          });
-        }}
-      >
-        <LinearGradient
-          colors={["rgba(255, 255, 255, 0.2)", "rgba(255, 255, 255, 0.1)"]}
-          style={styles.addGameGradient}
-        >
-          <Ionicons name="add-circle-outline" size={24} color="#FFF" />
-          <Text style={styles.addGameText}>Add Game</Text>
-        </LinearGradient>
-      </TouchableOpacity>
-    )}
-  </View>
-)}
+                        <ImageBackground
+                          source={image}
+                          style={styles.gameImage}
+                          resizeMode="contain"
+                        />
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              )}
+
+              {/* Add Game button (only if no games yet for selected day) */}
+              {selectedGameDay && (!gamesByDay[selectedGameDay] || gamesByDay[selectedGameDay].length === 0) && (
+                <TouchableOpacity
+                  style={[styles.addGameButton, { width: 120, marginLeft: 8 }]}
+                  onPress={() => {
+                    navigation.navigate("GameSelection", {
+                      singOrMult: "Singleplayer",
+                      onGameSelected: (game: { id: number; name: string }) => {
+                        handleGameAdd(game);
+                      },
+                    });
+                  }}
+                >
+                  <LinearGradient
+                    colors={["rgba(255, 255, 255, 0.2)", "rgba(255, 255, 255, 0.1)"]}
+                    style={styles.addGameGradient}
+                  >
+                    <Ionicons name="add-circle-outline" size={24} color="#FFF" />
+                    <Text style={styles.addGameText}>Add Game</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
 
 
 
@@ -496,7 +493,7 @@ const handleGameAdd = (game: { id: number; name: string }) => {
       />
     </ImageBackground>
   )
-  
+
 }
 
 const styles = StyleSheet.create({
@@ -752,7 +749,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   choiceRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 10 },
-  choiceButton: { marginTop:-20, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', marginRight: 10, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  choiceButton: { marginTop: -20, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', marginRight: 10, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
   choiceButtonSelected: { backgroundColor: 'rgba(255,215,0,0.3)', borderColor: '#FFD700' },
   choiceText: { color: '#FFF', fontSize: 14, fontWeight: '600' },
   choiceTextSelected: { color: '#FFD700' },
@@ -764,12 +761,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontWeight: "600",
   },
-dayColumnLabel: {
-  color: "#FFF",
-  fontWeight: "bold",
-  marginBottom: 4,
-  fontSize: 16,
-},
+  dayColumnLabel: {
+    color: "#FFF",
+    fontWeight: "bold",
+    marginBottom: 4,
+    fontSize: 16,
+  },
 })
 
 export default PersChall2Copy

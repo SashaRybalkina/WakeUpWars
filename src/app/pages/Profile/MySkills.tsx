@@ -27,25 +27,25 @@ const MySkills: React.FC<Props> = ({ navigation }) => {
         setError(null);
         const access = await getAccessToken();
         if (!access) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+          Alert.alert(
+            "Session expired",
+            "Your login session has expired. Please log in again.",
+            [
+              {
+                text: "OK",
+                onPress: async () => {
+                  await logout();
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Login" }],
+                  });
+                },
+              },
+            ],
+            { cancelable: false }
+          );
 
-                  return;
+          return;
         }
         const res = await fetch(endpoints.skillLevels(), {
           headers: { Authorization: `Bearer ${access}` },
@@ -65,7 +65,7 @@ const MySkills: React.FC<Props> = ({ navigation }) => {
     if (!possible || possible <= 0) return 0;
     const v = Math.min(10, 10 * (earned / possible));
     return Math.round(v * 100) / 100;
-    };
+  };
 
   return (
     <ImageBackground source={require('../../images/cgpt.png')} style={styles.bg} resizeMode="cover">
@@ -73,7 +73,7 @@ const MySkills: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.title}>My Skills</Text>
 
         {loading && (
-          <View style={styles.center}> 
+          <View style={styles.center}>
             <ActivityIndicator color="#FFF" />
           </View>
         )}
@@ -88,10 +88,10 @@ const MySkills: React.FC<Props> = ({ navigation }) => {
             const val = serverVal != null ? serverVal : fallback;
             const iconName = (
               categoryName?.toLowerCase().includes('math') ? 'calculator-outline' :
-              categoryName?.toLowerCase().includes('word') ? 'book-outline' :
-              categoryName?.toLowerCase().includes('memory') ? 'grid-outline' :
-              categoryName?.toLowerCase().includes('logic') ? 'cube-outline' :
-              'star-outline'
+                categoryName?.toLowerCase().includes('word') ? 'book-outline' :
+                  categoryName?.toLowerCase().includes('memory') ? 'grid-outline' :
+                    categoryName?.toLowerCase().includes('logic') ? 'cube-outline' :
+                      'star-outline'
             );
             const size = 92;
             const stroke = 8;
@@ -108,17 +108,17 @@ const MySkills: React.FC<Props> = ({ navigation }) => {
               >
                 <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
                   <Svg width={size} height={size}>
-                    <Circle cx={size/2} cy={size/2} r={r} stroke="rgba(255,255,255,0.12)" strokeWidth={stroke} fill="transparent" />
+                    <Circle cx={size / 2} cy={size / 2} r={r} stroke="rgba(255,255,255,0.12)" strokeWidth={stroke} fill="transparent" />
                     <Circle
-                      cx={size/2}
-                      cy={size/2}
+                      cx={size / 2}
+                      cy={size / 2}
                       r={r}
                       stroke="#FFD700"
                       strokeWidth={stroke}
                       strokeDasharray={`${dash}, ${c}`}
                       strokeLinecap="round"
                       fill="transparent"
-                      transform={`rotate(-90 ${size/2} ${size/2})`}
+                      transform={`rotate(-90 ${size / 2} ${size / 2})`}
                     />
                   </Svg>
                   <Ionicons name={iconName as any} size={28} color="#FFF" style={{ position: 'absolute' }} />

@@ -53,49 +53,49 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
       // fetch all personal challenges
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
+        return;
       }
-    
-          const response = await fetch(endpoints.getPersonalChallenges(Number(user?.id)), {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`
-                }
-              });
-          const data = await response.json();
 
-          const formattedData = data.map(
-            (item: Challenge) => ({
-                id: item.id,
-                name: item.name,
-                startDate: item.startDate,
-                endDate: item.endDate,
-                daysOfWeek: item.daysOfWeek,
-                daysCompleted: item.daysCompleted,
-                totalDays: item.totalDays,
-                isCompleted: item.isCompleted,
-                isGroupChallenge: item.isGroupChallenge,
-            })
-          );
-          setChallenges(formattedData);
-          
+      const response = await fetch(endpoints.getPersonalChallenges(Number(user?.id)), {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      });
+      const data = await response.json();
+
+      const formattedData = data.map(
+        (item: Challenge) => ({
+          id: item.id,
+          name: item.name,
+          startDate: item.startDate,
+          endDate: item.endDate,
+          daysOfWeek: item.daysOfWeek,
+          daysCompleted: item.daysCompleted,
+          totalDays: item.totalDays,
+          isCompleted: item.isCompleted,
+          isGroupChallenge: item.isGroupChallenge,
+        })
+      );
+      setChallenges(formattedData);
+
       // fetch pending invites
       const pendingRes = await axios.get(endpoints.getPersonalChallengeInvites(Number(user!.id)), {
         headers: {
@@ -124,28 +124,28 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
     try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
+        return;
       }
 
-      
+
       const res = await fetch(endpoints.acceptPersonalChallenge(Number(user!.id), challId), {
         method: 'POST',
         headers: {
@@ -153,40 +153,40 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
           "Authorization": `Bearer ${accessToken}`,
         },
       });
-      
+
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.message || "Failed to accept challenge");
       }
       // await scheduleAlarmsForUser(challId, challName, Number(user?.id));
       console.log('Challenge accepted:', data);
-      
-            try {
-              await scheduleAlarmsForUser(challId, challName, Number(user?.id));
-            } catch (e) {
-              if ((e as Error).message === "AUTH_EXPIRED") {
-                Alert.alert(
-                  "Session expired",
-                  "Your login session has expired. Please log in again.",
-                  [
-                    {
-                      text: "OK",
-                      onPress: async () => {
-                        await logout();
-                        navigation.reset({
-                          index: 0,
-                          routes: [{ name: "Login" }],
-                        });
-                      },
-                    },
-                  ],
-                  { cancelable: false }
-                );
-                return;
-              }
 
-              console.warn("Failed to fetch schedule for user", e);
-            }
+      try {
+        await scheduleAlarmsForUser(challId, challName, Number(user?.id));
+      } catch (e) {
+        if ((e as Error).message === "AUTH_EXPIRED") {
+          Alert.alert(
+            "Session expired",
+            "Your login session has expired. Please log in again.",
+            [
+              {
+                text: "OK",
+                onPress: async () => {
+                  await logout();
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Login" }],
+                  });
+                },
+              },
+            ],
+            { cancelable: false }
+          );
+          return;
+        }
+
+        console.warn("Failed to fetch schedule for user", e);
+      }
 
 
       // refresh after accepting
@@ -202,25 +202,25 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
     try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
+        return;
       }
 
       const res = await fetch(endpoints.declinePersonalChallenge(Number(user!.id), challId), {
@@ -271,7 +271,7 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
-            
+
           {/* -------- PENDING -------- */}
           {!loading && pendingChallenges.length > 0 && (
             <View style={styles.challengesSection}>
@@ -288,7 +288,7 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
                       navigation.navigate("ChallSchedule", {
                         challId: c.id,
                         challName: c.name,
-                        fromInvite: true,  
+                        fromInvite: true,
                       })
                     }
                   />
@@ -363,12 +363,12 @@ const PersChall1: React.FC<Props> = ({ navigation }) => {
             style={styles.pastButtonContainer}
             onPress={() => navigation.navigate("PastChallenges", { type: "Personal" })}
           >
-              <LinearGradient
-                colors={["#FFD700", "#fdb021ff"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.pastButtonGradient}
-              >
+            <LinearGradient
+              colors={["#FFD700", "#fdb021ff"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.pastButtonGradient}
+            >
               <View style={styles.pastButtonRow}>
                 <Ionicons name="time-outline" size={18} color="#333" style={{ marginRight: 8 }} />
                 <Text style={styles.pastButtonText}>View past challenges</Text>
@@ -444,8 +444,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 6,
-    // borderTopWidth: 1,
-    // borderTopColor: "rgba(255, 255, 255, 0.35)",
   },
   pastButtonText: {
     color: "#353535ff",
