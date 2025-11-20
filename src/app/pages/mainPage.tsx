@@ -1,3 +1,8 @@
+/**
+ * @file mainPage.tsx
+ * @description A basic main screen that displays three navigation buttons.
+ */
+
 import React from 'react';
 import {
   StyleSheet,
