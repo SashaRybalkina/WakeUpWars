@@ -74,25 +74,25 @@ const GroupInvites: React.FC<Props> = ({ navigation }) => {
   const fetchWithAutoRefresh = async (url: string) => {
     let accessToken = await getAccessToken()
     if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+      Alert.alert(
+        "Session expired",
+        "Your login session has expired. Please log in again.",
+        [
+          {
+            text: "OK",
+            onPress: async () => {
+              await logout();
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "Login" }],
+              });
+            },
+          },
+        ],
+        { cancelable: false }
+      );
 
-                  return;
+      return;
     }
 
     let res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } })
@@ -160,25 +160,25 @@ const GroupInvites: React.FC<Props> = ({ navigation }) => {
       setProcessingId(inviteId)
       const accessToken = await getAccessToken()
       if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
+        return;
       }
 
       const response = await fetch(endpoints.respondToGroupInvite(inviteId), {
@@ -198,9 +198,9 @@ const GroupInvites: React.FC<Props> = ({ navigation }) => {
       setInvites(invites.filter((inv) => inv.id !== inviteId))
       invalidateGroups();
       // Alert.alert("Success", accept ? "You’ve joined the group!" : "Group invite declined.")
-              Alert.alert("Success", accept ? "You’ve joined the group!" : "Group invite declined.", [
-                { text: "OK", onPress: () => navigation.navigate("Groups") },
-              ])
+      Alert.alert("Success", accept ? "You’ve joined the group!" : "Group invite declined.", [
+        { text: "OK", onPress: () => navigation.navigate("Groups") },
+      ])
     } catch (error: any) {
       Alert.alert("Error", error.message || `Failed to ${accept ? "accept" : "decline"} invite`)
     } finally {

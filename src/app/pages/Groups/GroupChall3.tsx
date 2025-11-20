@@ -37,13 +37,13 @@ const GroupChall3: React.FC<Props> = ({ navigation }) => {
   };
 
   const goToNext = (singOrMult: String) => {
-    navigation.navigate('Games', { 
-      catType, 
+    navigation.navigate('Games', {
+      catType,
       catId,
-      catName, 
+      catName,
       singOrMult,
-      groupId, 
-      groupMembers, 
+      groupId,
+      groupMembers,
       onGameSelected,
       challId,
       challName,
@@ -69,16 +69,16 @@ const GroupChall3: React.FC<Props> = ({ navigation }) => {
       <View style={[styles.decorativeDot, { bottom: '25%', right: '20%' }]} />
       <View style={[styles.decorativeDot, { bottom: '15%', left: '10%' }]} />
       <View style={[styles.decorativeDot, { top: '45%', left: '5%' }]} />
-      
+
       <View style={styles.backButtonContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
           <Ionicons name="arrow-back" size={30} color="#FFF" />
         </TouchableOpacity>
       </View>
-      
+
       <View style={styles.container}>
         <Text style={styles.title}>Mode</Text>
         <TouchableOpacity

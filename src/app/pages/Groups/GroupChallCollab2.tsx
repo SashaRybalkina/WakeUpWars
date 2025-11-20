@@ -33,17 +33,15 @@ import { getAccessToken } from '../../auth';
 import { getMetaFromTuple } from '../Games/NewGamesManagement';
 import { getNextAlarmDate } from '../../../utils/dateUtils';
 
-type Props = { navigation: NavigationProp<any> } 
-// Config 
-
-
-const GroupChallCollab2: React.FC<Props> = ({ navigation }) => { 
-  const route = useRoute() 
-  const { name, groupId, members, alarmSchedule } = route.params as { 
+type Props = { navigation: NavigationProp<any> }
+const GroupChallCollab2: React.FC<Props> = ({ navigation }) => {
+  const route = useRoute()
+  const { name, groupId, members, alarmSchedule } = route.params as {
     name: string
-    groupId: number 
+    groupId: number
     members: { id: number; name: string }[]
-    alarmSchedule: { dayOfWeek: number; time: string }[], }
+    alarmSchedule: { dayOfWeek: number; time: string }[],
+  }
 
   console.log("GroupChallCollab2 route params:", route.params);
 
@@ -65,14 +63,14 @@ const GroupChallCollab2: React.FC<Props> = ({ navigation }) => {
   }
 
   const intToDay: Record<number, string> = {
-  1: "M",
-  2: "T",
-  3: "W",
-  4: "TH",
-  5: "F",
-  6: "S",
-  7: "SU",
-};
+    1: "M",
+    2: "T",
+    3: "W",
+    4: "TH",
+    5: "F",
+    6: "S",
+    7: "SU",
+  };
 
   const alarmDays = alarmSchedule.map(a => a.dayOfWeek);
   const DAYS = ["M", "T", "W", "TH", "F", "S", "SU"].filter(day =>
@@ -87,25 +85,25 @@ const GroupChallCollab2: React.FC<Props> = ({ navigation }) => {
       try {
         const access = await getAccessToken();
         if (!access) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+          Alert.alert(
+            "Session expired",
+            "Your login session has expired. Please log in again.",
+            [
+              {
+                text: "OK",
+                onPress: async () => {
+                  await logout();
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Login" }],
+                  });
+                },
+              },
+            ],
+            { cancelable: false }
+          );
 
-                  return;
+          return;
         }
         const res = await fetch(endpoints.getNumCoins(Number(user?.id)), {
           headers: {
@@ -114,10 +112,9 @@ const GroupChallCollab2: React.FC<Props> = ({ navigation }) => {
         });
         const data = await res.json()
         setNumUserCoins(data.numCoins);
-      } catch {}
+      } catch { }
     })();
   }, [user]);
-
 
   const toggleDay = (day: string) => {
     if (selectedDays.includes(day)) {
@@ -130,8 +127,6 @@ const GroupChallCollab2: React.FC<Props> = ({ navigation }) => {
       }
     }
   }
-
-
 
   const handleGameAdd = (game: { id: number; name: string }) => {
     const updated = { ...gamesByDay }
@@ -166,52 +161,37 @@ const GroupChallCollab2: React.FC<Props> = ({ navigation }) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // normalize to start of today
 
-    // for (let i = 1; i <= 7; i++) { // check the next 7 days
-    //     const candidate = new Date(today);
-    //     candidate.setDate(today.getDate() + i);
-
-    //     const jsDay = candidate.getDay(); // 0 = Sunday, 1 = Monday, ...
-    //     const dayOfWeek = jsDay === 0 ? 7 : jsDay; // convert to 1–7
-
-    //     if (alarmDays.includes(dayOfWeek)) {
-    //     return candidate;
-    //     }
-    // }
     return today
 
     // fallback, should never reach here if alarmDays is not empty
     throw new Error("No valid alarm days provided");
-    };
+  };
 
+  const handleNext = async () => {
 
+    const trimmed = participationFee.trim();
+    console.log(trimmed)
+    if (!/^\d+$/.test(trimmed)) {
+      Alert.alert('Error', 'Enter a valid positive whole number for the reward');
+      return;
+    }
 
-    const handleNext = async() => {
+    const fee = parseInt(trimmed, 10);
+    console.log(fee)
 
-      const trimmed = participationFee.trim();
-      console.log(trimmed)
-      if (!/^\d+$/.test(trimmed)) {
-        Alert.alert('Error', 'Enter a valid positive whole number for the reward');
-        return;
-      }
+    if (fee < 0) {
+      Alert.alert('Error', 'Enter a valid positive amount for the reward');
+      return;
+    }
 
-      const fee = parseInt(trimmed, 10);
-      console.log(fee)
+    if (fee > numUserCoins) {
+      Alert.alert('Error', `You do not have enough coins! You currently have ${numUserCoins} coins.`);
+      return;
+    }
 
-      if (fee < 0) {
-        Alert.alert('Error', 'Enter a valid positive amount for the reward');
-        return;
-      }
+    console.log("Games By Day:", JSON.stringify(gamesByDay, null, 2))
 
-      if (fee > numUserCoins) {
-        Alert.alert('Error', `You do not have enough coins! You currently have ${numUserCoins} coins.`);
-        return;
-      }
-
-
-        console.log("Games By Day:", JSON.stringify(gamesByDay, null, 2))
-
-
-      const gameSchedules = Object.entries(gamesByDay || {})
+    const gameSchedules = Object.entries(gamesByDay || {})
       .filter(([day, games]) => {
         const isValid = Array.isArray(games) && games.length > 0 && dayToInt[day]
         if (!isValid) {
@@ -244,45 +224,43 @@ const GroupChallCollab2: React.FC<Props> = ({ navigation }) => {
       })
       .filter(Boolean)
 
+    const alarmDays = alarmSchedule.map(a => a.dayOfWeek);
+    console.log(alarmDays)
+    const gameDays = gameSchedules.map(g => g.dayOfWeek);
+    console.log(gameDays)
 
+    // find alarm days missing games
+    const missingGames = alarmDays.filter(day => !gameDays.includes(day));
 
-            const alarmDays = alarmSchedule.map(a => a.dayOfWeek);
-            console.log(alarmDays)
-            const gameDays = gameSchedules.map(g => g.dayOfWeek);
-            console.log(gameDays)
-      
-            // find alarm days missing games
-            const missingGames = alarmDays.filter(day => !gameDays.includes(day));
-      
-            if (missingGames.length > 0) {
-              Alert.alert(
-                "Error",
-                "Please select at least one game for each day that has an alarm."
-              );
-              return;
-            }
-
-            try {            
-                // find first valid future start date
-                const date = getFirstValidStartDate(alarmDays);
-                console.log("first valid date:")
-                console.log(toLocalYMD(date));
-
-                navigation.navigate("PersChall3", {
-                    first_possible_start_date: toLocalYMD(date),
-                    name,
-                    alarm_schedule: alarmSchedule,
-                    game_schedule: gameSchedules,
-                    chall_type: 'Group',
-                    group_id: groupId,
-                    members,
-                    participation_fee: fee,
-                })
-            } catch {
-                console.log("failed to find first valid date")
-            }
-
+    if (missingGames.length > 0) {
+      Alert.alert(
+        "Error",
+        "Please select at least one game for each day that has an alarm."
+      );
+      return;
     }
+
+    try {
+      // find first valid future start date
+      const date = getFirstValidStartDate(alarmDays);
+      console.log("first valid date:")
+      console.log(toLocalYMD(date));
+
+      navigation.navigate("PersChall3", {
+        first_possible_start_date: toLocalYMD(date),
+        name,
+        alarm_schedule: alarmSchedule,
+        game_schedule: gameSchedules,
+        chall_type: 'Group',
+        group_id: groupId,
+        members,
+        participation_fee: fee,
+      })
+    } catch {
+      console.log("failed to find first valid date")
+    }
+
+  }
 
   return (
     <ImageBackground
@@ -296,221 +274,129 @@ const GroupChallCollab2: React.FC<Props> = ({ navigation }) => {
           <Ionicons name="arrow-back" size={28} color="#FFF" />
         </TouchableOpacity>
 
-          <ScrollView
-            contentContainerStyle={{ paddingBottom: 100 }}
-            showsVerticalScrollIndicator={false}
-          >
-
-      {/* <View style={styles.container}>
-        <Text style={styles.pageTitle}>Group Challenge</Text>
-      </View> */}
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 100 }}
+          showsVerticalScrollIndicator={false}
+        >
 
           <View style={styles.formSection}>
-          <Text style={styles.sectionTitle}>Select Games For Each Day</Text>
-          <ScrollView 
-            horizontal
-            style={styles.scrollContainer} 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.daysScrollContent}
-          >
-            {DAYS.map((day, index) => {
-              const isSelected = selectedDays.includes(day)
-              
-              return (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.dayButton,
-                    isSelected && styles.dayButtonSelected,
-                  ]}
-                  onPress={() => toggleDay(day)}
-                >
-                  <Text style={[styles.dayText, isSelected && styles.dayTextSelected]}>
-                    {day}
-                  </Text>
-                </TouchableOpacity>
-              )
-            })}
-          </ScrollView>
+            <Text style={styles.sectionTitle}>Select Games For Each Day</Text>
+            <ScrollView
+              horizontal
+              style={styles.scrollContainer}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.daysScrollContent}
+            >
+              {DAYS.map((day, index) => {
+                const isSelected = selectedDays.includes(day)
 
-
-
-{selectedDays.length === 1 && (
-  <View style={styles.formSection}>
-    <Text style={styles.sectionTitle}>Games for {selectedDays[0]}</Text>
-
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ paddingHorizontal: 4, alignItems: 'flex-start' }}
-    >
-      {(selectedDays[0] && gamesByDay[selectedDays[0]] || []).map((game, index) => {
-        const { image } = getMetaFromTuple(game);
-
-        return (
-          <TouchableOpacity
-            key={index}
-            style={[styles.gameCard, { width: 160, marginRight: 8 }]} // fixed width + spacing
-            onPress={() => selectedDays[0] && handleGameRemove(selectedDays[0], index)}
-          >
-            <View style={styles.gameContent}>
-              <Text style={styles.gameTitle}>{game[1]}</Text>
-              <Ionicons
-                name="close-circle"
-                size={20}
-                color="rgba(255,255,255,0.7)"
-                style={styles.removeIcon}
-              />
-            </View>
-
-            <ImageBackground
-              source={image}
-              style={styles.gameImage}
-              resizeMode="contain"
-            />
-          </TouchableOpacity>
-        );
-      })}
-
-      {/* Add Game Button */}
-      {(selectedDays && selectedDays[0] && (!gamesByDay[selectedDays[0]]) || (selectedDays && selectedDays[0] && gamesByDay[selectedDays[0]].length === 0)) && (
-      <TouchableOpacity
-        style={[styles.addGameButton, { width: 120, marginLeft: 8 }]} // same width as cards
-        onPress={() => {
-          // navigation.navigate("Categories", {
-          //   catType: "Group",
-          //   singOrMult: "Neither",
-          //   onGameSelected: (game: { id: number; name: string }) => {
-          //     handleGameAdd(game)
-          //   },
-          //   groupId,
-          //   challName: name,
-          //   groupMembers: members,
-          //   alarmSchedule
-          // })
-            navigation.navigate("GameSelection", {
-              singOrMult: "Neither",
-              onGameSelected: (game: { id: number; name: string }) => {
-                handleGameAdd(game)
-              },
-            })
-        }}
-
-      >
-        <LinearGradient
-          colors={["rgba(255, 255, 255, 0.2)", "rgba(255, 255, 255, 0.1)"]}
-          style={styles.addGameGradient}
-        >
-          <Ionicons name="add-circle-outline" size={24} color="#FFF" />
-          <Text style={styles.addGameText}>Add Game</Text>
-        </LinearGradient>
-      </TouchableOpacity>
-      )}
-    </ScrollView>
-  </View>
-)}
-
-
-
-{/* 
-          {selectedDays.length === 1 && (
-            <View style={styles.formSection}>
-              <Text style={styles.sectionTitle}>Games for {selectedDays[0]}</Text>
-              <View style={styles.gamesContainer}>
-                {(selectedDays[0] && gamesByDay[selectedDays[0]] || []).map((game, index) => {
-                  const { image } = getMetaFromTuple(game);
-
-                  return (
-                    <TouchableOpacity
-                      key={index}
-                      style={styles.gameCard}
-                      onPress={() => selectedDays[0] && handleGameRemove(selectedDays[0], index)}
-                    >
-                      <View style={styles.gameContent}>
-                        <Text style={styles.gameTitle}>{game[1]}</Text>
-                        <Ionicons
-                          name="close-circle"
-                          size={20}
-                          color="rgba(255,255,255,0.7)"
-                          style={styles.removeIcon}
-                        />
-                      </View>
-
-                      <ImageBackground
-                        source={image}
-                        style={styles.gameImage}
-                        resizeMode="contain"
-                      />
-                    </TouchableOpacity>
-                  );
-                })}
-
-                <TouchableOpacity
-                  style={styles.addGameButton}
-                  onPress={() => {
-                    navigation.navigate("Categories", {
-                      catType: "Group",
-                      singOrMult: "Neither",
-                      onGameSelected: (game: { id: number; name: string }) => {
-                        handleGameAdd(game)
-                      },
-                      groupId,
-                      challName: name,
-                      groupMembers: members,
-                      alarmSchedule
-                    })
-                  }}
-                >
-                  <LinearGradient
-                    colors={["rgba(255, 255, 255, 0.2)", "rgba(255, 255, 255, 0.1)"]}
-                    style={styles.addGameGradient}
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.dayButton,
+                      isSelected && styles.dayButtonSelected,
+                    ]}
+                    onPress={() => toggleDay(day)}
                   >
-                    <Ionicons name="add-circle-outline" size={24} color="#FFF" />
-                    <Text style={styles.addGameText}>Add Game</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
+                    <Text style={[styles.dayText, isSelected && styles.dayTextSelected]}>
+                      {day}
+                    </Text>
+                  </TouchableOpacity>
+                )
+              })}
+            </ScrollView>
+
+            {selectedDays.length === 1 && (
+              <View style={styles.formSection}>
+                <Text style={styles.sectionTitle}>Games for {selectedDays[0]}</Text>
+
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingHorizontal: 4, alignItems: 'flex-start' }}
+                >
+                  {(selectedDays[0] && gamesByDay[selectedDays[0]] || []).map((game, index) => {
+                    const { image } = getMetaFromTuple(game);
+
+                    return (
+                      <TouchableOpacity
+                        key={index}
+                        style={[styles.gameCard, { width: 160, marginRight: 8 }]} // fixed width + spacing
+                        onPress={() => selectedDays[0] && handleGameRemove(selectedDays[0], index)}
+                      >
+                        <View style={styles.gameContent}>
+                          <Text style={styles.gameTitle}>{game[1]}</Text>
+                          <Ionicons
+                            name="close-circle"
+                            size={20}
+                            color="rgba(255,255,255,0.7)"
+                            style={styles.removeIcon}
+                          />
+                        </View>
+
+                        <ImageBackground
+                          source={image}
+                          style={styles.gameImage}
+                          resizeMode="contain"
+                        />
+                      </TouchableOpacity>
+                    );
+                  })}
+
+                  {/* Add Game Button */}
+                  {(selectedDays && selectedDays[0] && (!gamesByDay[selectedDays[0]]) || (selectedDays && selectedDays[0] && gamesByDay[selectedDays[0]].length === 0)) && (
+                    <TouchableOpacity
+                      style={[styles.addGameButton, { width: 120, marginLeft: 8 }]} // same width as cards
+                      onPress={() => {
+                        navigation.navigate("GameSelection", {
+                          singOrMult: "Neither",
+                          onGameSelected: (game: { id: number; name: string }) => {
+                            handleGameAdd(game)
+                          },
+                        })
+                      }}
+                    >
+                      <LinearGradient
+                        colors={["rgba(255, 255, 255, 0.2)", "rgba(255, 255, 255, 0.1)"]}
+                        style={styles.addGameGradient}
+                      >
+                        <Ionicons name="add-circle-outline" size={24} color="#FFF" />
+                        <Text style={styles.addGameText}>Add Game</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  )}
+                </ScrollView>
+              </View>
+            )}
+
+            <View style={styles.formSection}>
+              <Text style={styles.sectionTitle}>Set Participation Fee 🪙</Text>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Amount"
+                  placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                  keyboardType="numeric"
+                  value={participationFee}
+                  onChangeText={setParticipationFee}
+                />
               </View>
             </View>
-          )} */}
-
-
-
-          <View style={styles.formSection}>
-            <Text style={styles.sectionTitle}>Set Participation Fee 🪙</Text>
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="Amount"
-                placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                keyboardType="numeric"
-                value={participationFee}
-                onChangeText={setParticipationFee}
-              />
-            </View>
+            <TouchableOpacity style={styles.createButton} onPress={handleNext}>
+              <LinearGradient
+                colors={['#FFD700', '#FFC107']}
+                style={styles.createButtonGradient}
+              >
+                <Text style={styles.createButtonText}>Next</Text>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
-
-
-
-
-          <TouchableOpacity style={styles.createButton} onPress={handleNext}>
-            <LinearGradient
-              colors={['#FFD700', '#FFC107']}
-              style={styles.createButtonGradient}
-            >
-              <Text style={styles.createButtonText}>Next</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-      </View>
-
-
-      </ScrollView>
+        </ScrollView>
       </View>
     </ImageBackground>
   )
 }
-
-
 
 const styles = StyleSheet.create({
   background: {
@@ -557,7 +443,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },
-    sectionTitle: {
+  sectionTitle: {
     fontSize: 20,
     fontWeight: "600",
     color: "#FFF",
@@ -660,7 +546,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
   },
-    gamesContainer: {
+  gamesContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
@@ -714,7 +600,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginTop: 8,
   },
-    daysContainer: {
+  daysContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
@@ -753,7 +639,7 @@ const styles = StyleSheet.create({
   dayTextSelected: {
     color: "#FFD700",
   },
-  rewardHeader:{flexDirection:'row',alignItems:'center',marginBottom:12},
+  rewardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",

@@ -66,34 +66,34 @@ const CreateGroup: React.FC<Props> = ({ navigation }) => {
     const fetchFriends = async () => {
       try {
         setLoading(true)
-              const accessToken = await getAccessToken();
-              if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        const accessToken = await getAccessToken();
+        if (!accessToken) {
+          Alert.alert(
+            "Session expired",
+            "Your login session has expired. Please log in again.",
+            [
+              {
+                text: "OK",
+                onPress: async () => {
+                  await logout();
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Login" }],
+                  });
+                },
+              },
+            ],
+            { cancelable: false }
+          );
 
-                  return;
-              }
-        
+          return;
+        }
+
         const response = await fetch(endpoints.friends(Number(user.id)), {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`
-                }
-              });
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        });
         const data = await response.json()
 
         // Add selected property to each friend
@@ -119,10 +119,10 @@ const CreateGroup: React.FC<Props> = ({ navigation }) => {
 
   const filteredFriends = searchQuery
     ? friends.filter(
-        (friend) =>
-          friend.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          friend.username.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
+      (friend) =>
+        friend.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        friend.username.toLowerCase().includes(searchQuery.toLowerCase()),
+    )
     : friends
 
   const selectedFriends = friends.filter((friend) => friend.selected)
@@ -149,25 +149,25 @@ const CreateGroup: React.FC<Props> = ({ navigation }) => {
 
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
+        return;
       }
       const response = await fetch(endpoints.createGroup, {
         method: "POST",
@@ -178,27 +178,21 @@ const CreateGroup: React.FC<Props> = ({ navigation }) => {
         body: JSON.stringify(payload),
       })
 
-          if (!response.ok) {
-              const error = await response.json();
-              throw new Error(error.message || "Failed to create group");
-          }
-  
-          const data = await response.json();
-          console.log('Created group:', data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to create group");
+      }
 
-          invalidateGroups();
+      const data = await response.json();
+      console.log('Created group:', data);
 
-  
-        Alert.alert("Success", "Group created successfully", [
-          { text: "OK", onPress: () => navigation.navigate("Groups") },
-        ])
+      invalidateGroups();
 
-      // setTimeout(() => {
-      //   setCreating(false)
-      //   Alert.alert("Success", "Group created successfully", [
-      //     { text: "OK", onPress: () => navigation.navigate("Groups") },
-      //   ])
-      // }, 1000)
+
+      Alert.alert("Success", "Group created successfully", [
+        { text: "OK", onPress: () => navigation.navigate("Groups") },
+      ])
+
     } catch (error) {
       console.error("Failed to create group:", error)
       Alert.alert("Error", "Failed to create group. Please try again.")
@@ -288,25 +282,22 @@ const CreateGroup: React.FC<Props> = ({ navigation }) => {
                       style={[styles.friendItem, friend.selected && styles.friendItemSelected]}
                       onPress={() => toggleFriendSelection(friend.id)}
                     >
-                      {/* <View style={[styles.friendAvatar, { backgroundColor }]}>
-                        <Text style={styles.friendInitials}>{getInitials(friend.name)}</Text>
-                      </View> */}
-                    <View
-                      style={[
-                        styles.avatarContainer,
-                        { backgroundColor: friend.avatar?.backgroundColor || generatePastelColor(friend.name) },
-                      ]}
-                    >
-                      {friend.avatar?.imageUrl ? (
-                        <Image
-                          source={{ uri: `${BASE_URL}${friend.avatar.imageUrl}` }}
-                          style={{ width: 50, height: 50, borderRadius: 25 }}
-                          resizeMode="contain"
-                        />
-                      ) : (
-                        <Text style={styles.avatarText}>{getInitials(friend.name)}</Text>
-                      )}
-                    </View>
+                      <View
+                        style={[
+                          styles.avatarContainer,
+                          { backgroundColor: friend.avatar?.backgroundColor || generatePastelColor(friend.name) },
+                        ]}
+                      >
+                        {friend.avatar?.imageUrl ? (
+                          <Image
+                            source={{ uri: `${BASE_URL}${friend.avatar.imageUrl}` }}
+                            style={{ width: 50, height: 50, borderRadius: 25 }}
+                            resizeMode="contain"
+                          />
+                        ) : (
+                          <Text style={styles.avatarText}>{getInitials(friend.name)}</Text>
+                        )}
+                      </View>
                       <View style={styles.friendInfo}>
                         <Text style={styles.friendName}>{friend.name}</Text>
                         <Text style={styles.friendUsername}>@{friend.username}</Text>

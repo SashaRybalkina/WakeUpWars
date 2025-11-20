@@ -111,7 +111,7 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
       setShowDatePicker(false)
       return
     }
-  
+
     if (date) {
       setSelectedDate(date)
       if (Platform.OS === "android") {
@@ -120,32 +120,26 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
     }
   }
 
-  // const onTimeChange = (_: any, time?: Date) => {
-  //   if (time) setTempTime(time)
-  // }
-
-  // Android + IOS version
   const onTimeChange = (event: any, time?: Date) => {
     if (event?.type === "dismissed") {
       setShowTimePicker(false)
       return
     }
-  
+
     if (time) {
       if (Platform.OS === "android") {
         let formattedTime = formatTime(time)
         formattedTime = cleanTime(formattedTime)
-  
+
         const updatedMapping = { ...dayTimeMapping }
         selectedDays.forEach((day) => {
           updatedMapping[day] = formattedTime
         })
-  
+
         setDayTimeMapping(updatedMapping)
         setSelectedDays([])
         setShowTimePicker(false)
       } else {
-        // for ios
         setTempTime(time)
       }
     }
@@ -200,11 +194,11 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
   }
 
   const formatDate = (date: Date) => {
-    const options: Intl.DateTimeFormatOptions = { 
-      weekday: 'short', 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
     }
     return date.toLocaleDateString(undefined, options)
   }
@@ -221,7 +215,7 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
     Alert.alert('Rewards', 'Choose the reward the winner will get. \n\nMoney: Send a USD amount. \nPoints: In-app points. \nCustom: Any creative prize. \n\nAfter saving, rewards are locked.');
   };
 
-  const handleCreateChallenge = async() => {
+  const handleCreateChallenge = async () => {
     if (!name.trim()) {
       Alert.alert("Error", "Please enter a challenge name")
       return
@@ -234,23 +228,7 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
 
     console.log("Day-Time Mapping:", dayTimeMapping)
     console.log("Games By Day:", JSON.stringify(gamesByDay, null, 2))
-    // reward validation
-    // let reward: any = null;
-    // if (rewardType === 'custom') {
-    //   if (!rewardNote.trim()) {
-    //     Alert.alert('Error', 'Please enter a description for the custom reward');
-    //     return;
-    //   }
-    //   reward = { type: 'custom', note: rewardNote.trim() };
-    // } else {
-    //   const amt = parseFloat(rewardAmount);
-    //   if (isNaN(amt) || amt <= 0) {
-    //     Alert.alert('Error', 'Enter a valid positive amount for the reward');
-    //     return;
-    //   }
-    //   reward = { type: rewardType, amount: amt };
-    // }
-    
+
     const alarmSchedule: { dayOfWeek: number; time: string }[] = Object.entries(dayTimeMapping)
       .filter(([day, time]) => time && dayToInt[day] !== undefined)
       .map(([day, time]) => ({
@@ -326,7 +304,7 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
     }
     // compute inclusive difference in days
     const total_days = Math.ceil(diffMs / 86_400_000) + 1; // +1 → inclusive
-    
+
     const payload = {
       name,
       group_id: groupId,
@@ -342,28 +320,28 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
     try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
+        return;
       }
-  
-  
+
+
       const res = await fetch(endpoints.createManualGroupChallenge, {
         method: 'POST',
         headers: {
@@ -372,12 +350,12 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
         },
         body: JSON.stringify(payload),
       });
-  
+
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.message || 'Failed to create challenge');
       }
-  
+
       const data = await res.json();
       console.log('Challenge created:', data);
 
@@ -396,7 +374,7 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
     } catch (err: any) {
       Alert.alert('Error', err.message);
     }
-  
+
   }
 
 
@@ -428,49 +406,49 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.formSection}>
-          <Text style={styles.sectionTitle}>Select Days</Text>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.daysScrollContent}
-          >
-            {DAYS.map((day, index) => {
-              const isSelected = selectedDays.includes(day)
-              const hasTime = dayTimeMapping[day]
-              
-              return (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.dayButton,
-                    isSelected && styles.dayButtonSelected,
-                    hasTime && styles.dayButtonWithTime
-                  ]}
-                  onPress={() => toggleDay(day)}
-                >
-                  <Text style={[styles.dayText, isSelected && styles.dayTextSelected]}>
-                    {day}
-                  </Text>
-                  {hasTime && (
-                    <Text style={styles.timeText}>{dayTimeMapping[day]}</Text>
-                  )}
-                </TouchableOpacity>
-              )
-            })}
-          </ScrollView>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => setShowTimePicker(true)}
-          >
-            <LinearGradient
-              colors={["rgba(255, 255, 255, 0.2)", "rgba(255, 255, 255, 0.1)"]}
-              style={styles.buttonGradient}
+            <Text style={styles.sectionTitle}>Select Days</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.daysScrollContent}
             >
-              <Ionicons name="alarm-outline" size={20} color="#FFF" style={styles.buttonIcon} />
-              <Text style={styles.buttonText}>Set Alarm Time</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+              {DAYS.map((day, index) => {
+                const isSelected = selectedDays.includes(day)
+                const hasTime = dayTimeMapping[day]
+
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.dayButton,
+                      isSelected && styles.dayButtonSelected,
+                      hasTime && styles.dayButtonWithTime
+                    ]}
+                    onPress={() => toggleDay(day)}
+                  >
+                    <Text style={[styles.dayText, isSelected && styles.dayTextSelected]}>
+                      {day}
+                    </Text>
+                    {hasTime && (
+                      <Text style={styles.timeText}>{dayTimeMapping[day]}</Text>
+                    )}
+                  </TouchableOpacity>
+                )
+              })}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => setShowTimePicker(true)}
+            >
+              <LinearGradient
+                colors={["rgba(255, 255, 255, 0.2)", "rgba(255, 255, 255, 0.1)"]}
+                style={styles.buttonGradient}
+              >
+                <Ionicons name="alarm-outline" size={20} color="#FFF" style={styles.buttonIcon} />
+                <Text style={styles.buttonText}>Set Alarm Time</Text>
+              </LinearGradient>
+            </TouchableOpacity>
 
             {showTimePicker && (
               <View style={styles.pickerContainer}>
@@ -481,14 +459,11 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
                   onChange={onTimeChange}
                   textColor="#FFF"
                 />
-                {/* <TouchableOpacity style={styles.doneButton} onPress={handleSetTime}>
-                  <Text style={styles.doneButtonText}>Done</Text>
-                </TouchableOpacity> */}
                 {Platform.OS !== "android" && (
                   <TouchableOpacity style={styles.doneButton} onPress={handleSetTime}>
                     <Text style={styles.doneButtonText}>Done</Text>
                   </TouchableOpacity>
-                )}      
+                )}
               </View>
             )}
           </View>
@@ -553,48 +528,12 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
           )}
 
           <View style={styles.formSection}>
-            {/* <View style={styles.rewardHeader}>
-              <Text style={styles.sectionTitle}>Set Reward</Text>
-              <TouchableOpacity style={{marginLeft:6, marginBottom: 13}} onPress={showRewardInfo}>
-                <Ionicons name="help-circle-outline" size={22} color="#FFD700" />
-              </TouchableOpacity>
-            </View> */}
-            {/* <View style={styles.choiceRow}>
-              {REWARD_TYPES.map(rt => (
-                <TouchableOpacity
-                  key={rt.key}
-                  style={[styles.choiceButton, rewardType === rt.key && styles.choiceButtonSelected]}
-                  onPress={() => setRewardType(rt.key as RewardTypeKey)}
-                >
-                  <Text style={[styles.choiceText, rewardType === rt.key && styles.choiceTextSelected]}>{rt.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View> */}
-            {/* {(rewardType === 'money' || rewardType === 'points') && (
-              <TextInput
-                style={[styles.input, { marginTop: 10 }]}
-                placeholder="Amount"
-                placeholderTextColor="rgba(255,255,255,0.6)"
-                keyboardType="numeric"
-                value={rewardAmount}
-                onChangeText={setRewardAmount}
-              />
-            )}
-            {rewardType === 'custom' && (
-              <TextInput
-                style={[styles.input, { marginTop: 10 }]}
-                placeholder="Describe reward"
-                placeholderTextColor="rgba(255,255,255,0.6)"
-                value={rewardNote}
-                onChangeText={setRewardNote}
-              />
-            )} */}
           </View>
 
           <View style={styles.formSection}>
             <Text style={styles.sectionTitle}>End Date</Text>
             <Text style={styles.dateDisplay}>{formatDate(selectedDate)}</Text>
-            
+
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => setShowDatePicker(true)}
@@ -617,12 +556,6 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
                   onChange={onDateChange}
                   textColor="#FFF"
                 />
-                {/* <TouchableOpacity
-                  style={styles.doneButton}
-                  onPress={() => setShowDatePicker(false)}
-                >
-                  <Text style={styles.doneButtonText}>Done</Text>
-                </TouchableOpacity> */}
                 {Platform.OS !== "android" && (
                   <TouchableOpacity
                     style={styles.doneButton}
@@ -630,7 +563,7 @@ const GroupChall2: React.FC<Props> = ({ navigation }) => {
                   >
                     <Text style={styles.doneButtonText}>Done</Text>
                   </TouchableOpacity>
-                )}  
+                )}
               </View>
             )}
           </View>
@@ -927,11 +860,11 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   choiceRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 10 },
-  choiceButton: { marginTop:-20, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', marginRight: 10, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  choiceButton: { marginTop: -20, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', marginRight: 10, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
   choiceButtonSelected: { backgroundColor: 'rgba(255,215,0,0.3)', borderColor: '#FFD700' },
   choiceText: { color: '#FFF', fontSize: 14, fontWeight: '600' },
   choiceTextSelected: { color: '#FFD700' },
-  rewardHeader:{flexDirection:'row',alignItems:'center',marginBottom:12},
+  rewardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
 
   activeNavText: {
     color: "#FFD700",

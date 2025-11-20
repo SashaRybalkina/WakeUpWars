@@ -72,13 +72,13 @@ const GroupChall1: React.FC<Props> = ({ navigation }) => {
         >
           <Text style={styles.navToChallText}>Manually</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.navToChall}
           onPress={() => {
             console.log("Navigating to GroupChallCollab with members:", groupMembers);
             goToCollab(groupId, groupMembers);
           }}
-          >
+        >
           <Text style={styles.navToChallText}>Collaboratively</Text>
         </TouchableOpacity>
       </View>

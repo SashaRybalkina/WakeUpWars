@@ -86,9 +86,6 @@ const Categories: React.FC<Props> = ({ navigation }) => {
     fetchCats();
   }, []);
 
-
-
-
   return (
     <ImageBackground
       source={require('../../images/cgpt4.png')}
@@ -149,7 +146,6 @@ const styles = StyleSheet.create({
   background: {
     flex: 1,
     alignItems: 'center',
-    // Gradient is handled by the background image
   },
   backButtonContainer: {
     position: 'absolute',
@@ -211,7 +207,6 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
-  // Decorative elements
   decorativeStar: {
     position: 'absolute',
     width: 24,

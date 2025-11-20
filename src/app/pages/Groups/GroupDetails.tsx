@@ -71,7 +71,7 @@ type GroupData = {
 const GroupDetails: React.FC<Props> = ({ navigation }) => {
   const route = useRoute()
   const { groupId } = route.params as { groupId: number }
-  
+
   const { user, activeGroupName, setActiveGroupName, setActiveGroupId, logout } = useUser()
 
   const [groupData, setGroupData] = useState<GroupData | null>(null)
@@ -86,143 +86,141 @@ const GroupDetails: React.FC<Props> = ({ navigation }) => {
   const [lbLoading, setLbLoading] = useState(false)
   const [lbError, setLbError] = useState<string | null>(null)
 
-
-
-useFocusEffect(
-  useCallback(() => {
-    if (!user?.id) {
-      console.error("userId is missing!");
-      return;
-    }
-
-    console.log("[GroupDetails] focus triggered, starting fetch");
-      setActiveGroupId(groupId);
-    setIsLoading(true);
-
-    const fetchGroupData = async () => {
-      try {
-        const accessToken = await getAccessToken();
-        if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
-
-                  return;
-        }
-
-        // Start all fetches concurrently
-        const [groupRes, lbRes, inviteRes] = await Promise.allSettled([
-          fetch(endpoints.groupProfile(groupId), { headers: { Authorization: `Bearer ${accessToken}` } }),
-          fetch(endpoints.groupLeaderboard(groupId), { headers: { Authorization: `Bearer ${accessToken}` } }),
-          fetch(endpoints.getChallengeInvites(Number(user.id), groupId), { headers: { Authorization: `Bearer ${accessToken}` } }),
-        ]);
-
-        // --- Group Data ---
-        if (groupRes.status === "fulfilled") {
-          const data = await groupRes.value.json();
-          if (data.challenges) {
-            const now = new Date();
-            data.challenges = data.challenges.map((challenge: Challenge) => ({
-              ...challenge,
-              totalDays: challenge.totalDays ?? 30,
-              isCompleted: challenge.isCompleted || false,
-            }));
-          }
-          setGroupData(data);          
-          setActiveGroupName(data?.name ?? null)
-
-        } else {
-          console.error("Failed to fetch group profile:", groupRes.reason);
-        }
-
-        // --- Leaderboard ---
-        if (lbRes.status === "fulfilled") {
-          setLbLoading(true);
-          setLbError(null);
-          try {
-            const text = await lbRes.value.text();
-            const d: any = text ? JSON.parse(text) : null;
-            const rows: LeaderRow[] = Array.isArray(d) ? d : (d?.leaderboard ?? []);
-            setLbRows(rows);
-            setLbSince(d?.since ?? null);
-            setLbUntil(d?.until ?? null);
-          } catch (e) {
-            setLbError("Failed to parse leaderboard");
-          } finally {
-            setLbLoading(false);
-          }
-        } else {
-          console.error("Failed to fetch leaderboard:", lbRes.reason);
-          setLbError("Failed to load leaderboard");
-        }
-
-        // --- Pending Invites ---
-        if (inviteRes.status === "fulfilled") {
-          const inviteData = await inviteRes.value.json();
-          const formatted = inviteData.invited_challenges.map(
-            (item: PendingChallenge) => ({
-              id: item.id,
-              name: item.name,
-              startDate: item.startDate,
-              endDate: item.endDate,
-              accepted: item.accepted,
-              initiatorId: item.initiatorId,
-            })
-          );
-          setPendingChallenges(formatted);
-        } else {
-          console.error("Failed to fetch invites:", inviteRes.reason);
-        }
-
-      } catch (error) {
-        console.error("Failed to fetch group details:", error);
-      } finally {
-        setIsLoading(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.id) {
+        console.error("userId is missing!");
+        return;
       }
-    };
 
-    fetchGroupData();
-  }, [user?.id, groupId])
-);
+      console.log("[GroupDetails] focus triggered, starting fetch");
+      setActiveGroupId(groupId);
+      setIsLoading(true);
+
+      const fetchGroupData = async () => {
+        try {
+          const accessToken = await getAccessToken();
+          if (!accessToken) {
+            Alert.alert(
+              "Session expired",
+              "Your login session has expired. Please log in again.",
+              [
+                {
+                  text: "OK",
+                  onPress: async () => {
+                    await logout();
+                    navigation.reset({
+                      index: 0,
+                      routes: [{ name: "Login" }],
+                    });
+                  },
+                },
+              ],
+              { cancelable: false }
+            );
+
+            return;
+          }
+
+          // Start all fetches concurrently
+          const [groupRes, lbRes, inviteRes] = await Promise.allSettled([
+            fetch(endpoints.groupProfile(groupId), { headers: { Authorization: `Bearer ${accessToken}` } }),
+            fetch(endpoints.groupLeaderboard(groupId), { headers: { Authorization: `Bearer ${accessToken}` } }),
+            fetch(endpoints.getChallengeInvites(Number(user.id), groupId), { headers: { Authorization: `Bearer ${accessToken}` } }),
+          ]);
+
+          // --- Group Data ---
+          if (groupRes.status === "fulfilled") {
+            const data = await groupRes.value.json();
+            if (data.challenges) {
+              const now = new Date();
+              data.challenges = data.challenges.map((challenge: Challenge) => ({
+                ...challenge,
+                totalDays: challenge.totalDays ?? 30,
+                isCompleted: challenge.isCompleted || false,
+              }));
+            }
+            setGroupData(data);
+            setActiveGroupName(data?.name ?? null)
+
+          } else {
+            console.error("Failed to fetch group profile:", groupRes.reason);
+          }
+
+          // --- Leaderboard ---
+          if (lbRes.status === "fulfilled") {
+            setLbLoading(true);
+            setLbError(null);
+            try {
+              const text = await lbRes.value.text();
+              const d: any = text ? JSON.parse(text) : null;
+              const rows: LeaderRow[] = Array.isArray(d) ? d : (d?.leaderboard ?? []);
+              setLbRows(rows);
+              setLbSince(d?.since ?? null);
+              setLbUntil(d?.until ?? null);
+            } catch (e) {
+              setLbError("Failed to parse leaderboard");
+            } finally {
+              setLbLoading(false);
+            }
+          } else {
+            console.error("Failed to fetch leaderboard:", lbRes.reason);
+            setLbError("Failed to load leaderboard");
+          }
+
+          // --- Pending Invites ---
+          if (inviteRes.status === "fulfilled") {
+            const inviteData = await inviteRes.value.json();
+            const formatted = inviteData.invited_challenges.map(
+              (item: PendingChallenge) => ({
+                id: item.id,
+                name: item.name,
+                startDate: item.startDate,
+                endDate: item.endDate,
+                accepted: item.accepted,
+                initiatorId: item.initiatorId,
+              })
+            );
+            setPendingChallenges(formatted);
+          } else {
+            console.error("Failed to fetch invites:", inviteRes.reason);
+          }
+
+        } catch (error) {
+          console.error("Failed to fetch group details:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      fetchGroupData();
+    }, [user?.id, groupId])
+  );
 
 
   const handleDelete = async (challId: number) => {
     try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
+        return;
       }
 
       const res = await fetch(endpoints.deleteChallenge(challId), {
@@ -233,16 +231,16 @@ useFocusEffect(
         },
       });
 
-          const data = await res.json();
-          if (!res.ok) {
-            throw new Error(data.message || "Failed to delete challenge");
-          }
-          console.log('Challenge deleted:', data);
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to delete challenge");
+      }
+      console.log('Challenge deleted:', data);
 
-                // Remove from local state
-                setPendingChallenges((prev) =>
-                  prev.filter((c) => c.id !== challId)
-                );
+      // Remove from local state
+      setPendingChallenges((prev) =>
+        prev.filter((c) => c.id !== challId)
+      );
 
 
     } catch (err) {
@@ -251,7 +249,6 @@ useFocusEffect(
     }
   }
 
-    
   const goToMessages = () => navigation.navigate("Messages")
   const goToGroups = () => navigation.navigate("Groups")
   const goToChallenges = () => navigation.navigate("Challenges")
@@ -293,99 +290,99 @@ useFocusEffect(
         </TouchableOpacity>
 
         <ScrollView
-            style={styles.scrollContainer}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.headerSection}>
-              <Text style={styles.groupTitle}>{activeGroupName ?? groupData?.name ?? "Group"}</Text>
-              <View style={styles.decorativeLine} />
-            </View>
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.headerSection}>
+            <Text style={styles.groupTitle}>{activeGroupName ?? groupData?.name ?? "Group"}</Text>
+            <View style={styles.decorativeLine} />
+          </View>
 
-            <View style={styles.membersSection}>
-              <Text style={styles.sectionTitle}>Members</Text>
-              <View style={styles.membersRow}>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.membersScrollContent}
-                >
-                  {isLoading || !groupData?.members ? (
-                    <View style={{ paddingHorizontal: 10, paddingVertical: 8 }}>
-                      <ActivityIndicator size="small" color="#FFD700" />
-                    </View>
-                  ) : groupData.members.length === 0 ? (
-                    <Text style={{ color: '#fff' }}>No members yet</Text>
-                  ) : (
-                    groupData.members.map((member) => {
-                      const bgColor = member.avatar?.backgroundColor ?? getRandomPastelColor(member.id);
-                      return (
-                        <View key={member.id} style={styles.memberContainer}>
-                          <View style={[styles.memberAvatar, { backgroundColor: bgColor }]}> 
-                            {member.avatar?.imageUrl ? (
-                              <Image
-                                source={{ uri: `${BASE_URL}${member.avatar.imageUrl}` }}
-                                style={styles.memberAvatarImage}
-                                resizeMode="contain"
-                              />
-                            ) : (
-                              <Text style={styles.memberInitials}>{getInitials(member.name)}</Text>
-                            )}
-                          </View>
-                          <Text style={styles.memberName}>{member.name}</Text>
-                        </View>
-                      );
-                    })
-                  )}
-                </ScrollView>
-
-                <TouchableOpacity
-                  style={styles.addMemberButton}
-                  onPress={() => navigation.navigate("Friends1", { groupId: Number(groupId) })}
-                >
-                  <View style={styles.addMemberCircle}>
-                    <Ionicons name="person-add-outline" size={24} color="#FFF" />
+          <View style={styles.membersSection}>
+            <Text style={styles.sectionTitle}>Members</Text>
+            <View style={styles.membersRow}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.membersScrollContent}
+              >
+                {isLoading || !groupData?.members ? (
+                  <View style={{ paddingHorizontal: 10, paddingVertical: 8 }}>
+                    <ActivityIndicator size="small" color="#FFD700" />
                   </View>
-                  <Text style={styles.addMemberText}></Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Group Ranking (overall) */}
-            <View style={styles.challengesSection}>
-              <Text style={styles.sectionTitle}>Overall Ranking</Text>
-              <View style={styles.leaderboardCard}>
-                {lbSince && lbUntil && (
-                  <Text style={{ color: "#f6be25ff", textAlign: "center", marginBottom: 8, fontSize: 12 }}>
-                    Window: {lbSince} – {lbUntil}
-                  </Text>
-                )}
-                {lbLoading && <Text style={{ color: "#FFD700", textAlign: "center" }}>Loading…</Text>}
-                {lbError && <Text style={{ color: "#F88", textAlign: "center" }}>{lbError}</Text>}
-                {!lbLoading && !lbError && displayRows().length === 0 && (
-                  <Text style={{ color: "#f8c12bff", textAlign: "center" }}>No scores yet — be the first!</Text>
-                )}
-                {!lbLoading && !lbError && displayRows().map((row, index) => (
-                  'ellipsis' in (row as any) ? (
-                    <View key={`ellipsis-${index}`} style={styles.rankItem}>
-                      <Text style={styles.ellipsisText}>…</Text>
-                    </View>
-                  ) : (
-                    <View key={`${(row as LeaderRow).name}-${index}`} style={styles.rankItem}>
-                      <View style={styles.rankPosition}>
-                        <Text style={styles.rankEmoji}>{getRankEmoji((row as LeaderRow).rank)}</Text>
+                ) : groupData.members.length === 0 ? (
+                  <Text style={{ color: '#fff' }}>No members yet</Text>
+                ) : (
+                  groupData.members.map((member) => {
+                    const bgColor = member.avatar?.backgroundColor ?? getRandomPastelColor(member.id);
+                    return (
+                      <View key={member.id} style={styles.memberContainer}>
+                        <View style={[styles.memberAvatar, { backgroundColor: bgColor }]}>
+                          {member.avatar?.imageUrl ? (
+                            <Image
+                              source={{ uri: `${BASE_URL}${member.avatar.imageUrl}` }}
+                              style={styles.memberAvatarImage}
+                              resizeMode="contain"
+                            />
+                          ) : (
+                            <Text style={styles.memberInitials}>{getInitials(member.name)}</Text>
+                          )}
+                        </View>
+                        <Text style={styles.memberName}>{member.name}</Text>
                       </View>
-                      <Text style={[styles.rankName, (row as LeaderRow).name === myName && { color: "#fec936ff" }]}>
-                        {(row as LeaderRow).name === myName ? "You" : (row as LeaderRow).name}
-                      </Text>
-                      <Text style={styles.rankPoints}>{(row as LeaderRow).points} pts</Text>
+                    );
+                  })
+                )}
+              </ScrollView>
+
+              <TouchableOpacity
+                style={styles.addMemberButton}
+                onPress={() => navigation.navigate("Friends1", { groupId: Number(groupId) })}
+              >
+                <View style={styles.addMemberCircle}>
+                  <Ionicons name="person-add-outline" size={24} color="#FFF" />
+                </View>
+                <Text style={styles.addMemberText}></Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Group Ranking (overall) */}
+          <View style={styles.challengesSection}>
+            <Text style={styles.sectionTitle}>Overall Ranking</Text>
+            <View style={styles.leaderboardCard}>
+              {lbSince && lbUntil && (
+                <Text style={{ color: "#f6be25ff", textAlign: "center", marginBottom: 8, fontSize: 12 }}>
+                  Window: {lbSince} – {lbUntil}
+                </Text>
+              )}
+              {lbLoading && <Text style={{ color: "#FFD700", textAlign: "center" }}>Loading…</Text>}
+              {lbError && <Text style={{ color: "#F88", textAlign: "center" }}>{lbError}</Text>}
+              {!lbLoading && !lbError && displayRows().length === 0 && (
+                <Text style={{ color: "#f8c12bff", textAlign: "center" }}>No scores yet — be the first!</Text>
+              )}
+              {!lbLoading && !lbError && displayRows().map((row, index) => (
+                'ellipsis' in (row as any) ? (
+                  <View key={`ellipsis-${index}`} style={styles.rankItem}>
+                    <Text style={styles.ellipsisText}>…</Text>
+                  </View>
+                ) : (
+                  <View key={`${(row as LeaderRow).name}-${index}`} style={styles.rankItem}>
+                    <View style={styles.rankPosition}>
+                      <Text style={styles.rankEmoji}>{getRankEmoji((row as LeaderRow).rank)}</Text>
                     </View>
-                  )
-                ))}
-                <TouchableOpacity
-                  style={styles.viewDetailsButton}
-                  onPress={() => navigation.navigate("GroupLeaderboardDetails", { groupId, myName })}
-                >
+                    <Text style={[styles.rankName, (row as LeaderRow).name === myName && { color: "#fec936ff" }]}>
+                      {(row as LeaderRow).name === myName ? "You" : (row as LeaderRow).name}
+                    </Text>
+                    <Text style={styles.rankPoints}>{(row as LeaderRow).points} pts</Text>
+                  </View>
+                )
+              ))}
+              <TouchableOpacity
+                style={styles.viewDetailsButton}
+                onPress={() => navigation.navigate("GroupLeaderboardDetails", { groupId, myName })}
+              >
                 <LinearGradient
                   colors={["#FFD700", "#f7aa1cff"]}
                   start={{ x: 0, y: 0 }}
@@ -394,122 +391,122 @@ useFocusEffect(
                 >
                   <Text style={styles.scheduleButtonText}>View leaderboard details</Text>
                 </LinearGradient>
-                </TouchableOpacity>
-              </View>
+              </TouchableOpacity>
             </View>
+          </View>
 
-            <View style={styles.challengesSection}>
-              {pendingChallenges.length > 0 && (
-                <>
-                  <Text style={styles.sectionTitle}>Pending Challenges</Text>
-                  <View style={styles.challengeCardsContainer}>
-      {pendingChallenges.map((challenge) => (
-        <TouchableOpacity
-          key={challenge.id}
-          style={styles.challengeCardWrapper}
-          onPress={() =>
-            navigation.navigate("EditAvailability", {
-              pendingChallengeId: challenge.id,
-              pendingChallengeName: challenge.name,
-              pendingChallengeStartDate: challenge.startDate,
-              pendingChallengeEndDate: challenge.endDate,
-              accepted: challenge.accepted,
-              groupId
-            })
-          }
-        >
-          <PendingChallengeCard
-            title={challenge.name}
-            icon={require("../../images/ytrophy.png")}
-            showInvite={challenge.accepted === 2}
-            isOwner={user?.id === challenge.initiatorId} // Pass ownership
-            onDelete={async () => handleDelete(challenge.id)}
-          />
-        </TouchableOpacity>
-      ))}
-                  </View>
-                </>
-              )}
-
-              <Text style={styles.sectionTitle}>Current Challenges</Text>
-
-              {currentChallenges.length === 0 ? (
-                <View style={styles.emptyStateContainer}>
-                  {isLoading ? (
-                    <>
-                      <ActivityIndicator size="small" color="#FFD700" />
-                    </>
-                  ) : (
-                    <>
-                      <Ionicons name="flag-outline" size={40} color="rgba(255,255,255,0.7)" />
-                      <Text style={styles.emptyStateText}>No active challenges</Text>
-                      <Text style={styles.emptyStateSubText}>Create a challenge to get started</Text>
-                    </>
-                  )}
-                </View>
-              ) : (
+          <View style={styles.challengesSection}>
+            {pendingChallenges.length > 0 && (
+              <>
+                <Text style={styles.sectionTitle}>Pending Challenges</Text>
                 <View style={styles.challengeCardsContainer}>
-                  {currentChallenges.map((challenge) => (
+                  {pendingChallenges.map((challenge) => (
                     <TouchableOpacity
                       key={challenge.id}
                       style={styles.challengeCardWrapper}
                       onPress={() =>
-                        navigation.navigate("ChallDetails", {
-                          challId: challenge.id,
-                          challName: challenge.name,
-                          whichChall: "Group",
-                          isCompleted: challenge.isCompleted
+                        navigation.navigate("EditAvailability", {
+                          pendingChallengeId: challenge.id,
+                          pendingChallengeName: challenge.name,
+                          pendingChallengeStartDate: challenge.startDate,
+                          pendingChallengeEndDate: challenge.endDate,
+                          accepted: challenge.accepted,
+                          groupId
                         })
                       }
                     >
-                      <ChallengeCard
+                      <PendingChallengeCard
                         title={challenge.name}
                         icon={require("../../images/ytrophy.png")}
-                        startDate={challenge.startDate}
-                        endDate={challenge.endDate}
-                        daysOfWeek={challenge.daysOfWeek}
-                        daysCompleted={challenge.daysCompleted}
-                        totalDays={challenge.totalDays || 30}
-                        isCompleted={challenge.isCompleted || false}
+                        showInvite={challenge.accepted === 2}
+                        isOwner={user?.id === challenge.initiatorId} // Pass ownership
+                        onDelete={async () => handleDelete(challenge.id)}
                       />
                     </TouchableOpacity>
                   ))}
                 </View>
-              )}
+              </>
+            )}
 
-              {groupData && (
-                <TouchableOpacity
-                  style={styles.addNewButton}
-                  onPress={() => {
-                    navigation.navigate("GroupChallCollab", {
-                      groupId: groupData.id,
-                      groupMembers: groupData.members,
-                    })
-                  }}
-                >
-                  <Text style={styles.addNewButtonText}>Add new +</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+            <Text style={styles.sectionTitle}>Current Challenges</Text>
 
-<TouchableOpacity
-  style={styles.pastButtonWrapper}
-  onPress={() => navigation.navigate("PastChallenges", { type: "Group", groupId })}
->
-  <LinearGradient
-    colors={["#FFD700", "#fdb021ff"]}
-    start={{ x: 0, y: 0 }}
-    end={{ x: 1, y: 0 }}
-    style={styles.pastButtonGradient}
-  >
+            {currentChallenges.length === 0 ? (
+              <View style={styles.emptyStateContainer}>
+                {isLoading ? (
+                  <>
+                    <ActivityIndicator size="small" color="#FFD700" />
+                  </>
+                ) : (
+                  <>
+                    <Ionicons name="flag-outline" size={40} color="rgba(255,255,255,0.7)" />
+                    <Text style={styles.emptyStateText}>No active challenges</Text>
+                    <Text style={styles.emptyStateSubText}>Create a challenge to get started</Text>
+                  </>
+                )}
+              </View>
+            ) : (
+              <View style={styles.challengeCardsContainer}>
+                {currentChallenges.map((challenge) => (
+                  <TouchableOpacity
+                    key={challenge.id}
+                    style={styles.challengeCardWrapper}
+                    onPress={() =>
+                      navigation.navigate("ChallDetails", {
+                        challId: challenge.id,
+                        challName: challenge.name,
+                        whichChall: "Group",
+                        isCompleted: challenge.isCompleted
+                      })
+                    }
+                  >
+                    <ChallengeCard
+                      title={challenge.name}
+                      icon={require("../../images/ytrophy.png")}
+                      startDate={challenge.startDate}
+                      endDate={challenge.endDate}
+                      daysOfWeek={challenge.daysOfWeek}
+                      daysCompleted={challenge.daysCompleted}
+                      totalDays={challenge.totalDays || 30}
+                      isCompleted={challenge.isCompleted || false}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {groupData && (
+              <TouchableOpacity
+                style={styles.addNewButton}
+                onPress={() => {
+                  navigation.navigate("GroupChallCollab", {
+                    groupId: groupData.id,
+                    groupMembers: groupData.members,
+                  })
+                }}
+              >
+                <Text style={styles.addNewButtonText}>Add new +</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={styles.pastButtonWrapper}
+            onPress={() => navigation.navigate("PastChallenges", { type: "Group", groupId })}
+          >
+            <LinearGradient
+              colors={["#FFD700", "#fdb021ff"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.pastButtonGradient}
+            >
               <View style={styles.pastButtonRow}>
                 <Ionicons name="time-outline" size={18} color="#333" style={{ marginRight: 8 }} />
                 <Text style={styles.pastButtonText}>View past challenges</Text>
               </View>
-  </LinearGradient>
-</TouchableOpacity>
+            </LinearGradient>
+          </TouchableOpacity>
 
-          </ScrollView>
+        </ScrollView>
       </View>
 
       <NavBar
@@ -699,22 +696,22 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     width: "90%",
   },
-pastButtonWrapper: {
-  alignSelf: "center",
-  marginTop: 20,
-  width: "90%",
-  height: 45,        
-  borderRadius: 22.5,
-  overflow: "hidden",
-},
+  pastButtonWrapper: {
+    alignSelf: "center",
+    marginTop: 20,
+    width: "90%",
+    height: 45,
+    borderRadius: 22.5,
+    overflow: "hidden",
+  },
 
-pastButtonGradient: {
-  width: "100%",
-  height: "100%",
-  justifyContent: "center",
-  alignItems: "center",
-  borderRadius: 22.5,
-},
+  pastButtonGradient: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 22.5,
+  },
 
   pastButtonText: {
     color: "#333",

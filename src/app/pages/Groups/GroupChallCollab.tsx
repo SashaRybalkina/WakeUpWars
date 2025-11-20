@@ -31,10 +31,8 @@ import { BASE_URL, endpoints } from '../../api';
 import { Picker } from '@react-native-picker/picker';
 import { getAccessToken } from '../../auth';
 
-type Props = { navigation: NavigationProp<any> } 
-// Config 
+type Props = { navigation: NavigationProp<any> }
 const DAYS = ["M", "T", "W", "TH", "F", "S", "SU"]
-// const TIMES = Array.from({ length: 12 }, (_, i) => `${i + 6}:00`); // 6am - 5pm 
 
 const TIMES = Array.from({ length: 144 }, (_, i) => {
   const totalMinutes = 12 * 60 + i * 5; // 12:00 PM .. 11:55 PM
@@ -52,55 +50,20 @@ const formatTo12Hour = (time24: string) => {
   return `${hours}:${mStr} ${ampm}`;
 };
 
-// const START_MIN = 14 * 60; // 10:00 PM
-// const END_MIN = 16 * 60;   // 12:00 AM next day
-// const STEP_MIN = 1;
-
-// const TIMES = Array.from(
-//   { length: Math.floor((END_MIN - START_MIN) / STEP_MIN) + 1 }, // 121 entries
-//   (_, i) => {
-//     const totalMinutes = START_MIN + i * STEP_MIN;
-//     const hours24 = Math.floor(totalMinutes / 60) % 24; // wrap past midnight
-//     const minutes = totalMinutes % 60;
-
-//     const period = hours24 >= 12 ? "PM" : "AM";
-//     const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
-
-//     return `${hours12}:${String(minutes).padStart(2, "0")} ${period}`;
-//   }
-// );
-
-// const TIMES = Array.from({ length: 44 }, (_, i) => {
-//   const totalMinutes = 4 * 60 + i * 15; // start at 4:00
-//   const hours24 = Math.floor(totalMinutes / 60);
-//   const minutes = totalMinutes % 60;
-
-//   const period = hours24 >= 12 ? "PM" : "AM";
-//   const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
-
-//   return `${hours12}:${String(minutes).padStart(2, "0")} ${period}`;
-// });
-
-
 type SelectedCell = { day: number; time: number }; // day: 0-6, time: 0-11 
 
-const GroupChallCollab: React.FC<Props> = ({ navigation }) => { 
-  const route = useRoute() 
-  const { groupId, groupMembers } = route.params as { 
-    groupId: number 
-    groupMembers: { id: number; name: string }[] }
+const GroupChallCollab: React.FC<Props> = ({ navigation }) => {
+  const route = useRoute()
+  const { groupId, groupMembers } = route.params as {
+    groupId: number
+    groupMembers: { id: number; name: string }[]
+  }
 
   const { user } = useUser()
 
   const [name, setName] = useState("")
   const [infoVisible, setInfoVisible] = React.useState(false);
-
   const horizontalScrollRef = useRef<ScrollView>(null);
-  // const [selectedDate, setSelectedDate] = useState(new Date())
-  // const [showDatePicker, setShowDatePicker] = useState(false)
-  // const [durationValue, setDurationValue] = useState(1); // default 1
-  // const [durationUnit, setDurationUnit] = useState<"weeks" | "months" | "years">("weeks");
-
   const [selectedCells, setSelectedCells] = useState<SelectedCell[]>([]);
 
   const dayToInt: Record<string, number> = {
@@ -140,75 +103,62 @@ const GroupChallCollab: React.FC<Props> = ({ navigation }) => {
     });
   };
 
-
   const isCellSelected = (day: number, time: number) =>
     selectedCells.some(cell => cell.day === day && cell.time === time);
 
-
-
-const convertTo24Hour = (time12: string) => {
-  // "4:15 AM" => "04:15", "3:00 PM" => "15:00"
-  const s = time12.trim();
-  if (/^\d{1,2}:\d{2}$/.test(s)) {
-    const [hoursStr, minutesStr] = s.split(":");
-    const hours = Number(hoursStr);
-    const minutes = Number(minutesStr);
-    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-  }
-
-  const [time, modifier] = s.split(" ");
-  if (!time || !modifier) throw new Error(`Invalid time format: ${time12}`);
-
-  const [hoursStr, minutesStr] = time.split(":");
-  if (!hoursStr || !minutesStr) throw new Error(`Invalid time format: ${time12}`);
-
-  let hours = Number(hoursStr);
-  const minutes = Number(minutesStr);
-
-  if (modifier === "AM" && hours === 12) hours = 0;
-  if (modifier === "PM" && hours !== 12) hours += 12;
-
-  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-};
-
-
-
-    const handleNext = async() => {
-        if (!name.trim()) {
-            Alert.alert("Error", "Please enter a challenge name")
-            return
-        }
-
-        if (selectedCells.length === 0) {
-            Alert.alert("Error", "Please select at least one availability slot.")
-            return
-        }
-        
-        const alarmSchedule = selectedCells.flatMap(({ day, time }) => {
-          const dayStr = DAYS[day];
-          if (!dayStr) return [];
-
-          const dayOfWeek = dayToInt[dayStr as keyof typeof dayToInt];
-          if (!dayOfWeek) return [];
-          if (!TIMES[time]) return;
-          return [{ dayOfWeek, time: convertTo24Hour(TIMES[time]) }];
-        });
-
-        // const payload = {
-        //   name,
-        //   group_id: groupId,
-        //   members: groupMembers.map((member) => member.id),
-        //   alarm_schedule: alarmSchedule,
-        // };
-
-        navigation.navigate("GroupChallCollab2", {
-          name,
-          groupId,
-          members: groupMembers.map((member) => member.id),
-          alarmSchedule,
-        })
-
+  const convertTo24Hour = (time12: string) => {
+    const s = time12.trim();
+    if (/^\d{1,2}:\d{2}$/.test(s)) {
+      const [hoursStr, minutesStr] = s.split(":");
+      const hours = Number(hoursStr);
+      const minutes = Number(minutesStr);
+      return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
     }
+
+    const [time, modifier] = s.split(" ");
+    if (!time || !modifier) throw new Error(`Invalid time format: ${time12}`);
+
+    const [hoursStr, minutesStr] = time.split(":");
+    if (!hoursStr || !minutesStr) throw new Error(`Invalid time format: ${time12}`);
+
+    let hours = Number(hoursStr);
+    const minutes = Number(minutesStr);
+
+    if (modifier === "AM" && hours === 12) hours = 0;
+    if (modifier === "PM" && hours !== 12) hours += 12;
+
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+  };
+
+  const handleNext = async () => {
+    if (!name.trim()) {
+      Alert.alert("Error", "Please enter a challenge name")
+      return
+    }
+
+    if (selectedCells.length === 0) {
+      Alert.alert("Error", "Please select at least one availability slot.")
+      return
+    }
+
+    const alarmSchedule = selectedCells.flatMap(({ day, time }) => {
+      const dayStr = DAYS[day];
+      if (!dayStr) return [];
+
+      const dayOfWeek = dayToInt[dayStr as keyof typeof dayToInt];
+      if (!dayOfWeek) return [];
+      if (!TIMES[time]) return;
+      return [{ dayOfWeek, time: convertTo24Hour(TIMES[time]) }];
+    });
+
+    navigation.navigate("GroupChallCollab2", {
+      name,
+      groupId,
+      members: groupMembers.map((member) => member.id),
+      alarmSchedule,
+    })
+
+  }
 
   return (
     <ImageBackground
@@ -222,144 +172,116 @@ const convertTo24Hour = (time12: string) => {
           <Ionicons name="arrow-back" size={28} color="#FFF" />
         </TouchableOpacity>
 
-          <ScrollView
-            contentContainerStyle={{ paddingBottom: 100 }}
-            showsVerticalScrollIndicator={false}
-          >
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 100 }}
+          showsVerticalScrollIndicator={false}
+        >
 
-      <View style={styles.container}>
-        <Text style={styles.pageTitle}>Group Challenge</Text>
+          <View style={styles.container}>
+            <Text style={styles.pageTitle}>Group Challenge</Text>
 
-          <View style={styles.formSection}>
-            <Text style={styles.label}>Challenge Name</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter challenge name"
-              placeholderTextColor="rgba(255,255,255,0.6)"
-              value={name}
-              onChangeText={setName}
-            />
-          </View>
-
-          {/* <View style={styles.formSection}>
-            <Text style={styles.label}>Challenge Duration</Text>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View style={styles.formSection}>
+              <Text style={styles.label}>Challenge Name</Text>
               <TextInput
-                style={[styles.input, { flex: 1, marginRight: 10 }]}
-                keyboardType="numeric"
-                value={String(durationValue)}
-                onChangeText={text => setDurationValue(Number(text) || 0)}
+                style={styles.input}
+                placeholder="Enter challenge name"
+                placeholderTextColor="rgba(255,255,255,0.6)"
+                value={name}
+                onChangeText={setName}
               />
-
-              <Picker
-                selectedValue={durationUnit}
-                style={{ flex: 1 }}
-                onValueChange={(itemValue) => setDurationUnit(itemValue)}
-              >
-                <Picker.Item label="Weeks" value="weeks" />
-                <Picker.Item label="Months" value="months" />
-                <Picker.Item label="Years" value="years" />
-              </Picker>
             </View>
-          </View> */}
 
-<View style={styles.formSection}>
-  <View style={[styles.formSection2, { flexDirection: "row", alignItems: "center" }]}>
-    <Text style={styles.label}>Select Availability</Text>
+            <View style={styles.formSection}>
+              <View style={[styles.formSection2, { flexDirection: "row", alignItems: "center" }]}>
+                <Text style={styles.label}>Select Availability</Text>
 
-    <TouchableOpacity
-      onPress={() => setInfoVisible(true)}
-      style={{ marginLeft: 6, marginTop: -10 }}
-      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-    >
-      <Ionicons name="help-circle" size={22} color="rgba(255,255,255,0.85)" />
-    </TouchableOpacity>   
-  </View>
-
-  <View style={{ flexDirection: 'row', flex: 1 }}>
-    {/* Fixed left column (times) */}
-    <View>
-      {/* Empty corner cell to align with header row */}
-      <View style={styles.cell} />
-      {TIMES.map((time, timeIdx) => (
-        <View key={timeIdx} style={styles.cell}>
-          <Text style={styles.cellText}>{formatTo12Hour(time)}</Text>
-        </View>
-      ))}
-    </View>
-
-    {/* Scrollable section for days and grid */}
-    <ScrollView horizontal>
-      <View>
-        {/* Top row (days) */}
-        <View style={styles.row}>
-          {DAYS.map((day, idx) => (
-            <View key={idx} style={styles.cell}>
-              <Text style={styles.cellText}>{day}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Scrollable grid below days */}
-        <ScrollView>
-          {TIMES.map((time, timeIdx) => (
-            <View key={timeIdx} style={styles.row}>
-              {DAYS.map((_, dayIdx) => (
                 <TouchableOpacity
-                  key={`${dayIdx}-${timeIdx}`}
-                  onPress={() => toggleCell(dayIdx, timeIdx)}
-                  style={[
-                    styles.cell,
-                    styles.interactiveCell,
-                    isCellSelected(dayIdx, timeIdx) && styles.selectedCell,
-                  ]}
-                />
-              ))}
-            </View>
-          ))}
-        </ScrollView>
-      </View>
-    </ScrollView>
-  </View>
-</View>
+                  onPress={() => setInfoVisible(true)}
+                  style={{ marginLeft: 6, marginTop: -10 }}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="help-circle" size={22} color="rgba(255,255,255,0.85)" />
+                </TouchableOpacity>
+              </View>
 
-      <Modal transparent visible={infoVisible} animationType="fade" onRequestClose={() => setInfoVisible(false)}>
-        <View style={styles.infoBackdrop}>
-          <View style={styles.infoCard}>
-            <Text style={styles.infoTitle}>How to set my availability?</Text>
-            <Text style={styles.infoText}>
-              Availability slots are in 5 minute segments. Selecting, for example,
-              the 6 AM slot on Monday means that you are available to have a 6 AM 
-              alarm on Mondays. All group members will be able to enter their availabilities
-              into this chart once you send the invite. You will also be able to edit your
-              availability if needed.
-            </Text>
-            <TouchableOpacity style={styles.infoClose} onPress={() => setInfoVisible(false)}>
-              <Text style={styles.infoCloseText}>Got it</Text>
+              <View style={{ flexDirection: 'row', flex: 1 }}>
+                {/* Fixed left column (times) */}
+                <View>
+                  {/* Empty corner cell to align with header row */}
+                  <View style={styles.cell} />
+                  {TIMES.map((time, timeIdx) => (
+                    <View key={timeIdx} style={styles.cell}>
+                      <Text style={styles.cellText}>{formatTo12Hour(time)}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Scrollable section for days and grid */}
+                <ScrollView horizontal>
+                  <View>
+                    {/* Top row (days) */}
+                    <View style={styles.row}>
+                      {DAYS.map((day, idx) => (
+                        <View key={idx} style={styles.cell}>
+                          <Text style={styles.cellText}>{day}</Text>
+                        </View>
+                      ))}
+                    </View>
+
+                    {/* Scrollable grid below days */}
+                    <ScrollView>
+                      {TIMES.map((time, timeIdx) => (
+                        <View key={timeIdx} style={styles.row}>
+                          {DAYS.map((_, dayIdx) => (
+                            <TouchableOpacity
+                              key={`${dayIdx}-${timeIdx}`}
+                              onPress={() => toggleCell(dayIdx, timeIdx)}
+                              style={[
+                                styles.cell,
+                                styles.interactiveCell,
+                                isCellSelected(dayIdx, timeIdx) && styles.selectedCell,
+                              ]}
+                            />
+                          ))}
+                        </View>
+                      ))}
+                    </ScrollView>
+                  </View>
+                </ScrollView>
+              </View>
+            </View>
+
+            <Modal transparent visible={infoVisible} animationType="fade" onRequestClose={() => setInfoVisible(false)}>
+              <View style={styles.infoBackdrop}>
+                <View style={styles.infoCard}>
+                  <Text style={styles.infoTitle}>How to set my availability?</Text>
+                  <Text style={styles.infoText}>
+                    Availability slots are in 5 minute segments. Selecting, for example,
+                    the 6 AM slot on Monday means that you are available to have a 6 AM
+                    alarm on Mondays. All group members will be able to enter their availabilities
+                    into this chart once you send the invite. You will also be able to edit your
+                    availability if needed.
+                  </Text>
+                  <TouchableOpacity style={styles.infoClose} onPress={() => setInfoVisible(false)}>
+                    <Text style={styles.infoCloseText}>Got it</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Modal>
+            <TouchableOpacity style={styles.createButton} onPress={handleNext}>
+              <LinearGradient
+                colors={['#FFD700', '#FFC107']}
+                style={styles.createButtonGradient}
+              >
+                <Text style={styles.createButtonText}>Next</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
-
-          <TouchableOpacity style={styles.createButton} onPress={handleNext}>
-            <LinearGradient
-              colors={['#FFD700', '#FFC107']}
-              style={styles.createButtonGradient}
-            >
-              <Text style={styles.createButtonText}>Next</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-      </View>
-
-
-      </ScrollView>
+        </ScrollView>
       </View>
     </ImageBackground>
   )
 }
-
-
 
 const styles = StyleSheet.create({
   background: {
@@ -367,10 +289,10 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingTop: 50, 
+    paddingTop: 50,
     paddingHorizontal: 10
   },
-    backButton: {
+  backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -379,7 +301,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginLeft: 10,
     marginTop: 5,
-    },
+  },
   pageTitle: {
     fontSize: 30,
     fontWeight: '700',
@@ -388,8 +310,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textShadowColor: "rgba(0, 0, 0, 0.2)",
     textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,   
-    marginTop: -40, 
+    textShadowRadius: 3,
+    marginTop: -40,
   },
   formSection: {
     backgroundColor: 'rgba(0,0,0,0.2)',
@@ -399,12 +321,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },
-formSection2: {
-  flexDirection: "row",
-  alignItems: "center",
-  paddingVertical: 4,
-  paddingHorizontal: 2,
-},
+  formSection2: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+  },
   label: {
     fontSize: 18,
     fontWeight: '600',
