@@ -25,46 +25,44 @@ const Groups: React.FC<Props> = ({ navigation }) => {
   const { groups, refreshGroups, invalid, isLoading } = useGroups();
   const route = useRoute()
   const from = route?.params?.from;
-  // const [groups, setGroups] = useState<Group[]>([])
-  // const [isLoading, setIsLoading] = useState(true)
   const [inviteCount, setInviteCount] = useState(0)
 
   const fetchInvites = async () => {
     try {
-                    const access = await getAccessToken();
-                    if (!access) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+      const access = await getAccessToken();
+      if (!access) {
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
-                    }
-          const invitesResponse = await fetch(endpoints.groupInvites(Number(user?.id)), {
+        return;
+      }
+      const invitesResponse = await fetch(endpoints.groupInvites(Number(user?.id)), {
         headers: { Authorization: `Bearer ${access}` },
-        });
-          if (invitesResponse.ok) {
-            const invitesData = await invitesResponse.json().catch(() => []);
-            setInviteCount(Array.isArray(invitesData) ? invitesData.length : 0);
-          } else {
-            setInviteCount(0);
-          }
-        } catch (error) {
-        console.error("Failed to fetch invites:", error);
-    } 
+      });
+      if (invitesResponse.ok) {
+        const invitesData = await invitesResponse.json().catch(() => []);
+        setInviteCount(Array.isArray(invitesData) ? invitesData.length : 0);
+      } else {
+        setInviteCount(0);
+      }
+    } catch (error) {
+      console.error("Failed to fetch invites:", error);
+    }
   }
 
   useFocusEffect(
@@ -102,7 +100,7 @@ const Groups: React.FC<Props> = ({ navigation }) => {
   );
 
 
-  
+
   const goToChallenges = () => navigation.navigate("Challenges")
   const goToGroups = () => navigation.navigate("Groups")
   const goToMessages = () => navigation.navigate("Messages")
@@ -174,17 +172,17 @@ const Groups: React.FC<Props> = ({ navigation }) => {
                 style={styles.groupCard}
                 onPress={() => {
                   if (from === "Messages") {
-                    navigation.navigate("Conversation", { 
-                      otherUserId: null, 
-                      groupId: group.id, 
+                    navigation.navigate("Conversation", {
+                      otherUserId: null,
+                      groupId: group.id,
                       groupName: group.name,
-                      otherUserName: null 
+                      otherUserName: null
                     });
                   }
                   else {
                     navigation.navigate("GroupDetails", { groupId: group.id })
                   }
-                }}                
+                }}
                 activeOpacity={0.8}
               >
                 <View style={styles.groupIconContainer}>
@@ -205,24 +203,24 @@ const Groups: React.FC<Props> = ({ navigation }) => {
         )}
 
         {from !== "Messages" && (
-        <>
-          <TouchableOpacity style={styles.floatingButton} onPress={goToCreateGroup}>
-            <Ionicons name="add" size={30} color="#FFF" />
-          </TouchableOpacity>
-        </>
+          <>
+            <TouchableOpacity style={styles.floatingButton} onPress={goToCreateGroup}>
+              <Ionicons name="add" size={30} color="#FFF" />
+            </TouchableOpacity>
+          </>
         )}
       </View>
 
-    {from !== "Messages" && (
-      <NavBar
-        goToPublicChallenges={() => navigation.navigate("PublicChallenges")}
-        goToChallenges={() => navigation.navigate("Challenges")}
-        goToGroups={() => navigation.navigate("Groups")}
-        goToMessages={() => navigation.navigate("Messages")}
-        goToProfile={() => navigation.navigate("Profile")}
-        active="Groups"
-      />
-    )}
+      {from !== "Messages" && (
+        <NavBar
+          goToPublicChallenges={() => navigation.navigate("PublicChallenges")}
+          goToChallenges={() => navigation.navigate("Challenges")}
+          goToGroups={() => navigation.navigate("Groups")}
+          goToMessages={() => navigation.navigate("Messages")}
+          goToProfile={() => navigation.navigate("Profile")}
+          active="Groups"
+        />
+      )}
     </ImageBackground>
   )
 }

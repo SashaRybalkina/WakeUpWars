@@ -55,12 +55,8 @@ export async function scheduleAlarms(
         alarm.data,
       );
       console.log('NativeModules keys:', Object.keys(NativeModules));
-      // Optionally, handle success (e.g., log or show a toast)
-      // Alert.alert('Alarm Set', msg);
     } catch (err: any) {
       Alert.alert('Alarm Error', err.message || String(err));
     }
   }
 }
-
-// Example usage removed; alarms now come from backend schedule via alarmService.

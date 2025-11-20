@@ -53,27 +53,27 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     setLoadingFriends(true)
     try {
       const accessToken = await getAccessToken();
-                          if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+      if (!accessToken) {
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
-                    }
+        return;
+      }
       const response = await fetch(`${BASE_URL}/api/user/${user.id}/recent-messages/`, {
         headers: { Authorization: `Bearer ${accessToken}` }
       });
@@ -92,27 +92,27 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     setLoadingGroups(true)
     try {
       const accessToken = await getAccessToken();
-                          if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+      if (!accessToken) {
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
-                    }
+        return;
+      }
       const response = await fetch(`${BASE_URL}/api/user/${user.id}/recent-group-messages/`, {
         headers: { Authorization: `Bearer ${accessToken}` }
       });
@@ -142,13 +142,6 @@ const Messages: React.FC<Props> = ({ navigation }) => {
       if (finalStatus !== 'granted') return
       const tokenData = await Notifications.getExpoPushTokenAsync()
       const pushToken = tokenData.data
-      // if (user?.id && pushToken) {
-      //   await fetch(`${BASE_URL}/api/save-push-token/`, {
-      //     method: 'POST',
-      //     headers: { 'Content-Type': 'application/json' },
-      //     body: JSON.stringify({ user_id: user.id, push_token: pushToken }),
-      //   })
-      // }
     }
     registerForPushNotifications()
   }, [user])
@@ -210,16 +203,16 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     outputRange: [0, tabWidth],
   })
 
-  const goToMessages = () => navigation.navigate("Messages") 
-  const goToGroups = () => navigation.navigate("Groups") 
-  const goToChallenges = () => navigation.navigate("Challenges") 
+  const goToMessages = () => navigation.navigate("Messages")
+  const goToGroups = () => navigation.navigate("Groups")
+  const goToChallenges = () => navigation.navigate("Challenges")
   const goToProfile = () => navigation.navigate("Profile")
 
-  const MessageItem: React.FC<{ 
-    name: string; 
-    text: string; 
-    index: number; 
-    timestamp: string; 
+  const MessageItem: React.FC<{
+    name: string;
+    text: string;
+    index: number;
+    timestamp: string;
     onPress?: () => void;
     unread?: boolean;
     avatar?: { imageUrl?: string; backgroundColor?: string } | null;
@@ -232,60 +225,60 @@ const Messages: React.FC<Props> = ({ navigation }) => {
     unread = false,
     avatar,
   }) => (
-    <TouchableOpacity
-      style={[
-        styles.messageCard,
-        { 
-          marginTop: index === 0 ? 0 : 12,
-          backgroundColor: unread 
-            ? "rgba(255, 215, 0, 0.15)"
-            : "rgba(50, 50, 60, 0.3)"
-        },
-      ]}
-      activeOpacity={0.7}
-      onPress={onPress}
-    >
-      <View style={styles.messageAvatarContainer}>
-        <View style={[
-          styles.messageAvatar,
-          { backgroundColor: (avatar?.backgroundColor || "rgba(255, 215, 0, 0.3)") },
-          unread && { borderColor: "#FFF700" }
-        ]}>
-          {avatar?.imageUrl ? (
-            <Image
-              source={{ uri: avatar.imageUrl.startsWith("http") ? avatar.imageUrl : `${BASE_URL}${avatar.imageUrl}` }}
-              style={styles.messageAvatarImg}
-              resizeMode="cover"
-            />
-          ) : (
-            <Text style={styles.avatarText}>{name ? name.charAt(0).toUpperCase() : "?"}</Text>
-          )}
+      <TouchableOpacity
+        style={[
+          styles.messageCard,
+          {
+            marginTop: index === 0 ? 0 : 12,
+            backgroundColor: unread
+              ? "rgba(255, 215, 0, 0.15)"
+              : "rgba(50, 50, 60, 0.3)"
+          },
+        ]}
+        activeOpacity={0.7}
+        onPress={onPress}
+      >
+        <View style={styles.messageAvatarContainer}>
+          <View style={[
+            styles.messageAvatar,
+            { backgroundColor: (avatar?.backgroundColor || "rgba(255, 215, 0, 0.3)") },
+            unread && { borderColor: "#FFF700" }
+          ]}>
+            {avatar?.imageUrl ? (
+              <Image
+                source={{ uri: avatar.imageUrl.startsWith("http") ? avatar.imageUrl : `${BASE_URL}${avatar.imageUrl}` }}
+                style={styles.messageAvatarImg}
+                resizeMode="cover"
+              />
+            ) : (
+              <Text style={styles.avatarText}>{name ? name.charAt(0).toUpperCase() : "?"}</Text>
+            )}
+          </View>
         </View>
-      </View>
-      <View style={styles.messageContent}>
-        <View style={styles.messageHeader}>
-          <Text 
+        <View style={styles.messageContent}>
+          <View style={styles.messageHeader}>
+            <Text
+              style={[
+                styles.messageName,
+                unread && { color: "#FFF", fontWeight: "800" }
+              ]}
+            >
+              {name}
+            </Text>
+            <Text style={styles.messageTime}>{getTimeAgo(timestamp)}</Text>
+          </View>
+          <Text
             style={[
-              styles.messageName, 
-              unread && { color: "#FFF", fontWeight: "800" }
+              styles.messageText,
+              unread && { fontWeight: "700", color: "#FFD700" }
             ]}
+            numberOfLines={1}
           >
-            {name}
+            {text}
           </Text>
-          <Text style={styles.messageTime}>{getTimeAgo(timestamp)}</Text>
         </View>
-        <Text 
-          style={[
-            styles.messageText, 
-            unread && { fontWeight: "700", color: "#FFD700" }
-          ]} 
-          numberOfLines={1}
-        >
-          {text}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  )
+      </TouchableOpacity>
+    )
 
   const EmptyState = () => {
     const isLoading = selected === "Friends" ? loadingFriends : loadingGroups
@@ -317,7 +310,7 @@ const Messages: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <ScrollView style={styles.scrollViewContainer}>
-        {selected === "Friends" ? (
+          {selected === "Friends" ? (
             friendMessages.length > 0 ? (
               getConversations(friendMessages).map((conv: any, index: number) => {
                 const { otherUser, lastMessage } = conv
@@ -341,60 +334,60 @@ const Messages: React.FC<Props> = ({ navigation }) => {
           ) : (
             groupConversations.length > 0 ? (
               groupConversations
-              .map(group => ({
-                ...group,
-                lastMessageId: group.last_message?.id || 0
-              }))
-              .sort((a, b) => b.lastMessageId - a.lastMessageId)
-              .map((group: any, index: number) => {
-                const groupName = group.group_name || `Group ${group.group_id}`
-                const lastMessage = group.last_message
-                let text = "No messages yet"
-                let timestamp = ""
-                let senderName = ""
-                let isMine = false
-                if (lastMessage) {
-                  senderName = lastMessage.sender?.name || lastMessage.sender?.username || "Someone"
-                  text = `${isMine ? "You" : senderName}: ${lastMessage.message}`
-                  timestamp = lastMessage.timestamp
-                  isMine = lastMessage.sender.id === user?.id
-                }
-                return (
-                  <MessageItem
-                    key={group.group_id}
-                    name={groupName}
-                    text={text}
-                    index={index}
-                    timestamp={timestamp}
-                    unread={lastMessage ? lastMessage.hasOwnProperty('is_read') && !lastMessage.is_read : false}
-                    onPress={() => openGroupConversation(group.group_id, groupName)}
-                  />
-                )
-              })
+                .map(group => ({
+                  ...group,
+                  lastMessageId: group.last_message?.id || 0
+                }))
+                .sort((a, b) => b.lastMessageId - a.lastMessageId)
+                .map((group: any, index: number) => {
+                  const groupName = group.group_name || `Group ${group.group_id}`
+                  const lastMessage = group.last_message
+                  let text = "No messages yet"
+                  let timestamp = ""
+                  let senderName = ""
+                  let isMine = false
+                  if (lastMessage) {
+                    senderName = lastMessage.sender?.name || lastMessage.sender?.username || "Someone"
+                    text = `${isMine ? "You" : senderName}: ${lastMessage.message}`
+                    timestamp = lastMessage.timestamp
+                    isMine = lastMessage.sender.id === user?.id
+                  }
+                  return (
+                    <MessageItem
+                      key={group.group_id}
+                      name={groupName}
+                      text={text}
+                      index={index}
+                      timestamp={timestamp}
+                      unread={lastMessage ? lastMessage.hasOwnProperty('is_read') && !lastMessage.is_read : false}
+                      onPress={() => openGroupConversation(group.group_id, groupName)}
+                    />
+                  )
+                })
             ) : (
               <EmptyState />
             )
           )}
         </ScrollView>
 
-        <TouchableOpacity 
-          style={styles.newConversationButton} 
-          activeOpacity={0.8} 
-          onPress={() => { 
-            if (selected == "Groups") { 
-              navigation.navigate("Groups", { from: "Messages" }) 
-            } 
-            else { 
-              navigation.navigate("Friends1", { from: "Messages" }) 
-            } 
-          }}> 
-          <LinearGradient 
-            colors={["#FFD700", "#FFA500"]} 
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} 
-            style={styles.newConversationGradient} > 
-            <Ionicons name="add-circle-outline" size={22} color="#FFF" style={styles.newConversationIcon} /> 
-            <Text style={styles.newConversationText}>Start New Conversation</Text> 
-          </LinearGradient> 
+        <TouchableOpacity
+          style={styles.newConversationButton}
+          activeOpacity={0.8}
+          onPress={() => {
+            if (selected == "Groups") {
+              navigation.navigate("Groups", { from: "Messages" })
+            }
+            else {
+              navigation.navigate("Friends1", { from: "Messages" })
+            }
+          }}>
+          <LinearGradient
+            colors={["#FFD700", "#FFA500"]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            style={styles.newConversationGradient} >
+            <Ionicons name="add-circle-outline" size={22} color="#FFF" style={styles.newConversationIcon} />
+            <Text style={styles.newConversationText}>Start New Conversation</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </View>
 
@@ -574,7 +567,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     overflow: "hidden",
     marginTop: 20,
-    marginBottom:-20,
+    marginBottom: -20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,

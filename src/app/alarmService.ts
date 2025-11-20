@@ -21,11 +21,11 @@ export async function scheduleAlarmsForChallenge(
   whichChall: string = '',
 ): Promise<void> {
   try {
-          const accessToken = await getAccessToken();
-          if (!accessToken) {
-            throw new Error("Not authenticated");
-          }
-          
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+      throw new Error("Not authenticated");
+    }
+
     const res = await fetch(endpoints.getChallengeSchedule(challId), {
       headers: {
         Authorization: `Bearer ${accessToken}`
@@ -84,59 +84,59 @@ export async function scheduleAlarmsForUser(
   whichChall: string = '',
 ): Promise<void> {
 
-    const access = await getAccessToken();
-    if (!access) {
-      throw new Error("AUTH_EXPIRED");
-    }
+  const access = await getAccessToken();
+  if (!access) {
+    throw new Error("AUTH_EXPIRED");
+  }
 
-    const res = await fetch(endpoints.getChallengeUserSchedule(challId, userId), {
-      headers: { Authorization: `Bearer ${access}` }
-    });
+  const res = await fetch(endpoints.getChallengeUserSchedule(challId, userId), {
+    headers: { Authorization: `Bearer ${access}` }
+  });
 
-    // If JWT is expired, you'll see 401 here
-    if (res.status === 401) {
-      throw new Error("AUTH_EXPIRED");
-    }
+  // If JWT is expired, you'll see 401 here
+  if (res.status === 401) {
+    throw new Error("AUTH_EXPIRED");
+  }
 
-    if (!res.ok) {
-      throw new Error(`HTTP_${res.status}`);
-    }
+  if (!res.ok) {
+    throw new Error(`HTTP_${res.status}`);
+  }
 
-    const data = await res.json();
-    console.log(data)
-    const { startDate, endDate, schedule } = data as {
-      startDate: string; // "YYYY-MM-DD"
-      endDate: string;   // "YYYY-MM-DD"
-      schedule: any[];
-    };
+  const data = await res.json();
+  console.log(data)
+  const { startDate, endDate, schedule } = data as {
+    startDate: string; // "YYYY-MM-DD"
+    endDate: string;   // "YYYY-MM-DD"
+    schedule: any[];
+  };
 
-    if (!schedule || !Array.isArray(schedule)) {
-      console.warn('Unexpected schedule shape', schedule);
-      return;
-    }
+  if (!schedule || !Array.isArray(schedule)) {
+    console.warn('Unexpected schedule shape', schedule);
+    return;
+  }
 
-    // Parse YYYY-MM-DD as a LOCAL date to avoid UTC shifting a day earlier/later
-    const parseLocalYMD = (ymd: string): Date => {
-      const [yRaw, mRaw, dRaw] = ymd.split('-');
-      const y = Number.parseInt(yRaw ?? '', 10) || 1970;
-      const m = Number.parseInt(mRaw ?? '', 10) || 1;   // 1-12
-      const d = Number.parseInt(dRaw ?? '', 10) || 1;   // 1-31
-      return new Date(y, m - 1, d);
-    };
+  // Parse YYYY-MM-DD as a LOCAL date to avoid UTC shifting a day earlier/later
+  const parseLocalYMD = (ymd: string): Date => {
+    const [yRaw, mRaw, dRaw] = ymd.split('-');
+    const y = Number.parseInt(yRaw ?? '', 10) || 1970;
+    const m = Number.parseInt(mRaw ?? '', 10) || 1;   // 1-12
+    const d = Number.parseInt(dRaw ?? '', 10) || 1;   // 1-31
+    return new Date(y, m - 1, d);
+  };
 
-    const alarms = buildAlarmList(
-      parseLocalYMD(startDate),
-      parseLocalYMD(endDate),
-      schedule,
-      challId,
-      challName,
-      whichChall,
-    );
+  const alarms = buildAlarmList(
+    parseLocalYMD(startDate),
+    parseLocalYMD(endDate),
+    schedule,
+    challId,
+    challName,
+    whichChall,
+  );
 
-    if (alarms.length === 0) return;
+  if (alarms.length === 0) return;
 
-    // console.log(alarms)
-    await scheduleAlarms(alarms);
+  // console.log(alarms)
+  await scheduleAlarms(alarms);
 }
 
 /**

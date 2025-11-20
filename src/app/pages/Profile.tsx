@@ -53,10 +53,7 @@ type Badge = {
   };
 };
 
-const Profile: React.FC<Props> = ({ navigation, changeTab=false }) => {
-  //--------------------------
-  //const goToPatternGame = () => navigation.navigate("PatternGame")
-  //-------------
+const Profile: React.FC<Props> = ({ navigation, changeTab = false }) => {
   const goToChallenges = () => navigation.navigate('Challenges');
   const goToGroups = () => navigation.navigate('Groups');
   const goToMessages = () => navigation.navigate('Messages');
@@ -72,70 +69,66 @@ const Profile: React.FC<Props> = ({ navigation, changeTab=false }) => {
   const [selectedBadge, setSelectedBadge] = useState<null | any>(null);
   const [notifCount, setNotifCount] = useState(0);
 
-const handleLogout = async () => {
-  await logout();
-  navigation.reset({
-    index: 0,
-    routes: [{ name: "Login" }],
-  });
-};
+  const handleLogout = async () => {
+    await logout();
+    navigation.reset({
+      index: 0,
+      routes: [{ name: "Login" }],
+    });
+  };
 
-
-const handleHmm = async (b: boolean) => {
-  if (b) {
-    Alert.alert(
-      "Session expired",
-      "Your login session has expired. Please log in again.",
-      [
-        {
-          text: "OK",
-          onPress: async () => {
-            await logout();
-            navigation.reset({
-              index: 0,
-              routes: [{ name: "Login" }],
-            });
+  const handleHmm = async (b: boolean) => {
+    if (b) {
+      Alert.alert(
+        "Session expired",
+        "Your login session has expired. Please log in again.",
+        [
+          {
+            text: "OK",
+            onPress: async () => {
+              await logout();
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "Login" }],
+              });
+            },
           },
-        },
-      ],
-      { cancelable: false }
-    );
+        ],
+        { cancelable: false }
+      );
 
-    return;
-  }
-  console.log("shouldn't print this")
-};
-
-
-
+      return;
+    }
+    console.log("shouldn't print this")
+  };
 
   useEffect(() => {
     if (!user?.id) return;
 
     const fetchNotificationsCount = async () => {
       try {
-                const access = await getAccessToken();
-                if (!access) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        const access = await getAccessToken();
+        if (!access) {
+          Alert.alert(
+            "Session expired",
+            "Your login session has expired. Please log in again.",
+            [
+              {
+                text: "OK",
+                onPress: async () => {
+                  await logout();
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Login" }],
+                  });
+                },
+              },
+            ],
+            { cancelable: false }
+          );
 
-                  return;
-                }
+          return;
+        }
 
         const res = await fetch(endpoints.notifications(Number(user.id)), {
           headers: { Authorization: `Bearer ${access}` },
@@ -149,12 +142,7 @@ const handleHmm = async (b: boolean) => {
 
     fetchNotificationsCount();
 
-    // // Optional: refresh count every 30s while on profile
-    // const interval = setInterval(fetchNotificationsCount, 30000);
-    // return () => clearInterval(interval);
   }, [user]);
-
-
 
   useFocusEffect(
     React.useCallback(() => {
@@ -163,33 +151,33 @@ const handleHmm = async (b: boolean) => {
 
       (async () => {
         try {
-                const access = await getAccessToken();
-                if (!access) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+          const access = await getAccessToken();
+          if (!access) {
+            Alert.alert(
+              "Session expired",
+              "Your login session has expired. Please log in again.",
+              [
+                {
+                  text: "OK",
+                  onPress: async () => {
+                    await logout();
+                    navigation.reset({
+                      index: 0,
+                      routes: [{ name: "Login" }],
+                    });
+                  },
+                },
+              ],
+              { cancelable: false }
+            );
 
-                  return;
-                }
-        const res = await fetch(endpoints.userData(Number(user.id)), {
-          headers: {
-            Authorization: `Bearer ${access}`
+            return;
           }
-        });
+          const res = await fetch(endpoints.userData(Number(user.id)), {
+            headers: {
+              Authorization: `Bearer ${access}`
+            }
+          });
           const data = await res.json();
           if (!cancelled) {
             setSkillLevels(data.skillLevels);
@@ -210,28 +198,28 @@ const handleHmm = async (b: boolean) => {
 
   const fetchBadges = async () => {
     if (!user) return;
-                const access = await getAccessToken();
-                if (!access) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+    const access = await getAccessToken();
+    if (!access) {
+      Alert.alert(
+        "Session expired",
+        "Your login session has expired. Please log in again.",
+        [
+          {
+            text: "OK",
+            onPress: async () => {
+              await logout();
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "Login" }],
+              });
+            },
+          },
+        ],
+        { cancelable: false }
+      );
 
-                  return;
-                }
+      return;
+    }
     const res = await fetch(endpoints.badges(Number(user.id)), {
       headers: { Authorization: `Bearer ${access}` },
     });
@@ -239,24 +227,17 @@ const handleHmm = async (b: boolean) => {
     setBadges(data);
   };
 
-
   useFocusEffect(
-  React.useCallback(() => {
-    (async () => {
-      try {
-        await fetchBadges();
-      } catch (e) {
-        console.error('Failed to fetch badges', e);
-      }
-    })();
-  }, [user])
-);
-
-
-
-
-
-
+    React.useCallback(() => {
+      (async () => {
+        try {
+          await fetchBadges();
+        } catch (e) {
+          console.error('Failed to fetch badges', e);
+        }
+      })();
+    }, [user])
+  );
 
   return (
     <ImageBackground
@@ -268,78 +249,60 @@ const handleHmm = async (b: boolean) => {
 
       <View style={styles.container}>
 
-      <TouchableOpacity
-        style={styles.notificationButton}
-        onPress={() => navigation.navigate('Notifications')}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="notifications-outline" size={30} color="#FFD700" />
-        {notifCount > 0 && (
-          <View style={styles.notificationBadge}>
-            <Text style={styles.notificationBadgeText}>
-              {notifCount > 9 ? '9+' : notifCount}
-            </Text>
-          </View>
-        )}
-      </TouchableOpacity>
-
-      {/* ScrollView wraps all content except the bottom navigation */}
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollViewContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <UserProfileCard
-          name={user?.name ?? 'Loading…'}
-          currentMemoji={currentMemoji}
-          bgColor={backgroundColor}
-          // skill_levels={null}
-          numCoins={numCoins}
-          badgesGiven={badges}
-          changeTab={changeTab}
-        />
         <TouchableOpacity
-          style={styles.logoutButton}
-          activeOpacity={0.8}
-          onPress={handleLogout}
-          // onPress={logout}
+          style={styles.notificationButton}
+          onPress={() => navigation.navigate('Notifications')}
+          activeOpacity={0.7}
         >
-          <Ionicons
-            name="log-out-outline"
-            size={22}
-            color="#FFF"
-            style={styles.logoutIcon}
-          />
-          <Text style={styles.logoutText}>Log Out</Text>
+          <Ionicons name="notifications-outline" size={30} color="#FFD700" />
+          {notifCount > 0 && (
+            <View style={styles.notificationBadge}>
+              <Text style={styles.notificationBadgeText}>
+                {notifCount > 9 ? '9+' : notifCount}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
 
-
-        {/* <TouchableOpacity
-          style={styles.logoutButton}
-          activeOpacity={0.8}
-          onPress={() => handleHmm(true)}
+        {/* ScrollView wraps all content except the bottom navigation */}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollViewContent}
+          showsVerticalScrollIndicator={false}
         >
-          <Ionicons
-            name="log-out-outline"
-            size={22}
-            color="#FFF"
-            style={styles.logoutIcon}
+          <UserProfileCard
+            name={user?.name ?? 'Loading…'}
+            currentMemoji={currentMemoji}
+            bgColor={backgroundColor}
+            numCoins={numCoins}
+            badgesGiven={badges}
+            changeTab={changeTab}
           />
-          <Text style={styles.logoutText}>Hmm</Text>
-        </TouchableOpacity> */}
+          <TouchableOpacity
+            style={styles.logoutButton}
+            activeOpacity={0.8}
+            onPress={handleLogout}
+          >
+            <Ionicons
+              name="log-out-outline"
+              size={22}
+              color="#FFF"
+              style={styles.logoutIcon}
+            />
+            <Text style={styles.logoutText}>Log Out</Text>
+          </TouchableOpacity>
 
-
-        {/* Add padding at the bottom to ensure content isn't hidden behind the nav bar */}
-        <View style={styles.bottomPadding} />
-      </ScrollView>
-      <NavBar
-        goToPublicChallenges={() => navigation.navigate("PublicChallenges")}
-        goToChallenges={() => navigation.navigate("Challenges")}
-        goToGroups={() => navigation.navigate("Groups")}
-        goToMessages={() => navigation.navigate("Messages")}
-        goToProfile={() => navigation.navigate("Profile")}
-        active="Profile"
-      />
+          {/* Add padding at the bottom to ensure content isn't hidden behind the nav bar */}
+          <View style={styles.bottomPadding} />
+        </ScrollView>
+        <NavBar
+          goToPublicChallenges={() => navigation.navigate("PublicChallenges")}
+          goToChallenges={() => navigation.navigate("Challenges")}
+          goToGroups={() => navigation.navigate("Groups")}
+          goToMessages={() => navigation.navigate("Messages")}
+          goToProfile={() => navigation.navigate("Profile")}
+          active="Profile"
+        />
 
       </View>
     </ImageBackground>
@@ -352,7 +315,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingTop: 50, 
+    paddingTop: 50,
     paddingHorizontal: 20,
   },
   scrollView: {
@@ -595,7 +558,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 10,
     fontWeight: '700',
-  },  
+  },
 });
 
 export default Profile;

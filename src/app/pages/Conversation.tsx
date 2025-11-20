@@ -46,7 +46,7 @@ const Conversation: React.FC<Props> = ({ route, navigation }) => {
     const payload: any = { action, viewer_id: user.id }
     if (groupId) payload.group_id = groupId
     else if (otherUserId) { payload.sender_id = user.id; payload.recipient_id = otherUserId }
-    try { ws.current.send(JSON.stringify(payload)) } catch (e) {}
+    try { ws.current.send(JSON.stringify(payload)) } catch (e) { }
   }
 
   // Connect WebSocket
@@ -70,18 +70,6 @@ const Conversation: React.FC<Props> = ({ route, navigation }) => {
     ws.current.onmessage = async (event: any) => {
       const data = JSON.parse(event.data);
       setMessages(prev => [...prev, data]);
-    
-      // if (data.sender_id !== user.id) {
-      //   try {
-      //     const token = await getAccessToken();
-      //     await axios.post(`${BASE_URL}/api/messages/mark-read/`, 
-      //       groupId ? { group_id: groupId } : { other_user_id: otherUserId },
-      //       { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
-      //     );
-      //   } catch (err) {
-      //     console.error("Failed to mark new message as read:", err);
-      //   }
-      // }
     };
 
     ws.current.onerror = (err: any) => console.error("WebSocket error:", err)
@@ -113,24 +101,24 @@ const Conversation: React.FC<Props> = ({ route, navigation }) => {
         setProfileLoading(true)
         const token = await getAccessToken()
         if (!token) {
-                Alert.alert(
-                  "Session expired",
-                  "Your login session has expired. Please log in again.",
-                  [
-                    {
-                      text: "OK",
-                      onPress: async () => {
-                        await logout();
-                        navigation.reset({
-                          index: 0,
-                          routes: [{ name: "Login" }],
-                        });
-                      },
-                    },
-                  ],
-                  { cancelable: false }
-                );
-                return;
+          Alert.alert(
+            "Session expired",
+            "Your login session has expired. Please log in again.",
+            [
+              {
+                text: "OK",
+                onPress: async () => {
+                  await logout();
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Login" }],
+                  });
+                },
+              },
+            ],
+            { cancelable: false }
+          );
+          return;
         }
         // Use the all-users endpoint which returns avatar info
         const res = await fetch(endpoints.allUsers(), {
@@ -163,25 +151,25 @@ const Conversation: React.FC<Props> = ({ route, navigation }) => {
 
         const accessToken = await getAccessToken()
         if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+          Alert.alert(
+            "Session expired",
+            "Your login session has expired. Please log in again.",
+            [
+              {
+                text: "OK",
+                onPress: async () => {
+                  await logout();
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Login" }],
+                  });
+                },
+              },
+            ],
+            { cancelable: false }
+          );
 
-                  return;
+          return;
         }
 
         const response = await fetch(url, {
@@ -244,7 +232,7 @@ const Conversation: React.FC<Props> = ({ route, navigation }) => {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <ImageBackground 
+      <ImageBackground
         source={require("../images/cgpt4.png")}
         resizeMode="cover"
         style={{ flex: 1 }}>
@@ -310,7 +298,7 @@ const Conversation: React.FC<Props> = ({ route, navigation }) => {
                   style={[
                     styles.messageBubble,
                     item.sender_id === user.id ||
-                    (item.sender && item.sender.id === user.id)
+                      (item.sender && item.sender.id === user.id)
                       ? styles.myMessage
                       : styles.theirMessage,
                   ]}
@@ -335,7 +323,7 @@ const Conversation: React.FC<Props> = ({ route, navigation }) => {
                   <Text
                     style={
                       item.sender_id === user.id ||
-                      (item.sender && item.sender.id === user.id)
+                        (item.sender && item.sender.id === user.id)
                         ? styles.myMessageText
                         : styles.messageText
                     }
@@ -353,19 +341,19 @@ const Conversation: React.FC<Props> = ({ route, navigation }) => {
         </View>
 
         {/* Input Field */}
-          <View style={styles.inputPill}>
-            <TextInput
-              style={styles.input}
-              placeholder="Type a message..."
-              value={newMessage}
-              onChangeText={setNewMessage}
-              multiline
-              placeholderTextColor="#666"
-            />
-            <TouchableOpacity style={styles.sendInside} onPress={sendMessage} disabled={sending}>
-              <Ionicons name="send" size={20} color={sending ? "#888" : "#6a6ca5ff"} />
-            </TouchableOpacity>
-          </View>
+        <View style={styles.inputPill}>
+          <TextInput
+            style={styles.input}
+            placeholder="Type a message..."
+            value={newMessage}
+            onChangeText={setNewMessage}
+            multiline
+            placeholderTextColor="#666"
+          />
+          <TouchableOpacity style={styles.sendInside} onPress={sendMessage} disabled={sending}>
+            <Ionicons name="send" size={20} color={sending ? "#888" : "#6a6ca5ff"} />
+          </TouchableOpacity>
+        </View>
       </ImageBackground>
     </KeyboardAvoidingView>
   )
@@ -432,7 +420,7 @@ const styles = StyleSheet.create({
   myMessage: { backgroundColor: "#fff", alignSelf: "flex-end", },
   theirMessage: { backgroundColor: "#d7d8ffff", alignSelf: "flex-start" },
   messageText: { color: "#000", fontSize: 16, fontWeight: 400 },
-  myMessageText: { color: "#000", fontSize: 16, fontWeight: 300  },
+  myMessageText: { color: "#000", fontSize: 16, fontWeight: 300 },
   inputPill: {
     flexDirection: "row",
     justifyContent: "center",

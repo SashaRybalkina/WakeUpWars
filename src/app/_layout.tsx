@@ -6,11 +6,9 @@
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 import { UserProvider } from './context/UserContext';
-
 import { AppProvider } from '../providers/AppProvider';
 import { Alarm } from './Alarm'; // Import the Alarm class
 
-// void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   // Simulate fetching alarm data from a "database"
@@ -38,20 +36,7 @@ export default function RootLayout() {
       try {
         // Request notification permission once for all alarms
         await Alarm.requestPermissions();
-
-        // Optionally: clear existing scheduled notifications to avoid duplicates
-        // await Notifications.cancelAllScheduledNotificationsAsync();
-
-        // Schedule each alarm from the fetched list
-        // for (const alarm of alarmList) {
-        //   await Alarm.scheduleNotification(
-        //     alarm.screen,
-        //     alarm.hour,
-        //     alarm.minute,
-        //   );
-        // }
       } catch (err) {
-        //console.error('Alarm setup failed:');
       }
     };
 
@@ -67,12 +52,4 @@ export default function RootLayout() {
 
     return () => sub.remove();
   }, []);
-
-  // return (
-  //   <AppProvider onInitialized={() => SplashScreen.hideAsync()}>
-  //     <UserProvider>
-  //       <Slot />
-  //     </UserProvider>
-  //   </AppProvider>
-  // );
 }

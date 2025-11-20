@@ -11,7 +11,6 @@ import {
   Image,
   ToastAndroid
 } from 'react-native';
-// import { createSudokuGame, validateSudokuMove } from './SudokuHelper';
 import { NavigationProp, useRoute } from '@react-navigation/native';
 import { endpoints, BASE_URL } from '../api';
 import { useUser } from '../context/UserContext';
@@ -70,8 +69,6 @@ type GameCompleteMessage = {
   // completed_by: string;
   scores: PlayerScore[];
 };
-
-// Client → Server
 
 export interface MakeMoveMessage {
   type: 'make_move';
@@ -141,25 +138,15 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
   const [playerColors, setPlayerColors] = useState<Record<string, string>>({});
   const [isMultiplayer, setIsMultiplayer] = useState(false);
   const [gameId, setGameId] = useState<number | null>(null);
-  // {
-  //   "alice": "aqua",
-  //   "bob": "orange"
-  // }
 
   const [gameStateId, setGameStateId] = useState<number>(1);
   const [grid, setGrid] = useState<string[]>(Array(81).fill(''));
   const [initialCells, setInitialCells] = useState<boolean[]>(Array(81).fill(false));
-  // const [savedColor, setSavedColor] = useState(getInitialColor());
   const [cellColors, setCellColors] = useState(Array(81).fill('white'));
-  // const [timeLeft, setTimeLeft] = useState(300);
-  // const [intervalId, setIntervalId] = useState<ReturnType<typeof setInterval> | null>(null);
   const [gameCompleted, setGameCompleted] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [cellLocks, setCellLocks] = useState<{ [key:number]: string }>({});
+  const [cellLocks, setCellLocks] = useState<{ [key: number]: string }>({});
   const [cellBorderColors, setCellBorderColors] = useState<string[]>(Array(81).fill('black'));
-
-  // const [pendingInput, setPendingInput] = useState<string>('');
-  // Multiplayer waiting room state
   const [waitingActive, setWaitingActive] = useState<boolean>(false);
   const [joinDeadlineISO, setJoinDeadlineISO] = useState<string | null>(null);
   const [readyCount, setReadyCount] = useState<number>(1);
@@ -171,20 +158,18 @@ const SudokuScreen: React.FC<Props> = ({ navigation }) => {
   const [countdownValue, setCountdownValue] = useState<number | null>(null);
   const [members, setMembers] = useState<{ id: number; name: string }[]>([]);
   const [onlineIds, setOnlineIds] = useState<number[]>([]);
-
   // new state for Sudoku solution
-const [solution, setSolution] = useState<number[][]>([]);
-// 🧮 Local stats tracking
-const [accuracyCount, setAccuracyCount] = useState(0);
-const [inaccuracyCount, setInaccuracyCount] = useState(0);
-const [leaderboard, setLeaderboard] = useState<PlayerScore[]>([]);
-const [hasShownResult, setHasShownResult] = useState(false);
+  const [solution, setSolution] = useState<number[][]>([]);
+  const [accuracyCount, setAccuracyCount] = useState(0);
+  const [inaccuracyCount, setInaccuracyCount] = useState(0);
+  const [leaderboard, setLeaderboard] = useState<PlayerScore[]>([]);
+  const [hasShownResult, setHasShownResult] = useState(false);
 
-   // 5-minute game timer
+  // 5-minute game timer
   const [gameTimeLeft, setGameTimeLeft] = useState<number>(300); // 5 minutes in seconds
   const gameTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timerExpiredSentRef = useRef(false);
-  
+
   const canStartNow = useMemo(() => {
     return readyCount >= 1;
   }, [readyCount]);
@@ -211,67 +196,67 @@ const [hasShownResult, setHasShownResult] = useState(false);
   useEffect(() => () => {
     if (countdownRef.current) clearInterval(countdownRef.current);
   }, []);
-  
+
   const handleTimerExpired = async () => {
     if (timerExpiredSentRef.current || !gameStateId) return;
     timerExpiredSentRef.current = true;
-    
+
     try {
       const accessToken = await getAccessToken();
-        if (!accessToken) {
-                Alert.alert(
-                  "Session expired",
-                  "Your login session has expired. Please log in again.",
-                  [
-                    {
-                      text: "OK",
-                      onPress: async () => {
-                        await logout();
-                        navigation.reset({
-                          index: 0,
-                          routes: [{ name: "Login" }],
-                        });
-                      },
-                    },
-                  ],
-                  { cancelable: false }
-                );
-                return;
-        }
-  
-        const response = await fetch(endpoints.gameTimerExpired, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({
-            model: 'SudokuGameState',
-            game_state_id: gameStateId,
-          }),
-        });
-        
-        const data = await response.json();
-        console.log('[Sudoku] Timer expired signal sent to backend', data);
-        
-        // For single-player games (no WebSocket), handle the response directly
-        if (!isMultiplayer) {
-          if (gameTimerRef.current) clearInterval(gameTimerRef.current);
-          setTimeout(() => navigation.navigate("ChallDetails", { challId: challengeId, challName, whichChall }), 2000);
-          Alert.alert(
-            "Time's Up!",
-            'The 5-minute game timer has expired. Final scores have been calculated.',
-            [{ text: 'OK', onPress: () => navigation.navigate('ChallDetails', { challId: challengeId, challName, whichChall }) }]
-          );
-          
-        }
-        // For multiplayer, the WebSocket handler will show the alert
-      } catch (e) {
-        console.error('[Sudoku] Failed to send timer expired signal:', e);
+      if (!accessToken) {
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
+        return;
       }
+
+      const response = await fetch(endpoints.gameTimerExpired, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          model: 'SudokuGameState',
+          game_state_id: gameStateId,
+        }),
+      });
+
+      const data = await response.json();
+      console.log('[Sudoku] Timer expired signal sent to backend', data);
+
+      // For single-player games (no WebSocket), handle the response directly
+      if (!isMultiplayer) {
+        if (gameTimerRef.current) clearInterval(gameTimerRef.current);
+        setTimeout(() => navigation.navigate("ChallDetails", { challId: challengeId, challName, whichChall }), 2000);
+        Alert.alert(
+          "Time's Up!",
+          'The 5-minute game timer has expired. Final scores have been calculated.',
+          [{ text: 'OK', onPress: () => navigation.navigate('ChallDetails', { challId: challengeId, challName, whichChall }) }]
+        );
+
+      }
+      // For multiplayer, the WebSocket handler will show the alert
+    } catch (e) {
+      console.error('[Sudoku] Failed to send timer expired signal:', e);
+    }
   };
-  
-    // Watch for game timer expiry
+
+  // Watch for game timer expiry
   useEffect(() => {
     if (gameTimeLeft === 0 && !gameCompleted) {
       handleTimerExpired();
@@ -279,147 +264,145 @@ const [hasShownResult, setHasShownResult] = useState(false);
   }, [gameTimeLeft, gameCompleted]);
 
   const startGameTimer = () => {
-      if (gameTimerRef.current) {
-        clearInterval(gameTimerRef.current);
-      }
-      setGameTimeLeft(300);
-      timerExpiredSentRef.current = false;
-      gameTimerRef.current = setInterval(() => {
-        setGameTimeLeft((prev) => {
-          if (prev <= 1) {
-            if (gameTimerRef.current) clearInterval(gameTimerRef.current);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+    if (gameTimerRef.current) {
+      clearInterval(gameTimerRef.current);
+    }
+    setGameTimeLeft(300);
+    timerExpiredSentRef.current = false;
+    gameTimerRef.current = setInterval(() => {
+      setGameTimeLeft((prev) => {
+        if (prev <= 1) {
+          if (gameTimerRef.current) clearInterval(gameTimerRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
-  
+
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-    const refreshSkills = async () => {
-      try {
-              const accessToken = await getAccessToken();
-              if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+  const refreshSkills = async () => {
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
-              }
-        const res = await fetch(endpoints.skillLevels(Number(user?.id)), {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`
-                }
-              });
-        const data = await res.json();
-        setSkillLevels(data.skillLevels);
-      } catch (err) {
-        console.error("skill refresh failed", err);
-      }
-    };
-    useEffect(() => {
-      if (!waitingActive) {
-        if (showCountdown) {
-          setShowCountdown(false);
-          setCountdownValue(null);
-        }
         return;
       }
-      if (remainingSec <= 3 && remainingSec > 0) {
-        setShowCountdown(true);
-        setCountdownValue(remainingSec);
-      } else if (remainingSec <= 0) {
-        // countdown finished → auto-start
-        if (showCountdown) {
-          setShowCountdown(false);
-          setCountdownValue(null);
+      const res = await fetch(endpoints.skillLevels(Number(user?.id)), {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
         }
-        // setWaitingActive(false);
-        // Ask server to close joins (safe even if close task fires too)
-        socketRef.current?.send(JSON.stringify({ type: 'start_game' }));
-      } else {
-        // more than 3 seconds left
-        if (showCountdown) {
-          setShowCountdown(false);
-          setCountdownValue(null);
+      });
+      const data = await res.json();
+      setSkillLevels(data.skillLevels);
+    } catch (err) {
+      console.error("skill refresh failed", err);
+    }
+  };
+  useEffect(() => {
+    if (!waitingActive) {
+      if (showCountdown) {
+        setShowCountdown(false);
+        setCountdownValue(null);
+      }
+      return;
+    }
+    if (remainingSec <= 3 && remainingSec > 0) {
+      setShowCountdown(true);
+      setCountdownValue(remainingSec);
+    } else if (remainingSec <= 0) {
+      // countdown finished → auto-start
+      if (showCountdown) {
+        setShowCountdown(false);
+        setCountdownValue(null);
+      }
+      // Ask server to close joins (safe even if close task fires too)
+      socketRef.current?.send(JSON.stringify({ type: 'start_game' }));
+    } else {
+      // more than 3 seconds left
+      if (showCountdown) {
+        setShowCountdown(false);
+        setCountdownValue(null);
+      }
+    }
+  }, [remainingSec, waitingActive]);
+  // AI - Save scores
+  const saveScores = async (payload: {
+    challenge_id: number;
+    game_id?: number;
+    game_name?: string;
+    date?: string;
+    scores: { username: string; score: number; accuracy?: number; inaccuracy?: number }[];
+  }) => {
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
+
+        return;
+      }
+
+      const doPost = async () => fetch(endpoints.submitGameScores(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      let res = await doPost();
+      if (!res.ok) {
+        await new Promise(r => setTimeout(r, 150));
+        res = await doPost();
+        if (!res.ok) {
+          const txt = await res.text().catch(() => '');
+          throw new Error(`Submit failed (${res.status}) ${txt}`);
         }
       }
-    }, [remainingSec, waitingActive]);
-  // AI - Save scores
-   const saveScores = async (payload: {
-     challenge_id: number;
-     game_id?: number;
-     game_name?: string;
-     date?: string;
-     scores: { username: string; score: number; accuracy?: number; inaccuracy?: number }[];
-   }) => {
-     try {
-        const accessToken = await getAccessToken();
-        if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+    } catch (e) {
+      console.error('Failed to submit scores', e);
+    }
+  };
 
-                  return;
-        }
 
-        const doPost = async () => fetch(endpoints.submitGameScores(), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            "Authorization": `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify(payload),
-        });
-        let res = await doPost();
-        if (!res.ok) {
-          await new Promise(r => setTimeout(r, 150));
-          res = await doPost();
-          if (!res.ok) {
-            const txt = await res.text().catch(() => '');
-            throw new Error(`Submit failed (${res.status}) ${txt}`);
-          }
-        }
-     } catch (e) {
-       console.error('Failed to submit scores', e);
-     }
-   };
-
-  
-  // 🧾 Finalize Sudoku result for single-player mode (client-driven)
   const finalizeSudokuResult = async ({
     game_state_id,
     accuracyCount,
@@ -431,29 +414,29 @@ const [hasShownResult, setHasShownResult] = useState(false);
     accuracyCount: number;
     inaccuracyCount: number;
     is_complete: boolean;
-    score: number;  // ✅ Now explicitly required since it's computed locally
+    score: number;
   }) => {
     try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                Alert.alert(
-                  "Session expired",
-                  "Your login session has expired. Please log in again.",
-                  [
-                    {
-                      text: "OK",
-                      onPress: async () => {
-                        await logout();
-                        navigation.reset({
-                          index: 0,
-                          routes: [{ name: "Login" }],
-                        });
-                      },
-                    },
-                  ],
-                  { cancelable: false }
-                );
-                return;
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
+        return;
       }
 
       // Fire and forget — no UI delay
@@ -468,7 +451,7 @@ const [hasShownResult, setHasShownResult] = useState(false);
           accuracyCount,
           inaccuracyCount,
           is_complete,
-          score, // ✅ include client-calculated score
+          score,
         }),
       });
 
@@ -487,32 +470,30 @@ const [hasShownResult, setHasShownResult] = useState(false);
     }
   };
 
-
-
   // INITIALIZE GAME
   const initGame = async () => {
     try {
       const accessToken = await getAccessToken();
       if (!accessToken) {
-                  Alert.alert(
-                    "Session expired",
-                    "Your login session has expired. Please log in again.",
-                    [
-                      {
-                        text: "OK",
-                        onPress: async () => {
-                          await logout();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Login" }],
-                          });
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
+        Alert.alert(
+          "Session expired",
+          "Your login session has expired. Please log in again.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
 
-                  return;
+        return;
       }
 
       const res = await fetch(endpoints.createSudokuGame, {
@@ -546,10 +527,7 @@ const [hasShownResult, setHasShownResult] = useState(false);
       const data = await res.json();
       console.log("Response data:", data);
 
-      // const { game_id, game_state_id, puzzle, is_multiplayer, created_at, join_deadline_at } = data;
-      // 🆕 Accept solution from backend
       const { game_id, game_state_id, puzzle, solution, is_multiplayer, created_at, join_deadline_at } = data;
-
 
       setIsMultiplayer(!!is_multiplayer);
 
@@ -568,14 +546,11 @@ const [hasShownResult, setHasShownResult] = useState(false);
       setGrid(flatten(puzzle));
       setInitialCells(flatten(puzzle).map((n) => n !== ''));
 
-      // 🆕 Store the Sudoku solution
       setSolution(solution);
 
       setCellColors(Array(81).fill('white'));
-      // setTimeLeft(300);
       setGameCompleted(false);
       setSelectedIndex(null);
-      // setPendingInput('');
 
       // WebSocket connection for multiplayer
       console.log("Is multiplayer:", is_multiplayer);
@@ -600,42 +575,10 @@ const [hasShownResult, setHasShownResult] = useState(false);
           const data = JSON.parse(event.data) as ServerToClientMessage;
           console.log("[WebSocket] Message received:", data);
 
-          // 🧪 new: check for ignored
           if (data.type === 'ignored') {
             ToastAndroid.show("⚠️ This cell has already been completed", ToastAndroid.SHORT);
             return;
           }
-
-          // if (data.type === 'cell_locked') {
-
-          //   setCellLocks(prev => ({ ...prev, [data.cell]: data.player }));
-
-          //   setCellBorderColors(prev => {
-          //     const updated = [...prev];
-          //     updated[data.cell] = data.color;
-          //     console.log('[DEBUG cell_locked] border color for cell', data.cell, 'set to', data.color);
-          //     return updated;
-          //   });
-          //   return;
-          // }
-
-          // if (data.type === 'cell_unlocked') {
-          //   setCellLocks(prev => {
-          //     const updated = { ...prev };
-          //     delete updated[data.cell];
-          //     return updated;
-          //   });
-
-          //   // reset border color to black if not locked by anyone else
-          //   setCellBorderColors(prev => {
-          //     const updated = [...prev];
-          //     updated[data.cell] = 'black';
-          //     console.log('[DEBUG cell_unlocked] border color reset for cell', data.cell);
-          //     return updated;
-          //   });
-          //   return;
-          // }
-
 
           switch (data.type) {
             case "cell_locked": {
@@ -740,7 +683,7 @@ const [hasShownResult, setHasShownResult] = useState(false);
               console.log('member ids:', (members || []).map(x => x.id));
               break;
             }
-            
+
             case 'join_window_closed': {
               setWaitingActive(false);
               if (countdownRef.current) {
@@ -749,47 +692,42 @@ const [hasShownResult, setHasShownResult] = useState(false);
               }
               setShowCountdown(false);
               setCountdownValue(null);
-            // Start 5-minute game timer when join window closes
               startGameTimer();
               break;
             }
 
-          case 'timeout': {
-            Alert.alert('Timeout', 'You have been timed out for inactivity.', [
-              { text: 'OK', onPress: () => navigation.navigate('ChallDetails', { challId: challengeId, challName, whichChall }) },
-            ]);
-            setTimeout(() => navigation.navigate("ChallDetails", { challId: challengeId, challName, whichChall }), 2000);
-            break;
-          }
+            case 'timeout': {
+              Alert.alert('Timeout', 'You have been timed out for inactivity.', [
+                { text: 'OK', onPress: () => navigation.navigate('ChallDetails', { challId: challengeId, challName, whichChall }) },
+              ]);
+              setTimeout(() => navigation.navigate("ChallDetails", { challId: challengeId, challName, whichChall }), 2000);
+              break;
+            }
 
-          case 'timer_expired': {
-            if (gameTimerRef.current) clearInterval(gameTimerRef.current);
-            Alert.alert('Time\'s Up!', 'The 5-minute game timer has expired.', [
-              { text: 'OK', onPress: () => navigation.navigate('ChallDetails', { challId: challengeId, challName, whichChall }) },
-            ]);
-            setTimeout(() => navigation.navigate("ChallDetails", { challId: challengeId, challName, whichChall }), 2000);
-            break;
-          }
+            case 'timer_expired': {
+              if (gameTimerRef.current) clearInterval(gameTimerRef.current);
+              Alert.alert('Time\'s Up!', 'The 5-minute game timer has expired.', [
+                { text: 'OK', onPress: () => navigation.navigate('ChallDetails', { challId: challengeId, challName, whichChall }) },
+              ]);
+              setTimeout(() => navigation.navigate("ChallDetails", { challId: challengeId, challName, whichChall }), 2000);
+              break;
+            }
 
-          case 'game_complete': {
+            case 'game_complete': {
               const { scores } = data;
               console.log("game complete score: ", scores);
               ToastAndroid.show("🧮 Calculating final scores...", ToastAndroid.SHORT);
               setGameCompleted(true);
               (async () => {
                 try {
-                  //await refreshSkills();
-                  // Auto-navigate to ChallDetails after 2s to allow backend to finalize
-                  
-
                   setTimeout(() => navigation.navigate("ChallDetails", { challId: challengeId, challName, whichChall }), 2000);
                   Alert.alert(
                     "🎉 Puzzle Complete!",
                     `\n\nScores:\n` +
-                      scores
-                        .sort((a, b) => b.score - a.score)
-                        .map(s => `${s.username}: ${s.score} (✅ ${s.accuracy} / ❌ ${s.inaccuracy})`)
-                        .join("\n"),
+                    scores
+                      .sort((a, b) => b.score - a.score)
+                      .map(s => `${s.username}: ${s.score} (✅ ${s.accuracy} / ❌ ${s.inaccuracy})`)
+                      .join("\n"),
                     [{ text: "OK", onPress: () => navigation.navigate("ChallDetails", { challId: challengeId, challName, whichChall }) }]
                   );
                 } catch (err) {
@@ -823,29 +761,10 @@ const [hasShownResult, setHasShownResult] = useState(false);
       if (gameTimerRef.current) clearInterval(gameTimerRef.current);
     };
   }, []);
-  // const restartGame = async () => {
-  //   if (intervalId) clearInterval(intervalId);
-  //   setIntervalId(null);
-  //   await initGame();
-  //   const newTimer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
-  //   setIntervalId(newTimer);
-  // };
 
-  // // When Timer Ends
-  // useEffect(() => {
-  //   if (timeLeft === 0) {
-  //     if (intervalId) clearInterval(intervalId);
-  //     Alert.alert("Time's Up!", 'You failed your team!', [{ text: 'Try Again', onPress: restartGame }]);
-  //   }
-  // }, [timeLeft]);
-
-  // On mount start game
   useEffect(() => {
     initGame();
-    // const id = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
-    // setIntervalId(id);
     return () => {
-      // clearInterval(id);
       if (socketRef.current) {
         socketRef.current.close();
       }
@@ -854,7 +773,6 @@ const [hasShownResult, setHasShownResult] = useState(false);
     };
   }, []);
 
-  // 🆕 Local Sudoku validation function
   function validateLocalMove(
     index: number,
     value: number,
@@ -864,21 +782,17 @@ const [hasShownResult, setHasShownResult] = useState(false);
     const row = Math.floor(index / 9);
     const col = index % 9;
 
-    // 🟡 1. Ignore already-correct cell
     const currentValue = grid[index];
     const correctValue = solution[row]?.[col]?.toString();
     if (currentValue === correctValue) {
       return { type: 'ignored', is_correct: false, is_complete: false, newGrid: grid };
     }
 
-    // 🟢 2. Check correctness
     const is_correct = correctValue === value.toString();
 
-    // 🟣 3. Update local grid
     const newGrid = [...grid];
     newGrid[index] = value.toString();
 
-    // 🔵 4. Check completion
     const is_complete = newGrid.every((cell, i) => {
       const r = Math.floor(i / 9);
       const c = i % 9;
@@ -889,7 +803,6 @@ const [hasShownResult, setHasShownResult] = useState(false);
   }
 
 
-  // ✏️ Updated confirmMove() — now performs local validation
   const confirmMove = async (index: number, value: number) => {
     try {
       if (index !== null) {
@@ -935,32 +848,32 @@ const [hasShownResult, setHasShownResult] = useState(false);
           const total = Math.max(accuracyCount + inaccuracyCount, 1);
           const score = Math.round((accuracyCount / total) * 100);
 
-            // Show result instantly (no need to wait for backend)
-            Alert.alert(
-              "🎉 Puzzle Complete!",
-              `✅ Correct: ${accuracyCount}\n❌ Incorrect: ${inaccuracyCount}\n⭐ Score: ${score}`,
-              [
-                {
-                  text: "OK",
-                  onPress: () => {
-                    navigation.navigate("ChallDetails", {
-                      challId: challengeId,
-                      challName,
-                      whichChall,
-                    });
-                  },
+          // Show result instantly (no need to wait for backend)
+          Alert.alert(
+            "🎉 Puzzle Complete!",
+            `✅ Correct: ${accuracyCount}\n❌ Incorrect: ${inaccuracyCount}\n⭐ Score: ${score}`,
+            [
+              {
+                text: "OK",
+                onPress: () => {
+                  navigation.navigate("ChallDetails", {
+                    challId: challengeId,
+                    challName,
+                    whichChall,
+                  });
                 },
-              ]
-            );
+              },
+            ]
+          );
 
-            // Send final results to backend asynchronously (non-blocking)
-            finalizeSudokuResult({
-              game_state_id: gameStateId,
-              accuracyCount,
-              inaccuracyCount,
-              is_complete: true,
-              score,
-            }).catch(err => console.warn('Finalize failed:', err));
+          // Send final results to backend asynchronously (non-blocking)
+          finalizeSudokuResult({
+            game_state_id: gameStateId,
+            accuracyCount,
+            inaccuracyCount,
+            is_complete: true,
+            score,
+          }).catch(err => console.warn('Finalize failed:', err));
         }
       }
     } catch (err) {
@@ -971,231 +884,85 @@ const [hasShownResult, setHasShownResult] = useState(false);
     }
   };
 
-
-
-  // const confirmMove = async (index: number, value: number) => {
-  //   try {
-  //     if (index !== null) {
-  //       if (socketRef.current) {
-  //         const message = { type: 'make_move', index, value };
-  //         socketRef.current.send(JSON.stringify(message));
-  //       } else {
-  //         // single-player API fallback
-  //         // Single-player — validate via API
-  //     const accessToken = await getAccessToken();
-  //     if (!accessToken) {
-  //       throw new Error("Not authenticated");
-  //     }
-
-  //         const res = await fetch(endpoints.validateSudokuMove, {
-  //           method: 'POST',
-  //           headers: {
-  //             'Content-Type': 'application/json',
-  //             "Authorization": `Bearer ${accessToken}`,
-  //           },
-  //           body: JSON.stringify({
-  //             game_state_id: gameStateId,
-  //             index,
-  //             value,
-  //           }),
-  //         });
-
-  //         const data = await res.json();
-
-  //         if (data.success) {
-  //           console.log("correct");
-
-  //           // Update the grid with the new puzzle values
-  //           setGrid(prevGrid => {
-  //             const updatedGrid = [...prevGrid];
-  //             updatedGrid[index] = value.toString(); // Update the cell with the correct value
-  //             return updatedGrid;
-  //           });
-
-  //           // Reset the color to white if the previous color was red
-  //           setCellColors(prevColors => {
-  //             const updatedColors = [...prevColors];
-  //             if (prevColors[index] === 'red') {
-  //               updatedColors[index] = 'white'; // Reset to white if it was previously red
-  //             }
-  //             return updatedColors;
-  //           });
-
-  //           if (data.completed) {
-  //             setGameCompleted(true);
-
-  //             (async () => {
-  //               if (user?.username) {
-  //                 try {
-  //                   await refreshSkills();
-  //                 } catch (e) {
-  //                   console.error("submit score failed", e);
-  //                 }
-  //               }
-  //               // Auto-return after 2s to allow backend to finalize
-  //               setTimeout(() => {
-  //                 navigation.navigate("ChallDetails", { challId: challengeId, challName, whichChall });
-  //               }, 2000);
-  //               Alert.alert("🎉 Puzzle Complete!", "", [
-  //                 { text: "OK" },
-  //               ]);
-  //             })();
-  //           }
-
-  //         } else {
-  //           // If the move is incorrect, set the color to red
-  //           setCellColors(prevColors => {
-  //             const updatedColors = [...prevColors];
-  //             updatedColors[index] = 'red';
-  //             return updatedColors;
-  //           });
-  //         }
-
-
-  //         // if (data.success) {
-  //         //   console.log("correct");
-  //         //   const updatedGrid = data.puzzle.flat().map((n: number) => n ? n.toString() : '');
-  //         //   setGrid(updatedGrid);
-  //         //   // get rid of red if it's there
-  //         //   if (cellColors[index] === 'red') {
-  //         //     const updatedColors = [...cellColors];
-  //         //     updatedColors[index] = 'white';
-  //         //     setCellColors(updatedColors);
-  //         //   }
-
-  //         //   if (data.completed) {
-  //         //     setGameCompleted(true);
-  //         //     // if (intervalId) clearInterval(intervalId);
-  //         //     Alert.alert("🎉 Puzzle Complete!");
-  //         //     // Alert.alert("🎉 You Win!", `Time: ${formatTime(300 - timeLeft)}`);
-  //         //   }
-  //         // } else {
-  //         //   const updatedColors = [...cellColors];
-  //         //   updatedColors[index] = 'red';
-  //         //   setCellColors(updatedColors);
-  //         //   // Alert.alert('Oops!', 'Wrong answer!');
-  //         // }
-  //       }
-  //     }
-  //   } catch (err) {
-  //     console.error('Error validating move', err);
-  //   } finally {
-  //     // setPendingInput('');
-  //     setSelectedIndex(null);
-  //   }
-  // };
-
-  // temp function for checking if the cell is already filled
-  // const checkIfBoardFilled = () => {
-  //   const allFilled = grid.every(cell => cell !== '');
-  //   if (allFilled) {
-  //     setGameCompleted(true);
-  //     Alert.alert("✅ Board Filled", "All cells have been filled. Game marked as complete.");
-  //   } else {
-  //     Alert.alert("🕵️ Not Yet", "There are still empty cells.");
-  //   }
-  // };
-
-
-
-  // // Handle cell deletion
-  // const handleDeleteMove = () => {
-  //   if (selectedIndex !== null) {
-  //     if (initialCells[selectedIndex]) {
-  //       return;
-  //     }
-  //     const newGrid = [...grid];
-  //     newGrid[selectedIndex] = '';
-  //     setGrid(newGrid);
-
-  //     const newColors = [...cellColors];
-  //     newColors[selectedIndex] = 'white';
-  //     setCellColors(newColors);
-
-  //     setSelectedIndex(null);
-  //     // setPendingInput('');
-  //   }
-  // };
-
   return (
     <ImageBackground source={require('../images/cgpt4.png')} style={styles.background} resizeMode="cover">
       <View style={styles.container}>
-      {waitingActive && (
-      <View style={styles.waitingOverlay}>
-        <View style={styles.waitingCard}>
-          <Text style={styles.waitingTitle}>Waiting Room</Text>
+        {waitingActive && (
+          <View style={styles.waitingOverlay}>
+            <View style={styles.waitingCard}>
+              <Text style={styles.waitingTitle}>Waiting Room</Text>
 
-          <View style={{ marginTop: 8 }}>
-          {members.map(m => {
-          const isOnline = onlineIds?.some(id => String(id) === String(m.id)); // robust compare
-          const initials = (m.name || '')
-            .split(' ')
-            .filter(Boolean)
-            .slice(0, 2)
-            .map(s => s[0])
-            .join('')
-            .toUpperCase();
+              <View style={{ marginTop: 8 }}>
+                {members.map(m => {
+                  const isOnline = onlineIds?.some(id => String(id) === String(m.id)); // robust compare
+                  const initials = (m.name || '')
+                    .split(' ')
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map(s => s[0])
+                    .join('')
+                    .toUpperCase();
 
-          return (
-            <View
-              key={m.id}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingVertical: 6,
-                opacity: isOnline ? 1 : 0.5,
-              }}
-            >
-              <View
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 18,
-                  marginRight: 10,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  backgroundColor: isOnline ? '#FFD700' : '#999',
-                  borderWidth: isOnline ? 2 : 1,
-                  borderColor: isOnline ? '#fff' : '#666',
-                }}
-              >
-                <Text style={{ color: isOnline ? '#333' : '#eee', fontWeight: '700' }}>
-                  {initials || '?'}
-                </Text>
+                  return (
+                    <View
+                      key={m.id}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingVertical: 6,
+                        opacity: isOnline ? 1 : 0.5,
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 18,
+                          marginRight: 10,
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          backgroundColor: isOnline ? '#FFD700' : '#999',
+                          borderWidth: isOnline ? 2 : 1,
+                          borderColor: isOnline ? '#fff' : '#666',
+                        }}
+                      >
+                        <Text style={{ color: isOnline ? '#333' : '#eee', fontWeight: '700' }}>
+                          {initials || '?'}
+                        </Text>
+                      </View>
+                      <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+                        {m.name}
+                      </Text>
+                      {isOnline && (
+                        <View style={{ marginLeft: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: '#00E676' }} />
+                      )}
+                    </View>
+                  );
+                })}
               </View>
-              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
-                {m.name}
+
+              <Text style={styles.waitingText}>
+                Players: {readyCount}/{expectedCount}
               </Text>
-              {isOnline && (
-                <View style={{ marginLeft: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: '#00E676' }} />
+              <Text style={styles.waitingText}>
+                Starts in {Math.floor(Math.max(0, remainingSec) / 60)}:
+                {(Math.max(0, remainingSec) % 60).toString().padStart(2, '0')}
+              </Text>
+
+              {canStartNow && socketRef.current && (
+                <TouchableOpacity
+                  style={styles.startBtn}
+                  onPress={() => {
+                    console.log('[Sudoku] Starting game');
+                    socketRef.current?.send(JSON.stringify({ type: 'start_game' }));
+                  }}
+                >
+                  <Text style={styles.startBtnText}>Start Game</Text>
+                </TouchableOpacity>
               )}
             </View>
-          );
-        })}
-        </View>
-
-          <Text style={styles.waitingText}>
-            Players: {readyCount}/{expectedCount}
-          </Text>
-          <Text style={styles.waitingText}>
-            Starts in {Math.floor(Math.max(0, remainingSec) / 60)}:
-            {(Math.max(0, remainingSec) % 60).toString().padStart(2, '0')}
-          </Text>
-
-          {canStartNow && socketRef.current && (
-            <TouchableOpacity
-              style={styles.startBtn}
-              onPress={() => {
-                console.log('[Sudoku] Starting game');
-                socketRef.current?.send(JSON.stringify({ type: 'start_game' }));
-              }}
-            >
-              <Text style={styles.startBtnText}>Start Game</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-    )}
+          </View>
+        )}
         {showCountdown && (
           <View style={styles.countdownOverlay}>
             <Text style={styles.countdownText}>{countdownValue}</Text>
@@ -1205,7 +972,8 @@ const [hasShownResult, setHasShownResult] = useState(false);
           <TouchableOpacity style={styles.exitButton} onPress={() => {
             navigation.navigate('ChallDetails', {
               challId: challengeId, challName: challName,
-              whichChall: whichChall,});
+              whichChall: whichChall,
+            });
           }}>
             <Text style={styles.exitText}>Exit</Text>
           </TouchableOpacity>
@@ -1219,12 +987,6 @@ const [hasShownResult, setHasShownResult] = useState(false);
           <View pointerEvents="none" style={styles.headerTitleWrap}>
             <Text style={styles.title}>Sudoku</Text>
           </View>
-          {/* <Text style={styles.timer}>Timer: {formatTime(timeLeft)}</Text> */}
-
-          {/*Temp function for checking board is full and exit is working*/}
-          {/* <TouchableOpacity style={styles.exitButton} onPress={checkIfBoardFilled}>
-            <Text style={styles.exitText}>Check</Text>
-          </TouchableOpacity> */}
         </View>
 
         {playerColor !== '' && (
@@ -1245,41 +1007,20 @@ const [hasShownResult, setHasShownResult] = useState(false);
 
           {/* Number buttons */}
           <View style={styles.numberRow}>
-            {[1,2,3,4,5,6,7,8,9].map(n => (
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => (
               <TouchableOpacity
-              key={n}
-              style={styles.numButton}
-              onPress={() => {
-                if (selectedIndex !== null && !initialCells[selectedIndex]) {
-                  confirmMove(selectedIndex, n);
-                }
-              }}
-            >
-              <Text style={styles.numText}>{n}</Text>
-            </TouchableOpacity>
-              // <TouchableOpacity key={n} style={styles.numButton} onPress={() => setPendingInput(n.toString())}>
-              //   <Text style={styles.numText}>{n}</Text>
-              // </TouchableOpacity>
+                key={n}
+                style={styles.numButton}
+                onPress={() => {
+                  if (selectedIndex !== null && !initialCells[selectedIndex]) {
+                    confirmMove(selectedIndex, n);
+                  }
+                }}
+              >
+                <Text style={styles.numText}>{n}</Text>
+              </TouchableOpacity>
             ))}
           </View>
-
-          {/* Delete and confirm buttons
-          <View style={styles.actionRow}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={handleDeleteMove}
-            >
-              <Image source={require('../images/trash.png')} style={{ width: 20, height: 20, resizeMode: 'contain',}} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={confirmMove}
-            >
-              <Image source={require('../images/check.png')} style={{ width: 20, height: 20, resizeMode: 'contain',}} />
-            </TouchableOpacity>
-
-          </View> */}
         </View>
 
         {/* Sudoku grid */}
@@ -1295,7 +1036,7 @@ const [hasShownResult, setHasShownResult] = useState(false);
                     onPress={() => {
                       if (initialCells[index]) return;
 
-                      // 🟡 If the player taps the same cell again → unselect it and show a toast
+                      // If the player taps the same cell again → unselect it and show a toast
                       if (selectedIndex === index) {
                         ToastAndroid.show('⚠️ You have already selected this cell', ToastAndroid.SHORT);
                         setSelectedIndex(null); // remove yellow highlight
@@ -1305,19 +1046,19 @@ const [hasShownResult, setHasShownResult] = useState(false);
                         return;
                       }
 
-                      // 🧭 Step 1: If another cell was previously locked → unlock it
+                      // Step 1: If another cell was previously locked → unlock it
                       if (socketRef.current && selectedIndex !== null && selectedIndex !== index) {
                         socketRef.current.send(JSON.stringify({ type: 'unlock_cell', index: selectedIndex }));
                       }
 
-                      // 🧭 Step 2: Check if this cell is locked by another player
+                      // Step 2: Check if this cell is locked by another player
                       const lockedBy = cellLocks[index];
                       if (lockedBy && lockedBy !== user?.username) {
                         ToastAndroid.show(`⚠️ This cell is locked by ${lockedBy}`, ToastAndroid.SHORT);
                         return;
                       }
 
-                      // 🧭 Step 3: If not locked → lock this cell
+                      // Step 3: If not locked → lock this cell
                       if (!lockedBy && socketRef.current) {
                         socketRef.current.send(JSON.stringify({ type: 'lock_cell', index }));
                         // show a temporary "pending" state visually (optional)
@@ -1328,13 +1069,13 @@ const [hasShownResult, setHasShownResult] = useState(false);
                         });
                       }
 
-                      // 🧭 Step 4: Update current selection
+                      // Step 4: Update current selection
                       setSelectedIndex(index);
                     }}
                     style={[
                       styles.cell,
-                      { 
-                        backgroundColor: cellColors[index], 
+                      {
+                        backgroundColor: cellColors[index],
                         // use player color when selected, otherwise keep the border color
                         borderColor: selected
                           ? (playerColor || '#ffbf00') // :yellow_circle: fallback to yellow if no player color
@@ -1364,16 +1105,8 @@ const [hasShownResult, setHasShownResult] = useState(false);
                 <Text style={styles.playerName}>{player}</Text>
               </View>
             ))}
-            {/* <TouchableOpacity style={styles.restartButton} onPress={restartGame}>
-              <Text style={styles.restartText}>Restart</Text>
-            </TouchableOpacity> */}
           </View>
         )}
-
-        {/* message box */}
-        {/* <View style={styles.chatBox}>
-          <TextInput placeholder="Type a message..." style={styles.chatInput} />
-        </View> */}
       </View>
     </ImageBackground>
   );
@@ -1392,13 +1125,13 @@ const styles = StyleSheet.create({
   headerTitleWrap: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' },
 
   // color info styles
-  colorInfoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8},
-  colorInfo: { fontSize: 16, color: 'white', marginRight: 8},
-  colorBox: { width: 20, height: 20, borderRadius: 4, borderWidth: 1, borderColor: 'black'},
+  colorInfoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  colorInfo: { fontSize: 16, color: 'white', marginRight: 8 },
+  colorBox: { width: 20, height: 20, borderRadius: 4, borderWidth: 1, borderColor: 'black' },
   info: { color: 'white', textAlign: 'center', marginBottom: 5 },
 
   // number pad, delete, and confirm button styles
-  numberPad: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', marginVertical: 10, gap: 10,},
+  numberPad: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', marginVertical: 10, gap: 10, },
   numberRow: {
     flexDirection: 'row',
     flexWrap: 'nowrap',
@@ -1453,13 +1186,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 20,
   },
-  // waiting room styles
   waitingOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    bottom: 0,              // full-screen
+    bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.85)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -1470,11 +1202,10 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     paddingHorizontal: 16,
     borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.1)',  // glass-like
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderColor: 'rgba(255,255,255,0.25)',
     borderWidth: 1,
-  }, 
-  // Big 3-2-1
+  },
   countdownText: {
     fontSize: 72,
     color: '#FFD700',
@@ -1489,7 +1220,6 @@ const styles = StyleSheet.create({
   waitingText: { color: 'white', fontSize: 14, textAlign: 'center', marginBottom: 6 },
   startBtn: { marginTop: 12, backgroundColor: '#FFD700', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, alignSelf: 'center' },
   startBtnText: { color: '#333', fontWeight: '700' },
-  // Sudoku grid styles
   gridContainer: { backgroundColor: 'black' },
   row: { flexDirection: 'row' },
   cell: { width: CELL_SIZE, height: CELL_SIZE, borderWidth: BORDER_WIDTH_THIN, borderColor: 'black', justifyContent: 'center', alignItems: 'center', backgroundColor: 'white' },
@@ -1497,14 +1227,10 @@ const styles = StyleSheet.create({
   thickTopBorder: { borderTopWidth: BORDER_WIDTH_THICK },
   thickLeftBorder: { borderLeftWidth: BORDER_WIDTH_THICK },
   cellText: { fontSize: 16 },
-
-  // player color and restart button styles
   colorRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 10 },
   avatar: { width: 40, height: 40, borderWidth: 3, borderRadius: 20, marginHorizontal: 5, backgroundColor: 'gray' },
   restartButton: { backgroundColor: 'lightgreen', padding: 8, borderRadius: 5, marginLeft: 10 },
   restartText: { fontWeight: 'bold' },
-
-  // message input
   chatBox: { width: '90%', backgroundColor: 'white', borderRadius: 5, padding: 5 },
   chatInput: { fontSize: 16 },
 });

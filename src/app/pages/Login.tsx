@@ -40,86 +40,29 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     if (user?.id) {
       console.log("Logged in user ID:", user.id)
     }
-  }, [user])  
+  }, [user])
 
   const goToSignUp = () => {
     navigation.navigate('SignUp');
   };
 
-  // const handleLogin = async () => {
-  //   if (!username || !password) {
-  //     Alert.alert('Error', 'Please enter both username and password');
-  //     return;
-  //   }
-
-  //   try {
-  //     // Step 1: Get CSRF token and store in context
-  //     console.log('here');
-  //     const res = await fetch(`${BASE_URL}/api/csrf-token/`, {
-  //       credentials: 'include',
-  //     });
-  //     const tokenData = await res.json();
-  //     const csrfToken = tokenData.csrfToken;
-  //     console.log('token in handleLogin: ' + csrfToken);
-  //     // setCsrfToken(csrfToken); // Store token in context
-
-  //     // Step 2: Use token to login
-      // const response = await fetch(endpoints.login, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'X-CSRFToken': csrfToken,
-      //   },
-      //   credentials: 'include',
-      //   body: JSON.stringify({ username, password }),
-      // });
-
-      // const data = await response.json();
-
-      // // Step 3: Check response
-      // if (response.ok && data.success) {
-      //   setUser({
-      //     id: data.id,
-      //     name: data.name,
-      //     email: data.email,
-      //     username: data.username,
-      //   });
-  //       // If redirected here, go to intended screen
-  //       if (route.params && route.params.redirectTo) {
-  //         navigation.replace(
-  //           route.params.redirectTo,
-  //           route.params.redirectParams || {},
-  //         );
-  //       } else {
-  //         navigation.navigate('Profile');
-  //       }
-  //     } else {
-  //       Alert.alert('Login Failed', data.error || 'Login failed');
-  //       console.log('response status:', response.status);
-  //       console.log('response body:', data);
-  //     }
-  //   } catch (error) {
-  //     console.error('Login error:', error);
-  //     Alert.alert('Error', 'Network error or server is down.');
-  //   }
-  // };
 
   const handleLogin = async () => {
-  try {
-    // Step 1: exchange username+password for tokens
-    const tokenRes = await fetch(endpoints.token, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
+    try {
+      // Step 1: exchange username+password for tokens
+      const tokenRes = await fetch(endpoints.token, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
 
-    if (!tokenRes.ok) throw new Error("Invalid credentials");
+      if (!tokenRes.ok) throw new Error("Invalid credentials");
 
-    const { access, refresh } = await tokenRes.json();
+      const { access, refresh } = await tokenRes.json();
 
-    // Step 2: save tokens securely (expo-secure-store recommended)
-    await SecureStore.setItemAsync("access", access);
-    await SecureStore.setItemAsync("refresh", refresh);
+      // Step 2: save tokens securely (expo-secure-store recommended)
+      await SecureStore.setItemAsync("access", access);
+      await SecureStore.setItemAsync("refresh", refresh);
 
 
       const response = await fetch(endpoints.login, {
@@ -144,95 +87,90 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           routes: [{ name: "Profile", params: {} }],
         });
       }
-  } catch (err: any) {
-    Alert.alert("Login Failed", err.message);
-  }
-};
+    } catch (err: any) {
+      Alert.alert("Login Failed", err.message);
+    }
+  };
 
 
   return (
-    // <KeyboardAvoidingView
-    //   behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    //   style={styles.container}
-    // >
-      <ImageBackground
-        source={require('../images/cgpt3.png')}
-        style={styles.backgroundImage}
-        resizeMode="cover"
-      >
-        <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-        <View style={styles.contentContainer}>
-          <View style={styles.logoContainer}>
-            <Image
-              source={require('../images/wuw3.png')}
-              style={styles.logoImage}
-              resizeMode="contain"
+    <ImageBackground
+      source={require('../images/cgpt3.png')}
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    >
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <View style={styles.contentContainer}>
+        <View style={styles.logoContainer}>
+          <Image
+            source={require('../images/wuw3.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+        </View>
+
+        <View style={styles.formContainer}>
+          <View style={styles.inputWrapper}>
+            <Ionicons
+              name="person-outline"
+              size={20}
+              color="#666"
+              style={styles.inputIcon}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Username"
+              placeholderTextColor="#999"
+              value={username}
+              onChangeText={setUsername}
+              autoCapitalize="none"
             />
           </View>
 
-          <View style={styles.formContainer}>
-            <View style={styles.inputWrapper}>
-              <Ionicons
-                name="person-outline"
-                size={20}
-                color="#666"
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Username"
-                placeholderTextColor="#999"
-                value={username}
-                onChangeText={setUsername}
-                autoCapitalize="none"
-              />
-            </View>
-
-            <View style={styles.inputWrapper}>
-              <Ionicons
-                name="lock-closed-outline"
-                size={20}
-                color="#666"
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor="#999"
-                secureTextEntry={!showPassword}
-                value={password}
-                onChangeText={setPassword}
-              />
-              <TouchableOpacity
-                style={styles.eyeIcon}
-                onPress={() => setShowPassword(!showPassword)}
-              >
-                <Ionicons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={20}
-                  color="#666"
-                />
-              </TouchableOpacity>
-            </View>
-
+          <View style={styles.inputWrapper}>
+            <Ionicons
+              name="lock-closed-outline"
+              size={20}
+              color="#666"
+              style={styles.inputIcon}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor="#999"
+              secureTextEntry={!showPassword}
+              value={password}
+              onChangeText={setPassword}
+            />
             <TouchableOpacity
-              style={[styles.loginButton, styles.loginButtonBackground]}
-              onPress={handleLogin}
-              activeOpacity={0.9}
+              style={styles.eyeIcon}
+              onPress={() => setShowPassword(!showPassword)}
             >
-              <Text style={styles.loginButtonText}>Login</Text>
+              <Ionicons
+                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                size={20}
+                color="#666"
+              />
             </TouchableOpacity>
           </View>
 
-          <View style={styles.signupContainer}>
-            <Text style={styles.signupText}>New to the app?</Text>
-            <TouchableOpacity onPress={goToSignUp}>
-              <Text style={styles.signupLink}>Sign Up</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={[styles.loginButton, styles.loginButtonBackground]}
+            onPress={handleLogin}
+            activeOpacity={0.9}
+          >
+            <Text style={styles.loginButtonText}>Login</Text>
+          </TouchableOpacity>
         </View>
-      </ImageBackground>
-    // </KeyboardAvoidingView>
+
+        <View style={styles.signupContainer}>
+          <Text style={styles.signupText}>New to the app?</Text>
+          <TouchableOpacity onPress={goToSignUp}>
+            <Text style={styles.signupLink}>Sign Up</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </ImageBackground>
   );
 };
 
@@ -243,12 +181,12 @@ const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
   },
-contentContainer: {
-  width: '100%',
-  alignItems: 'center',
-  paddingHorizontal: 20,
-  paddingTop: 50,   // same as your working screen
-},
+  contentContainer: {
+    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 50,
+  },
   logoContainer: {
     alignItems: 'center',
     marginBottom: 40,
