@@ -1,3 +1,11 @@
+/**
+ * @file BootstrapScreen.tsx
+ * @description This handles the app’s initial authentication check, as well
+ * as verify the stored access token, retrieve the user profile if valid, and 
+ * redirect the user to the appropriate screen (such as Profile, Login, or 
+ * another screen passed through route params).
+ */
+
 import React, { useEffect } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { getAccessToken } from "../auth";
