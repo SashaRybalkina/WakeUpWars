@@ -11,10 +11,10 @@ const { NotificationModule } = NativeModules;
 class NotificationService {
 
   static async sendNotification(
-    userId: number, 
-    title: string, 
-    body: string, 
-    screen: string, 
+    userId: number,
+    title: string,
+    body: string,
+    screen: string,
     params?: { challengeId?: number; challName?: string; whichChall?: string }
   ) {
     try {
@@ -34,14 +34,15 @@ class NotificationService {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify({ 
-          user_id: userId, 
-          title, 
-          body, 
-          screen, 
-          challengeId, 
-          challName, 
-          whichChall }),
+        body: JSON.stringify({
+          user_id: userId,
+          title,
+          body,
+          screen,
+          challengeId,
+          challName,
+          whichChall
+        }),
       });
 
       if (!res.ok) {

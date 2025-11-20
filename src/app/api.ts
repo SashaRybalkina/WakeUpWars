@@ -4,19 +4,15 @@
  */
 
 export const BASE_URL = 'https://leathery-punishingly-darcey.ngrok-free.dev';
-// blah
-//export const BASE_URL = 'https://f33a8334ac07.ngrok-free.app';
 
 export const endpoints = {
-  // getToken
   login: `${BASE_URL}/api/login/`,
   token: `${BASE_URL}/api/token/`,
   tokenRefresh: `${BASE_URL}/api/token/refresh/`,
   register: `${BASE_URL}/api/register/`,
   groups: (userId: number) => `${BASE_URL}/api/user-groups/${userId}/`,
   getMatchingChallenges: (userId: number, categoryIds: number[], singOrMult: string) =>
-  `${BASE_URL}/api/get-matching-challenges/${userId}/${categoryIds.join(',')}/${singOrMult}/`,
-
+    `${BASE_URL}/api/get-matching-challenges/${userId}/${categoryIds.join(',')}/${singOrMult}/`,
   friends: (userId: number) => `${BASE_URL}/api/user-friends/${userId}/`,
   cats: () => `${BASE_URL}/api/cats/`,
   collectBadge: () => `${BASE_URL}/api/collect-badge/`,
@@ -25,7 +21,6 @@ export const endpoints = {
   collectBetRefund: () => `${BASE_URL}/api/collect-bet-refund/`,
   someCats: (categoryIds: number[], singOrMult: string) =>
     `${BASE_URL}/api/some-cats/?ids=${categoryIds.join(",")}&sing_or_mult=${singOrMult}`,
-
   games: (catId: number, singOrMult: string) =>
     `${BASE_URL}/api/games/${catId}/${singOrMult}/`,
   singOrMultGames: (singOrMult: string) =>
@@ -35,8 +30,6 @@ export const endpoints = {
   extraMemojies: (userId: number, baseId: number) => `${BASE_URL}/api/extra-memojies/${userId}/${baseId}/`,
   purchaseMemoji: (userId: number, memojiId: number) => `${BASE_URL}/api/purchase-memoji/${userId}/${memojiId}/`,
   setCurrentMemoji: (userId: number) => `${BASE_URL}/api/set-current-memoji/${userId}/`,
-
-
   conversation: (userId: number, recipientId: number) => `${BASE_URL}/api/conversation/${userId}/${recipientId}/`,
   groupConversations: (userId: number) => `${BASE_URL}/api/user/${userId}/group-conversations/`,
   sendGroupMessage: (groupId: number) => `${BASE_URL}/api/messages/send/group/${groupId}/`,
@@ -55,7 +48,7 @@ export const endpoints = {
     `${BASE_URL}/api/challenge-detail/${challId}/`,
   deleteChallenge: (challId: number) =>
     `${BASE_URL}/api/delete-challenge/${challId}/`,
-  challengeReward: (challId:number)=> `${BASE_URL}/api/challenges/${challId}/reward/`,
+  challengeReward: (challId: number) => `${BASE_URL}/api/challenges/${challId}/reward/`,
   challengeList: (userId: number, whichChall: string) =>
     `${BASE_URL}/api/challenges/${userId}/${whichChall}/`,
   currentChallenges: (userId: number, whichChall: string) =>
@@ -64,14 +57,13 @@ export const endpoints = {
   getPublicChallenges: (userId: number) => `${BASE_URL}/api/get-public-challenges/${userId}/`,
   joinPublicChallenge: (userId: number) => `${BASE_URL}/api/join-public-challenge/${userId}/`,
   finalizePublicChallenge: () => `${BASE_URL}/api/finalize-public-challenge/`,
-  // getCurrentPublicChallenges: (userId: number) => `${BASE_URL}/api/challenges/${userId}/`,
   getPersonalChallenges: (userId: number) => `${BASE_URL}/api/get-personal-challenges/${userId}/`,
   challengeSchedule: (challId: number) =>
     `${BASE_URL}/api/challenge-schedule/${challId}/`,
   getChallengeSchedule: (challId: number) =>
     `${BASE_URL}/api/get-challenge-schedule/${challId}/`,
   getChallengeBets: (challId: number, userId: number) =>
-  `${BASE_URL}/api/get-challenge-bets/${challId}/${userId}/`,
+    `${BASE_URL}/api/get-challenge-bets/${challId}/${userId}/`,
   getChallengeUserSchedule: (challId: number, userId: number) =>
     `${BASE_URL}/api/get-challenge-user-schedule/${challId}/${userId}/`,
   getHasSetAlarms: (challId: number, userId: number) => `${BASE_URL}/api/get-has-set-alarms/${challId}/${userId}/`,
@@ -93,9 +85,6 @@ export const endpoints = {
     `${BASE_URL}/api/groups/invite/respond/${inviteId}/`,
   getChallengeInvites: (userId: number, groupId: number) =>
     `${BASE_URL}/api/get-challenge-invites/${userId}/${groupId}/`,
-  // challengeInvites: (userId: number, groupId: number) => `${BASE_URL}/api/challenge-invites/${userId}/${groupId}/`,
-
-  // pendingChallenges: (groupId: number) => `${BASE_URL}/api/get-pending-challenges/${groupId}/`,
   getAvailabilities: (challId: number, userId: number) =>
     `${BASE_URL}/api/get-availabilities/${challId}/${userId}/`,
   setUserAvailability: (userId: number) => `${BASE_URL}/api/set-user-availability/${userId}/`,
@@ -104,7 +93,6 @@ export const endpoints = {
     `${BASE_URL}/api/set-chall-availability/${userId}/${challId}/`,
   declineChallengeInvite: (userId: number, challId: number) =>
     `${BASE_URL}/api/decline-challenge-invite/${userId}/${challId}/`,
-
   sentFriendRequests: (userId: number) =>
     `${BASE_URL}/api/friend-requests-sent/${userId}/`,
   respondToFriendRequest: (requestId: number) =>
@@ -120,10 +108,8 @@ export const endpoints = {
   wordleFinalize: `${BASE_URL}/api/wordle/finalize/`,
   typingRaceCreate: `${BASE_URL}/api/typing-race/create/`,
   typingRaceFinalize: `${BASE_URL}/api/typing-race/finalize/`,
-
   notifications: (userId: number) => `${BASE_URL}/api/notifications/${userId}/`,
   sendNotification: `${BASE_URL}/api/notifications/send/`,
-
   createPersonalChallenge: `${BASE_URL}/api/create-personal-challenge/`,
   leaderboard: (id: number) => `${BASE_URL}/api/challenge-leaderboard/${id}/`,
   groupLeaderboard: (groupId: number) => `${BASE_URL}/api/group-leaderboard/${groupId}/`,
@@ -136,31 +122,25 @@ export const endpoints = {
   badges: (userId: number) => `${BASE_URL}/api/badges/${userId}/`,
   skillLevelDetail: (categoryId: number) => `${BASE_URL}/api/skill-levels/${categoryId}/detail/`,
   skillLevelHistory: (categoryId: number, limit = 200) => `${BASE_URL}/api/skill-levels/${categoryId}/history/?limit=${limit}`,
-  // Pattern (REST)
   patternCreate: `${BASE_URL}/api/pattern/create/`,
   patternValidate: `${BASE_URL}/api/pattern/validate/`,
   csrfToken: `${BASE_URL}/api/csrf-token/`,
   gameTimerExpired: `${BASE_URL}/api/game/timer-expired/`,
-
   sendBet: () => `${BASE_URL}/api/send-bet/`,
-
   myObligations: () => `${BASE_URL}/api/obligations/me/`,
-
   payExternal: (id: number) =>
     `${BASE_URL}/api/obligations/${id}/pay_external/`,
   payCash: (id: number) => `${BASE_URL}/api/obligations/${id}/pay_cash/`,
   payCustom: (id: number) => `${BASE_URL}/api/obligations/${id}/pay_custom/`,
   confirmPayment: (id: number) => `${BASE_URL}/api/payments/${id}/confirm/`,
   rejectPayment: (id: number) => `${BASE_URL}/api/payments/${id}/reject/`,
-
-  //shareChallenge: (challId: number) => `${BASE_URL}/api/share-challenge/${challId}/`,
-  getPersonalChallengeInvites: (userId: number) =>`${BASE_URL}/api/get-personal-challenge-invites/${userId}/`,
-  acceptPersonalChallenge: (userId: number, challId: number) =>`${BASE_URL}/api/accept-personal-challenge/${userId}/${challId}/`,
-  declinePersonalChallenge: (userId: number, challId: number) =>`${BASE_URL}/api/decline-personal-challenge/${userId}/${challId}/`,
+  getPersonalChallengeInvites: (userId: number) => `${BASE_URL}/api/get-personal-challenge-invites/${userId}/`,
+  acceptPersonalChallenge: (userId: number, challId: number) => `${BASE_URL}/api/accept-personal-challenge/${userId}/${challId}/`,
+  declinePersonalChallenge: (userId: number, challId: number) => `${BASE_URL}/api/decline-personal-challenge/${userId}/${challId}/`,
   shareChallenge: (challId?: number) =>
-  challId
-    ? `${BASE_URL}/api/share-challenge/${challId}/` 
-    : `${BASE_URL}/api/share-challenge/`,          
+    challId
+      ? `${BASE_URL}/api/share-challenge/${challId}/`
+      : `${BASE_URL}/api/share-challenge/`,
 };
 
 export const groupLeaderboardHistory = (

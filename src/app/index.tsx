@@ -6,18 +6,13 @@
 
 import React, { useEffect, useState } from "react";
 import { NativeEventEmitter, NativeModules, Platform } from 'react-native';
-import {
-  createNavigationContainerRef,
-  NavigationContainer,
-} from '@react-navigation/native';
+import { createNavigationContainerRef, NavigationContainer, } from '@react-navigation/native';
 import type { ParamListBase } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import * as Notifications from 'expo-notifications';
 import { getAccessToken } from "./auth";
 import messaging from '@react-native-firebase/messaging';
-
 import { useUser } from './context/UserContext';
-
 import BootstrapScreen from './pages/BootstrapScreen';
 import Challenges from './pages/Challenges';
 import Chall1 from './pages/Challenges/Chall1';
@@ -139,7 +134,7 @@ async function registerForFCM(userId: string) {
 
 function App() {
   const { user } = useUser();
-  const wsRef = React.useRef<WebSocket | null>(null); 
+  const wsRef = React.useRef<WebSocket | null>(null);
 
   useEffect(() => {
     if (user?.id) {
@@ -174,14 +169,14 @@ function App() {
     const emitter = IntentModule ? new NativeEventEmitter(IntentModule) : null;
     if (emitter) {
       subscription = emitter.addListener('NewIntent', (data: any) => {
-      console.log('NewIntent event =>', data);
-      const targetScreen = data.screen || "Notifications";
-      if (!user) {
-        navigate('Login', { redirectTo: targetScreen, redirectParams: data });
-      } else {
-        navigate(targetScreen, data.params);
-      }
-    });
+        console.log('NewIntent event =>', data);
+        const targetScreen = data.screen || "Notifications";
+        if (!user) {
+          navigate('Login', { redirectTo: targetScreen, redirectParams: data });
+        } else {
+          navigate(targetScreen, data.params);
+        }
+      });
     }
 
     // 3) notification tap handler (for foreground/background)
@@ -529,7 +524,7 @@ function App() {
         />
       </Stack.Navigator>
     </NavigationContainer>
-      );
+  );
 }
 
 export default App;
