@@ -1,3 +1,10 @@
+/**
+ * @file Conversation.tsx
+ * @description Allows the user to send text messages to friends or groups, and will
+ * display a name over the users in the chat if it is a group chat. Users are able
+ * to see live updates to the conversation via a websocket.
+ */
+
 import React, { useState, useEffect, useRef } from "react"
 import {
   View,
