@@ -1,3 +1,10 @@
+/**
+ * @file Challenges.tsx
+ * @description This screen simply provides buttons for navigating to the Personal, 
+ * Group, and Public challenge pages, and those pages will allow the user to see all 
+ * the challenges they have in that specific challenge category.
+ */
+
 import type React from "react"
 import { ImageBackground, StyleSheet, Text, TouchableOpacity, View, StatusBar } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
