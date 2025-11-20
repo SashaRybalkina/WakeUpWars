@@ -7,32 +7,35 @@
  */
 """
 
-from django.db.models.signals import post_save, post_delete
-from django.dispatch import receiver
 import logging
+import logging
+
 from django.db import transaction
-from django.db.models import Q, Count, F, Value, Sum, Max
+from django.db.models import Count, F, Max, Q, Sum, Value
 from django.db.models.functions import Coalesce
+from django.db.models.signals import post_delete, post_save
+from django.dispatch import receiver
 from django.shortcuts import get_object_or_404
-import logging
-logger = logging.getLogger(__name__)
 
 from api.utils.notifications import send_fcm_notification
+
 from .models import (
+    Badge,
+    Challenge,
+    ChallengeBet,
+    ChallengeMembership,
     FCMDevice,
     Game,
     GamePerformance,
-    ChallengeMembership,
     GameSchedule,
     GameScheduleGameAssociation,
-    Challenge,
-    ChallengeBet,
-    Badge,
-    UserBadge,
     User,
+    UserBadge,
     UserNotification,
 )
 from .services.skill import recompute_skill_for_category
+logger = logging.getLogger(__name__)
+
 
 # This file wires up skill calculation to run automatically
 # whenever a GamePerformance record is created updated or deleted.
@@ -142,13 +145,10 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
                 .update(daysCompleted=day_index)
             )
             
-            print("So is it updated?it hits here?: ", updated)
-            
             if not ch.groupID and not ch.isPublic and not instance.auto_generated:
                 Challenge.objects.filter(pk=ch.id).update(unlockedCoins=5)
 
             if updated:
-                # Optionally complete the challenge if this was the last day
                 should_complete = False
                 if ch.totalDays and day_index >= ch.totalDays:
                     should_complete = True
@@ -198,8 +198,6 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
                         # for now just give reward here
                         reward_amount = ch.participationFee * ch.members.count()
                         Challenge.objects.filter(pk=ch.id).update(unlockedCoins=reward_amount)
-                        # winner_user.numCoins += reward_amount
-                        # winner_user.save(update_fields=["numCoins"])
 
                         # check for first public challenge completion/win
                         if ch.isPublic:
@@ -280,15 +278,10 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
                                     
                                 if initiator_points > recipient_points:
                                     bet.winner = bet.initiator
-                                    # User.objects.filter(pk=bet.initiator.pk).update(numCoins=F('numCoins') + (2 * bet.betAmount))
                                 elif recipient_points > initiator_points:
                                     bet.winner = bet.recipient
-                                    # User.objects.filter(pk=bet.recipient.pk).update(numCoins=F('numCoins') + (2 * bet.betAmount))
                                 else:
                                     bet.winner = None  # tie
-                                    # give the coins back to each
-                                    # User.objects.filter(pk=bet.initiator.pk).update(numCoins=F('numCoins') + bet.betAmount)
-                                    # User.objects.filter(pk=bet.recipient.pk).update(numCoins=F('numCoins') + bet.betAmount)
                                 bet.save()
                                 print("BET WINNER: ", bet.winner)
                                
@@ -416,15 +409,10 @@ def _gp_maybe_advance_day(sender, instance: GamePerformance, created: bool, **kw
 
                                 if initiator_points > recipient_points:
                                     bet.winner = bet.initiator
-                                    # User.objects.filter(pk=bet.initiator.pk).update(numCoins=F('numCoins') + (2 * bet.betAmount))
                                 elif recipient_points > initiator_points:
                                     bet.winner = bet.recipient
-                                    # User.objects.filter(pk=bet.recipient.pk).update(numCoins=F('numCoins') + (2 * bet.betAmount))
                                 else:
                                     bet.winner = None  # tie
-                                    # give the coins back to each
-                                    # User.objects.filter(pk=bet.initiator.pk).update(numCoins=F('numCoins') + bet.betAmount)
-                                    # User.objects.filter(pk=bet.recipient.pk).update(numCoins=F('numCoins') + bet.betAmount)
                                 bet.save()
                                 print(bet.winner)
 

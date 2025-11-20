@@ -8,13 +8,14 @@
 """
 
 import random
-from django.db import models
+
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
+from django.db import models
 from django.db.models import Sum
 from django.utils import timezone
-from django.conf import settings
-from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 # by default, every model's table gets an auto increment integer id as the primary key. Specify a composite key with unique_together
 
@@ -363,33 +364,6 @@ class UserBadge(models.Model):
     class Meta:
         db_table = 'UserBadges'
         unique_together = ('user', 'badge')
-
-
-# class DefaultMemoji(models.Model):
-#     imageUrl = models.URLField(max_length=500)
-
-#     class Meta:
-#         db_table = 'DefaultMemojies'
-
-
-# class ExtraMemoji(models.Model):
-#     default = models.ForeignKey(DefaultMemoji, on_delete=models.CASCADE, related_name='extra_memojies')
-#     imageUrl = models.URLField(max_length=500)
-
-#     class Meta:
-#         db_table = 'ExtraMemojies'
-
-
-# class UserMemoji(models.Model):
-#     # it is assumes that Users already have unlocked all default memojies
-#     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_memojies')
-#     memoji = models.ForeignKey(ExtraMemoji, on_delete=models.CASCADE, related_name='owned_by_users')
-
-#     class Meta:
-#         db_table = 'UserMemojies'
-
-
-
     
 
 class PublicChallengeConfiguration(models.Model):
@@ -443,7 +417,6 @@ class AlarmSchedule(models.Model):
 
     class Meta:
         db_table = 'AlarmSchedules'
-        #unique_together = ('uID', 'dayOfWeek')  # Ensure one alarm per day per user
 
     def __str__(self):
         return f"Alarm for {self.uID.username} on {self.dayOfWeek} at {self.alarmTime}"
@@ -510,13 +483,6 @@ class GameScheduleGameAssociation(models.Model):
         return f"Game {self.game.name} in schedule {self.game_schedule.id} played {self.game_order}"
 
 
-
-
-
-
-
-
-
 # Game Performances: Users' performances in every game they play
 class GamePerformance(models.Model):
     challenge = models.ForeignKey(Challenge, on_delete=models.CASCADE)
@@ -566,7 +532,6 @@ class SudokuGameState(models.Model):
       class Meta:
         db_table = 'SudokuGameStates'
         unique_together = [['challenge', 'game', 'alarmDateTime', 'user']]
-        # Note: MariaDB doesn't support conditional unique constraints
         # Race condition prevention is handled by get_or_create() in transactions
 
 # representing m-m relationship between SudokuGameStates and Users. Can use to keep track of player inaccuracies/accuracies
@@ -577,9 +542,6 @@ class SudokuGamePlayer(models.Model):
       inaccuracyCount = models.IntegerField()
       color = models.CharField(max_length=30, blank=True, null=True)
       joined_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
-
-    #   completed = models.BooleanField(default=False)
-    #   completed_at = models.DateTimeField(null=True, blank=True)
     
       class Meta:
           db_table = 'SudokuGamePlayers'
@@ -599,7 +561,6 @@ class FriendRequest(models.Model):
         return f"{self.sender.username} → {self.recipient.username}"
     
 
-
 # Pattern Memorization Game: stores the state of currently running Pattern Memorization games
 class PatternMemorizationGameState(models.Model):
     game = models.ForeignKey('Game', on_delete=models.CASCADE)  # link to the general Game model
@@ -617,8 +578,6 @@ class PatternMemorizationGameState(models.Model):
     class Meta:
         db_table = 'PatternMemorizationGameStates'
         # Unique constraint to prevent race conditions
-        # For multiplayer: (challenge, game, alarmDateTime, user=NULL)
-        # For singleplayer: (challenge, game, alarmDateTime, user=<user_id>)
         unique_together = [['challenge', 'game', 'alarmDateTime', 'user']]
 
     def __str__(self):
@@ -755,7 +714,6 @@ class Payment(models.Model):
         self.obligation.recompute_status()
 
 
-
 # stores the states of currently running wordle games (what the puzzle currently looks like, the solution, who's playing)
 class WordleGameState(models.Model):
       game = models.ForeignKey(Game, on_delete=models.CASCADE)
@@ -773,7 +731,6 @@ class WordleGameState(models.Model):
       class Meta:
         db_table = 'WordleGameStates'
         unique_together = [['challenge', 'game', 'alarmDateTime', 'user']]
-        # Note: MariaDB doesn't support conditional unique constraints
         # Race condition prevention is handled by get_or_create() in transactions
 
 # representing m-m relationship between WordleGameStates and Users. Can use to keep track of player inaccuracies/accuracies
@@ -888,23 +845,3 @@ class TypingRaceGamePlayer(models.Model):
 
     def __str__(self):
         return f"{self.player.username} in TypingRace Game {self.game_state.id}"
-    
-
-
-    
-    # class Meta:
-    #     constraints = [
-    #         # Singleplayer: unique per (challenge, game, alarm datetime, user)
-    #         models.UniqueConstraint(
-    #             fields=["challenge", "game", "alarmDateTime", "user"],
-    #             condition=Q(user__isnull=False),
-    #             name="unique_singleplayer_game_state_per_alarm_user",
-    #         ),
-    #         # Multiplayer: unique per (challenge, game, alarm datetime)
-    #         models.UniqueConstraint(
-    #             fields=["challenge", "game", "alarmDateTime"],
-    #             condition=Q(user__isnull=True),
-    #             name="unique_multiplayer_game_state_per_alarm",
-    #         ),
-    #     ]
-

@@ -21,7 +21,7 @@ websocket_urlpatterns = [
     re_path(r'ws/typingrace/(?P<game_id>\d+)/$', TypingRaceConsumer.as_asgi()),
     re_path(r'ws/chat/(?P<user_id>\d+)/(?P<other_user_id>\d+)/$', ChatConsumer.as_asgi()),
     re_path(r'ws/chat/group/(?P<group_id>\d+)/$', ChatConsumer.as_asgi()),
-    re_path(r'ws/chat/groups/(?P<user_id>\d+)/$', ChatConsumer.as_asgi()),  # NEW: all group chats for user
-    re_path(r'ws/chat/users/(?P<user_id>\d+)/$', ChatConsumer.as_asgi()),   # NEW: all 1-1 chats for user
+    re_path(r'ws/chat/groups/(?P<user_id>\d+)/$', ChatConsumer.as_asgi()), 
+    re_path(r'ws/chat/users/(?P<user_id>\d+)/$', ChatConsumer.as_asgi()), 
     re_path(r'ws/user/notifications/(?P<user_id>\d+)/$', UserNotificationConsumer.as_asgi()),
 ]

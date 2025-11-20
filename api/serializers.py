@@ -6,15 +6,37 @@
  */
 """
 
-from rest_framework import serializers
-from django.contrib.auth import get_user_model
-from .models import (Group, User, SkillLevel, GameCategory, Challenge, GamePerformance, GameSchedule, Message, ChallengeMembership, Game,
-                     FriendRequest,RewardSetting, ExternalHandle, Obligation, Payment, PaymentProvider, PaymentMethod, RewardType, PublicChallengeCategoryAssociation,
-                     PublicChallengeConfiguration, ChallengeBet,)
-from django.contrib.auth.hashers import make_password
 import calendar
-from django.utils import timezone
+
+from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
 from django.db.models import Sum
+from django.utils import timezone
+from rest_framework import serializers
+
+from .models import (
+    Challenge,
+    ChallengeBet,
+    ChallengeMembership,
+    ExternalHandle,
+    FriendRequest,
+    Game,
+    GameCategory,
+    GamePerformance,
+    GameSchedule,
+    Group,
+    Message,
+    Obligation,
+    Payment,
+    PaymentMethod,
+    PaymentProvider,
+    PublicChallengeCategoryAssociation,
+    PublicChallengeConfiguration,
+    RewardSetting,
+    RewardType,
+    SkillLevel,
+    User,
+)
 
 User = get_user_model()
 
@@ -34,11 +56,7 @@ class UserSerializer(serializers.ModelSerializer):
                 "backgroundColor": obj.memojiBgColor or "#ffffff"
             }
         return None
-    
-# class FriendSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = User
-#         fields = ['id', 'name', 'username']
+
 
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
@@ -126,10 +144,6 @@ class ChallengeSummarySerializer(serializers.ModelSerializer):
 
     def get_isGroupChallenge(self, obj):
         return obj.groupID is not None
-
-    # def get_daysOfWeek(self, obj):
-    #     day_numbers = obj.gameschedule_set.values_list('dayOfWeek', flat=True)
-    #     return [calendar.day_name[day][0] for day in day_numbers]
 
     def get_daysOfWeek(self, obj):
         # Pull dayOfWeek values through ChallengeAlarmSchedule → AlarmSchedule

@@ -6,8 +6,6 @@
  */
 """
 
-# Register your models here.
-# api/admin.py
 from django.contrib import admin
 from .models import RewardSetting, ExternalHandle, Obligation, Payment
 

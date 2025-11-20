@@ -7,34 +7,38 @@
  */
 """
 
-from django.utils import timezone
 from datetime import date, timedelta
-from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
 import logging
-from django.contrib.auth import get_user_model
+
+from asgiref.sync import async_to_sync
 from celery import shared_task, uuid
-from django.db.models import F
-from django.core.cache import cache
+from channels.layers import get_channel_layer
 from django.conf import settings
-from api.sudokuStuff.utils import get_or_create_game as sudoku_init
-from api.wordleStuff.utils import get_or_create_game_wordle as wordle_init
+from django.contrib.auth import get_user_model
+from django.core.cache import cache
+from django.db.models import F
+from django.utils import timezone
+
 from api.patternMem.utils import get_or_create_pattern_game as pattern_init
+from api.sudokuStuff.utils import get_or_create_game as sudoku_init
 from api.typingRaceStuff.utils import get_or_create_typing_race_game as typing_init
+from api.wordleStuff.utils import get_or_create_game_wordle as wordle_init
+
 from .models import (
-    ChallengeMembership,
-    SudokuGameState,
-    WordleGameState,
-    PatternMemorizationGameState,
-    PatternMemorizationGamePlayer,
-    TypingRaceGameState,
-    TypingRaceGamePlayer,
-    SudokuGamePlayer,
     Challenge,
-    GamePerformance,
+    ChallengeMembership,
     Game,
+    GamePerformance,
     GameSchedule,
     GameScheduleGameAssociation,
+    PatternMemorizationGamePlayer,
+    PatternMemorizationGameState,
+    SudokuGamePlayer,
+    SudokuGameState,
+    TypingRaceGamePlayer,
+    TypingRaceGameState,
+    WordleGamePlayer,
+    WordleGameState,
 )
 
 # ---------- helper ----------
@@ -140,7 +144,7 @@ def close_join_window(model_name, gs_id):
         model_name, gs_id, timezone.now(), getattr(gs, "join_deadline_at", None)
     )
     if gs.joins_closed:
-        return  # already handled by safety-net
+        return  
 
     today = timezone.localdate()
     try:
@@ -249,7 +253,7 @@ def close_join_window(model_name, gs_id):
                     defaults={"score": 0, "auto_generated": True},
                 )
     else:
-        if model_name == 'TypingRaceGameState' and getattr(gs.challenge, 'isPublic', False):
+        if model_name == 'TypingRaceGameState':
             participant_ids = set(
                 ChallengeMembership.objects.filter(challengeID=gs.challenge)
                                         .values_list("uID_id", flat=True)
