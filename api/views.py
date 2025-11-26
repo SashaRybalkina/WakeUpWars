@@ -837,15 +837,11 @@ class JoinPublicChallengeView(APIView):
             queued = 0
             for day, t_obj, game_id in slot_tasks:
                 try:
-                    alarm_dt = build_alarm_dt(challenge.startDate, challenge.endDate, day, t_obj)
-                    if alarm_dt is None:
-                        logger.info("Skipping slot outside challenge window: day=%s time=%s", day, t_obj)
-                        continue
-                    logger.info("Computed alarm_dt=%s (tz=%s) for game_id=%s",
-                                alarm_dt, alarm_dt.tzinfo, game_id)
-
+                    # Get game info to determine if it's singleplayer or multiplayer
                     g = Game.objects.get(id=game_id)
                     g_name = (g.name or "").lower()
+                    is_multiplayer = bool(getattr(g, 'isMultiplayer', False))
+                    
                     if "sudoku" in g_name:
                         code = "sudoku"
                     elif "wordle" in g_name:
@@ -858,17 +854,72 @@ class JoinPublicChallengeView(APIView):
                         logger.warning("Unknown game name=%r id=%s; skipping", g.name, g.id)
                         continue
 
-                    initiator_id = (challenge.initiator_id or user.id)
-                    logger.info("Queueing open_join_window: chall=%s game_id=%s code=%s eta=%s initiator=%s",
-                                challenge.id, game_id, code, alarm_dt, initiator_id)
+                    if is_multiplayer:
+                        # MULTIPLAYER: Create one shared alarm for all participants
+                        alarm_dt = build_alarm_dt(challenge.startDate, challenge.endDate, day, t_obj)
+                        if alarm_dt is None:
+                            logger.info("Skipping multiplayer slot outside challenge window: day=%s time=%s", day, t_obj)
+                            continue
+                        
+                        initiator_id = (challenge.initiator_id or user.id)
+                        logger.info("Queueing multiplayer open_join_window: chall=%s game_id=%s code=%s eta=%s initiator=%s",
+                                    challenge.id, game_id, code, alarm_dt, initiator_id)
 
-                    open_join_window.apply_async(
-                        args=[challenge.id, game_id, code, initiator_id],
-                        eta=alarm_dt,
-                        # Optional: dedupe
-                        # taREDACTEDid=f"open-{challenge.id}-{game_id}-{t_obj.strftime('%H%M')}",
-                    )
-                    queued += 1
+                        open_join_window.apply_async(
+                            args=[challenge.id, game_id, code, initiator_id],
+                            eta=alarm_dt,
+                        )
+                        queued += 1
+                        
+                    else:
+                        # SINGLEPLAYER: Create separate alarms for each participant based on their individual schedules
+                        logger.info("Scheduling singleplayer game '%s' (id=%s) for individual participants", g.name, game_id)
+                        
+                        # Get all participants in the challenge
+                        participant_ids = list(
+                            ChallengeMembership.objects.filter(challengeID=challenge)
+                                                    .values_list("uID_id", flat=True)
+                        )
+                        
+                        for participant_id in participant_ids:
+                            try:
+                                # Get this participant's individual alarm schedule for this day/time
+                                participant_user = User.objects.get(pk=participant_id)
+                                 
+                                # Check if this participant has a specific alarm time for this slot
+                                # Look for ChallengeAlarmSchedule that matches this user, day, and time
+                                user_alarm = ChallengeAlarmSchedule.objects.filter(
+                                    challenge=challenge,
+                                    alarm_schedule__uID_id=participant_id,
+                                    alarm_schedule__dayOfWeek=day,
+                                    alarm_schedule__alarmTime=t_obj
+                                ).select_related('alarm_schedule').first()
+                                
+                                if user_alarm:
+                                    # Use the participant's specific alarm time
+                                    alarm_dt = build_alarm_dt(challenge.startDate, challenge.endDate, day, user_alarm.alarm_schedule.alarmTime)
+                                    if alarm_dt is None:
+                                        logger.info("Skipping singleplayer slot outside challenge window for user %s: day=%s time=%s", 
+                                                  participant_user.username, day, user_alarm.alarm_schedule.alarmTime)
+                                        continue
+                                    
+                                    logger.info("Queueing singleplayer open_join_window: chall=%s game_id=%s code=%s eta=%s user=%s (id=%s)",
+                                                challenge.id, game_id, code, alarm_dt, participant_user.username, participant_id)
+
+                                    open_join_window.apply_async(
+                                        args=[challenge.id, game_id, code, participant_id],  # Pass specific user_id
+                                        eta=alarm_dt,
+                                        taREDACTEDid=f"open-{challenge.id}-{game_id}-{participant_id}-{t_obj.strftime('%H%M')}",  # Unique task ID per user
+                                    )
+                                    queued += 1
+                                else:
+                                    logger.info("Participant %s (id=%s) has no alarm for day=%s time=%s, skipping", 
+                                              participant_user.username, participant_id, day, t_obj)
+                                    
+                            except User.DoesNotExist:
+                                logger.warning("Participant %s not found, skipping singleplayer alarm", participant_id)
+                                continue
+                                
                 except Exception as e:
                     logger.exception("Failed to queue slot (t=%s, game_id=%s): %s", t_obj, game_id, e)
                     raise
@@ -2404,13 +2455,11 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
                     queued = 0
                     for day, t_obj, game_id in slot_tasks:
                         try:
-                            alarm_dt = build_alarm_dt(challenge.startDate, challenge.endDate, day, t_obj)
-                            if alarm_dt is None:
-                                logger.info("[FinalizeCollab] Skip outside window: day=%s time=%s", day, t_obj)
-                                continue
-
+                            # Get game info to determine if it's singleplayer or multiplayer
                             g = Game.objects.get(id=game_id)
                             g_name = (g.name or "").lower()
+                            is_multiplayer = bool(getattr(g, 'isMultiplayer', False))
+                            
                             if "sudoku" in g_name:
                                 code = "sudoku"
                             elif "wordle" in g_name:
@@ -2423,15 +2472,74 @@ class FinalizeCollaborativeGroupChallengeScheduleView(APIView):
                                 logger.warning("Unknown game name=%r id=%s; skipping", g.name, g.id)
                                 continue
 
-                            logger.info(
-                                "[FinalizeCollab] Queue open_join_window chall=%s game_id=%s code=%s eta=%s initiator=%s",
-                                challenge.id, game_id, code, alarm_dt, initiator_id
-                            )
-                            open_join_window.apply_async(
-                                args=[challenge.id, game_id, code, initiator_id],
-                                eta=alarm_dt,
-                            )
-                            queued += 1
+                            if is_multiplayer:
+                                # MULTIPLAYER: Create one shared alarm for all participants
+                                alarm_dt = build_alarm_dt(challenge.startDate, challenge.endDate, day, t_obj)
+                                if alarm_dt is None:
+                                    logger.info("[FinalizeCollab] Skip multiplayer outside window: day=%s time=%s", day, t_obj)
+                                    continue
+
+                                logger.info(
+                                    "[FinalizeCollab] Queue multiplayer open_join_window chall=%s game_id=%s code=%s eta=%s initiator=%s",
+                                    challenge.id, game_id, code, alarm_dt, initiator_id
+                                )
+                                open_join_window.apply_async(
+                                    args=[challenge.id, game_id, code, initiator_id],
+                                    eta=alarm_dt,
+                                )
+                                queued += 1
+                                
+                            else:
+                                # SINGLEPLAYER: Create separate alarms for each participant based on their individual schedules
+                                logger.info("[FinalizeCollab] Scheduling singleplayer game '%s' (id=%s) for individual participants", g.name, game_id)
+                                
+                                # Get all participants in the challenge
+                                participant_ids = list(
+                                    ChallengeMembership.objects.filter(challengeID=challenge)
+                                                            .values_list("uID_id", flat=True)
+                                )
+                                
+                                for participant_id in participant_ids:
+                                    try:
+                                        # Get this participant's individual alarm schedule for this day/time
+                                        participant_user = User.objects.get(pk=participant_id)
+                                        
+                                        # Check if this participant has a specific alarm time for this slot
+                                        # Look for ChallengeAlarmSchedule that matches this user, day, and time
+                                        user_alarm = ChallengeAlarmSchedule.objects.filter(
+                                            challenge=challenge,
+                                            alarm_schedule__uID_id=participant_id,
+                                            alarm_schedule__dayOfWeek=day,
+                                            alarm_schedule__alarmTime=t_obj
+                                        ).select_related('alarm_schedule').first()
+                                        
+                                        if user_alarm:
+                                            # Use the participant's specific alarm time
+                                            alarm_dt = build_alarm_dt(challenge.startDate, challenge.endDate, day, user_alarm.alarm_schedule.alarmTime)
+                                            if alarm_dt is None:
+                                                logger.info("[FinalizeCollab] Skip singleplayer outside window for user %s: day=%s time=%s", 
+                                                          participant_user.username, day, user_alarm.alarm_schedule.alarmTime)
+                                                continue
+                                            
+                                            logger.info(
+                                                "[FinalizeCollab] Queue singleplayer open_join_window chall=%s game_id=%s code=%s eta=%s user=%s (id=%s)",
+                                                challenge.id, game_id, code, alarm_dt, participant_user.username, participant_id
+                                            )
+
+                                            open_join_window.apply_async(
+                                                args=[challenge.id, game_id, code, participant_id],  # Pass specific user_id
+                                                eta=alarm_dt,
+                                                taREDACTEDid=f"collab-{challenge.id}-{game_id}-{participant_id}-{t_obj.strftime('%H%M')}",  # Unique task ID per user
+                                            )
+                                            queued += 1
+                                        else:
+                                            logger.info("[FinalizeCollab] Participant %s (id=%s) has no alarm for day=%s time=%s, skipping", 
+                                                      participant_user.username, participant_id, day, t_obj)
+                                            
+                                    except User.DoesNotExist:
+                                        logger.warning("[FinalizeCollab] Participant %s not found, skipping singleplayer alarm", participant_id)
+                                        continue
+                                        
                         except Exception:
                             logger.exception("Failed to queue slot (t=%s, game_id=%s)", t_obj, game_id)
                             raise
@@ -5357,7 +5465,7 @@ class GameTimerExpiredView(APIView):
                 players = (
                     SudokuGamePlayer.objects
                     .select_related('player')
-                    .filter(gameState_id=gs_id)
+                    .filter(gameState=gs_id)
                 )
                 # Denominator: correct + incorrect + empties_remaining (penalize mistakes)
                 total_correct = sum(int(getattr(p, 'accuracyCount', 0) or 0) for p in players)
@@ -5385,23 +5493,67 @@ class GameTimerExpiredView(APIView):
             except Exception:
                 pass
 
-        # Zero-fill remaining participants only for multiplayer games
+        # Handle timeout scoring for both multiplayer and singleplayer games
         try:
             is_multiplayer = bool(getattr(gs.game, 'isMultiplayer', False))
         except Exception:
             is_multiplayer = False
+        
+        # Determine if this is a personal challenge (groupID is null)
+        is_personal_challenge = gs.challenge.groupID is None
+        
+        participant_ids = set(
+            ChallengeMembership.objects
+            .filter(challengeID=gs.challenge)
+            .values_list('uID_id', flat=True)
+        )
+        existing_ids = set(
+            GamePerformance.objects
+            .filter(challenge=gs.challenge, game=gs.game, date=play_date)
+            .values_list('user_id', flat=True)
+        )
+        
         if is_multiplayer:
-            participant_ids = set(
-                ChallengeMembership.objects
-                .filter(challengeID=gs.challenge)
-                .values_list('uID_id', flat=True)
-            )
-            existing_ids = set(
-                GamePerformance.objects
-                .filter(challenge=gs.challenge, game=gs.game, date=play_date)
-                .values_list('user_id', flat=True)
-            )
+            # Multiplayer: Give 0 scores to all missing participants
             for uid in participant_ids - existing_ids:
+                GamePerformance.objects.update_or_create(
+                    challenge=gs.challenge,
+                    game=gs.game,
+                    user_id=uid,
+                    date=play_date,
+                    defaults={"score": 0, "auto_generated": True},
+                )
+        elif is_personal_challenge:
+            # Personal Challenge: Only give 0 to owner if they don't have a score yet
+            owner_id = getattr(gs, 'user_id', None)
+            if owner_id and owner_id not in existing_ids:
+                GamePerformance.objects.update_or_create(
+                    challenge=gs.challenge,
+                    game=gs.game,
+                    user_id=owner_id,
+                    date=play_date,
+                    defaults={"score": 0, "auto_generated": True},
+                )
+        else:
+            # Singleplayer Group/Public Challenge: Give 0 scores to players who joined but didn't finish
+            # Get players who joined the game but don't have scores yet
+            if model_name == 'SudokuGameState':
+                joined_player_ids = set(
+                    SudokuGamePlayer.objects.filter(gameState=gs_id).values_list("player_id", flat=True)
+                )
+            elif model_name == 'WordleGameState':
+                joined_player_ids = set(
+                    WordleGamePlayer.objects.filter(gameState=gs_id).values_list("player_id", flat=True)
+                )
+            elif model_name == 'PatternMemorizationGameState':
+                joined_player_ids = set(
+                    PatternMemorizationGamePlayer.objects.filter(game_state=gs_id).values_list("player_id", flat=True)
+                )
+            else:
+                joined_player_ids = set()
+            
+            # Give 0 scores to players who joined but didn't complete
+            for uid in joined_player_ids - existing_ids:
                 GamePerformance.objects.update_or_create(
                     challenge=gs.challenge,
                     game=gs.game,
