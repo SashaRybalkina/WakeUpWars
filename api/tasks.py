@@ -322,6 +322,8 @@ def close_join_window(model_name, gs_id):
         print(f"[join-window] Personal challenge owner_id={owner_id}")
         print(f"[join-window] Personal challenge present_ids={present_ids}")
         print(f"[join-window] Personal challenge absent_ids={absent_ids}")
+        print(f"[join-window] Personal challenge participant_ids={participant_ids}")
+        print(f"[join-window] Personal challenge existing_ids={existing_ids}")
         
         if owner_id:
             # Check if owner joined their own game
@@ -337,6 +339,8 @@ def close_join_window(model_name, gs_id):
                     date=today,
                     defaults={"score": 0, "auto_generated": True},
                 )
+        else:
+            print(f"[join-window] Personal challenge has no owner_id (user_id), this shouldn't happen")
         
         # For personal challenges, do NOT give 0 scores to other participants
         # Personal challenges are individual - only the owner should be scored

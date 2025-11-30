@@ -3207,24 +3207,101 @@ class CreatePatternGameView(APIView):
             return Response({'success': False, 'error': 'Challenge not found'}, status=status.HTTP_404_NOT_FOUND)
 
         try:
-            gs = PatternMemorizationGameState.objects.filter(challenge_id=challenge_id).order_by('-id').first()
+            challenge = Challenge.objects.get(id=challenge_id)
+            
+            # Get the specific Pattern game for this challenge
+            challenge_pattern_games = (
+                Game.objects.filter(
+                    name__icontains='pattern',
+                    gameschedulegameassociation__game_schedule__challenge=challenge
+                ).distinct()
+            )
+            
+            # Check if THIS challenge's Pattern game is multiplayer
+            is_multiplayer = challenge_pattern_games.filter(isMultiplayer=True).exists() if challenge_pattern_games.exists() else False
+            
+            # Debug logging
+            print(f"[Pattern] Challenge {challenge_id}: is_multiplayer={is_multiplayer}, challenge_pattern_games={list(challenge_pattern_games.values_list('id', 'name', 'isMultiplayer'))}")
+        except Exception as e:
+            print(f"[Pattern] Error determining multiplayer status: {e}")
+            is_multiplayer = False  # Default to singleplayer if detection fails
+        
+        # Check for existing game states and performance records
+        try:
+            today = timezone.localdate()
+            
+            if is_multiplayer:
+                # Multiplayer: check any game state for this challenge
+                gs = PatternMemorizationGameState.objects.filter(challenge_id=challenge_id).order_by('-id').first()
+            else:
+                # Singleplayer: only check the current user's game state
+                gs = PatternMemorizationGameState.objects.filter(challenge_id=challenge_id, user=user).order_by('-id').first()
+            
+            print(f"[Pattern] Found existing game state: gs={gs}, gs.id={gs.id if gs else None}")
+            
             if gs:
-                today = timezone.localdate()
                 # If any GamePerformance exists for today for this challenge+game, consider it ended
-                if GamePerformance.objects.filter(challenge_id=challenge_id, game_id=gs.game_id, date=today).exists():
-                    return Response(
-                        {'code': 'GAME_ENDED', 'detail': 'This pattern memorization game has already finished for today.'},
-                        status=status.HTTP_403_FORBIDDEN,
-                    )
+                if is_multiplayer:
+                    # Multiplayer: check any performance for this game
+                    if GamePerformance.objects.filter(challenge_id=challenge_id, game_id=gs.game_id, date=today).exists():
+                        return Response(
+                            {'code': 'GAME_ENDED', 'detail': 'This pattern memorization game has already finished for today.'},
+                            status=status.HTTP_403_FORBIDDEN,
+                        )
+                else:
+                    # Singleplayer: check if user completed this specific game
+                    user_performance = GamePerformance.objects.filter(challenge_id=challenge_id, game_id=gs.game_id, user=user, date=today).first()
+                    print(f"[Pattern] Singleplayer check: challenge_id={challenge_id}, game_id={gs.game_id}, user={user.id}, user_performance={user_performance}")
+                    if user_performance:
+                        print(f"[Pattern] Found user performance: score={user_performance.score}, auto_generated={user_performance.auto_generated}")
+                        
+                        # Check if this is an auto-generated 0 score (user was marked absent)
+                        if user_performance.auto_generated and user_performance.score == 0:
+                            print(f"[Pattern] User has auto-generated 0 score - blocking access")
+                            return Response(
+                                {'code': 'GAME_ENDED', 'detail': 'This pattern memorization game has already finished for today.'},
+                                status=status.HTTP_403_FORBIDDEN,
+                            )
+                        
+                        # User legitimately completed this game - return the completed game state for results viewing
+                        try:
+                            payload = get_or_create_pattern_game(int(challenge_id), user, allow_join=False)
+                            return Response({
+                                "success": True,
+                                "game_state_id": payload.get("game_state_id"),
+                                "current_round": payload.get("current_round", 1),
+                                "max_rounds": payload.get("max_rounds", 5),
+                                "is_multiplayer": payload.get("is_multiplayer", False),
+                                "pattern_sequence": payload.get("pattern_sequence", []),
+                                "is_completed": True,
+                                "final_score": int(user_performance.score or 0),
+                                "server_now": timezone.now().isoformat(),
+                            }, status=status.HTTP_200_OK)
+                        except Exception as e:
+                            print(f"[Pattern] Exception in completed game access: {e}")
+                            import traceback
+                            traceback.print_exc()
+                            return Response(
+                                {'code': 'GAME_ENDED', 'detail': 'This pattern memorization game has already finished for today.'},
+                                status=status.HTTP_403_FORBIDDEN,
+                            )
+                
+                # CRITICAL: Check join window status - this must not be bypassed
                 now = timezone.now()
+                print(f"[Pattern] Join window check: gs.joins_closed={gs.joins_closed}, gs.join_deadline_at={gs.join_deadline_at}, now={now}")
                 if gs.joins_closed or (gs.join_deadline_at and now > gs.join_deadline_at):
+                    print(f"[Pattern] BLOCKING: Join window closed for game state {gs.id}")
                     return Response(
                         {'code': 'JOINS_CLOSED', 'detail': 'The join window has closed. Please join next time.'},
                         status=status.HTTP_403_FORBIDDEN,
                     )
-        except Exception:
-            # best-effort gating; proceed if checks fail
-            pass
+                else:
+                    print(f"[Pattern] Join window still open for game state {gs.id}")
+        except Exception as e:
+            print(f"[Pattern] Error in gating logic: {e}")
+            import traceback
+            traceback.print_exc()
+            # For safety, if there's an error in gating, still proceed but log it
         
         try:
             payload = get_or_create_pattern_game(int(challenge_id), user)
@@ -3286,17 +3363,16 @@ class ValidatePatternMoveView(APIView):
             return Response({'success': False, 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         try:
-            gs = PatternMemorizationGameState.objects.filter(challenge_id=challenge_id).order_by('-id').first()
-            if gs:
-                today = timezone.localdate()
-                # If any GamePerformance exists for today for this challenge+game, consider it ended
-                if GamePerformance.objects.filter(challenge_id=challenge_id, game_id=gs.game_id, date=today).exists():
-                    return Response(
-                        {'code': 'GAME_ENDED', 'detail': 'This game has already finished for today.'},
-                        status=status.HTTP_403_FORBIDDEN,
-                    )
-                now = timezone.now()
-                if gs.joins_closed or (gs.join_deadline_at and now > gs.join_deadline_at):
+            # Get the specific game state by ID for join window check only
+            gs = PatternMemorizationGameState.objects.select_related('challenge', 'game').get(id=game_state_id)
+            
+            # Only check join window for users who aren't already players
+            now = timezone.now()
+            if gs.joins_closed or (gs.join_deadline_at and now > gs.join_deadline_at):
+                # Check if user is already a player in this game
+                from api.models import PatternMemorizationGamePlayer
+                is_player = PatternMemorizationGamePlayer.objects.filter(game_state=gs, player=user).exists()
+                if not is_player:
                     return Response(
                         {'code': 'JOINS_CLOSED', 'detail': 'The join window has closed. Please join next time.'},
                         status=status.HTTP_403_FORBIDDEN,
@@ -3345,6 +3421,10 @@ class ValidatePatternMoveView(APIView):
                     "auto_generated": False
                 }
             )
+            
+            # Add final score to payload for frontend display
+            payload["final_score"] = final_score
+            payload["user_final_score"] = final_score  # Alternative key for clarity
 
         if result.get('is_correct'):
             return Response({"success": True, "result": "correct", **payload}, status=status.HTTP_200_OK)
@@ -3384,13 +3464,30 @@ class CreateWordleGameView(APIView):
         # --- Gating: deny join if today's scores already submitted or state closed ---
         from datetime import date as _date
         today = timezone.localdate()
-        existing_gs = (WordleGameState.objects
-                       .filter(challenge_id=challenge_id, created_at__date=today)
-                       .order_by('-id')
-                       .first())
+        
+        # For singleplayer games, only check the current user's game state
+        # For multiplayer games, check any game state for the challenge
+        challenge = Challenge.objects.get(id=challenge_id)
+        wordle_games = Game.objects.filter(name__icontains='wordle')
+        is_multiplayer = wordle_games.filter(isMultiplayer=True).exists() if wordle_games.exists() else False
+        
+        if is_multiplayer:
+            # Multiplayer: check any game state for this challenge
+            existing_gs = (WordleGameState.objects
+                           .filter(challenge_id=challenge_id, created_at__date=today)
+                           .order_by('-id')
+                           .first())
+        else:
+            # Singleplayer: only check the current user's game state
+            existing_gs = (WordleGameState.objects
+                           .filter(challenge_id=challenge_id, user=user, created_at__date=today)
+                           .order_by('-id')
+                           .first())
+        
         if existing_gs and (existing_gs.joins_closed or
                              GamePerformance.objects.filter(challenge_id=challenge_id,
                                                             game=existing_gs.game,
+                                                            user=user,
                                                             date=today).exists()):
             return Response({'code': 'JOINS_CLOSED', 'detail': 'This game can no longer be joined.'},
                             status=status.HTTP_403_FORBIDDEN)
@@ -3432,14 +3529,8 @@ class ValidateWordleMoveView(APIView):
         except WordleGameState.DoesNotExist:
             return Response({"error": "Game not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Best-effort gating tied to this game state (avoid undefined challenge_id)
+        # Best-effort gating tied to this game state - only check join window during gameplay
         try:
-            today = timezone.localdate()
-            if GamePerformance.objects.filter(challenge=gs.challenge, game=gs.game, date=today).exists():
-                return Response(
-                    {'code': 'GAME_ENDED', 'detail': 'This game has already finished for today.'},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
             now = timezone.now()
             if gs.joins_closed or (gs.join_deadline_at and now > gs.join_deadline_at):
                 return Response(
