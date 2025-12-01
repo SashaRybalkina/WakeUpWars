@@ -839,8 +839,8 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
         </TouchableOpacity>
 
         {isMultiplayer && waitingActive && (
-          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 10 }}>
-            <View style={{ width: '85%', padding: 16, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, borderWidth: 1, borderColor: '#444' }}>
+          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 10 }}>
+            <View style={{ width: '85%', padding: 16, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' }}>
               <Text style={{ color: 'white', fontSize: 20, fontWeight: '700', textAlign: 'center', marginBottom: 8 }}>Waiting Room</Text>
               {remainingSec != null && (
                 <Text style={{ color: 'white', textAlign: 'center' }}>Starts in {formatTime(remainingSec)}</Text>
