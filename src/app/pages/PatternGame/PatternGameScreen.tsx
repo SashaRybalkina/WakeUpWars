@@ -790,7 +790,7 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
           } catch (e) {
             console.error('[Pattern] finalize on complete failed', e);
           }
-          Alert.alert('🎉 Finished', `Game Complete! Final Score: ${j.final_score || j.user_final_score || 'N/A'}`, [
+          Alert.alert('🎉 Finished', `Game Complete! Final Score: ${j.final_score || j.user_final_score || ' '}`, [
             { text: 'OK', onPress: () => navigation.navigate('ChallDetails', { challId: challengeId, challName, whichChall }) },
           ]);
         } else {
