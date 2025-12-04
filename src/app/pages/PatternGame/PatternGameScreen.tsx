@@ -481,7 +481,7 @@ const PatternGameScreen: React.FC<Props> = ({ route, navigation }) => {
               .sort((a, b) => b.score - a.score)
               .map((s) => `${s.username}: ${s.score} (R${s.rounds_completed})`)
               .join('\n');
-            Alert.alert('🏁 Game Completed', lines || 'No scores', [
+            Alert.alert('🏁 Game Completed', lines || ' ', [
               { text: 'OK', onPress: () => navigation.navigate("ChallDetails", { challId: challengeId, challName, whichChall }) },
             ]);
             break;
